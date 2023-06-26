@@ -2,22 +2,19 @@
 #define FFTWConcepts_GUARD_H
 
 #include <concepts>
+#include <iterator>
 
 namespace FFTW {
 
 // Concepts for floating point types.
-template <typename Precision>
-concept IsSingle = std::same_as<Precision, float>;
+template <typename Float>
+concept IsSingle = std::same_as<Float, float>;
 
-template <typename Precision>
-concept IsDouble = std::same_as<Precision, double>;
+template <typename Float>
+concept IsDouble = std::same_as<Float, double>;
 
-template <typename Precision>
-concept IsQuadruple = std::same_as<Precision, long>;
-
-// Concepts for real numbers.
-template <typename T>
-concept Real = std::floating_point<T>;
+template <typename Float>
+concept IsQuadruple = std::same_as<Float, long>;
 
 // Concepts for complex numbers.
 template <typename T>
@@ -33,34 +30,32 @@ concept Complex = requires() {
 };
 
 // Concepts for real iterators
-  template <typename Iter>
-  concept RealIterator = requires(){    
-    requires std::contiguous_iterator<Iter>;
-    requires Real<typename Iter::value_type>;
-  };
-  
-  template <typename Iter, typename Precision>
-  concept RealIteratorWithPrecision = requires(){    
-    requires RealIterator<Iter>;
-    requires Real<Precision>;    
-    requires std::same_as<typename Iter::value_type,Precision>;
-  };
+template <typename Iter>
+concept RealIterator = requires() {
+  requires std::contiguous_iterator<Iter>;
+  requires std::floating_point<typename Iter::value_type>;
+};
 
-
+template <typename Iter, typename Float>
+concept RealIteratorWithPrecision = requires() {
+  requires RealIterator<Iter>;
+  requires std::floating_point<Float>;
+  requires std::same_as<typename Iter::value_type, Float>;
+};
 
 // Concepts for complex iterators
-  template <typename Iter>
-  concept ComplexIterator = requires(){    
-    requires std::contiguous_iterator<Iter>;
-    requires Complex<typename Iter::value_type>;
-  };
-  
-  template <typename Iter, typename Precision>
-  concept ComplexIteratorWithPrecision = requires(){    
-    requires ComplexIterator<Iter>;
-    requires Real<Precision>;    
-    requires std::same_as<typename Iter::value_type::value_type,Precision>;
-  };
+template <typename Iter>
+concept ComplexIterator = requires() {
+  requires std::contiguous_iterator<Iter>;
+  requires Complex<typename Iter::value_type>;
+};
+
+template <typename Iter, typename Float>
+concept ComplexIteratorWithPrecision = requires() {
+  requires ComplexIterator<Iter>;
+  requires std::floating_point<Float>;
+  requires std::same_as<typename Iter::value_type::value_type, Float>;
+};
 
 }  // namespace FFTW
 

@@ -1,2 +1,2 @@
-add_executable(vector_test vector_test.cpp)
-target_link_libraries(vector_test FFTW)
+add_executable(fft1d_test fft1d_test.cpp)
+target_link_libraries(fft1d_test FFTW)

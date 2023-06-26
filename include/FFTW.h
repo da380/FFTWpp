@@ -3,10 +3,11 @@
 
 #include "fftw3.h"
 #include "FFTWConcepts.h"
+#include "FFTWallocator.h"
 #include "FFTWCleanUp.h"
-#include "FFTWAllocator.h"
 #include "FFTWFlags.h"
 #include "FFTWPlan.h"
+#include "FFTWSimple.h"
 
 
 #endif // FFTW_GUARD_H

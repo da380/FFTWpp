@@ -3,18 +3,14 @@
 
 #include "fftw3.h"
 
-namespace{
+namespace FFTW {
 
-
-  void CleanUP()
-  {
-    fftwf_cleanup();
-    fftw_cleanup();
-    fftwl_cleanup();
-  }
-
+void CleanUp() {
+  fftwf_cleanup();
+  fftw_cleanup();
+  fftwl_cleanup();
 }
 
-#endif // FFTWCleanUp_GUARD_H
+}  // namespace FFTW
 
-
+#endif  // FFTWCleanUp_GUARD_H

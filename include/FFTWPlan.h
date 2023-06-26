@@ -1,89 +1,168 @@
 #ifndef FFTWPlan_GUARD_H
 #define FFTWPlan_GUARD_H
 
+#include <cassert>
 #include <variant>
 
+#include "FFTWConcepts.h"
 #include "fftw3.h"
 
 namespace FFTW {
 
+template <std::floating_point Float>
+class Plan {
+ public:
+  Plan();
 
-  
-  
-  template<std::floating_point Precision>
-  class Plan{
+  // Constructor for 1D complex to complex.
+  template <typename InputIt, typename OutputIt>
+  Plan(InputIt, InputIt, OutputIt, DirectionFlag,
+       PlanFlag = PlanFlag::Estimate) requires
+      ComplexIteratorWithPrecision<InputIt, Float> and
+      ComplexIteratorWithPrecision<OutputIt, Float>;
 
-  public:
+  // Constructor for 1D real to complex.
+  template <typename InputIt, typename OutputIt>
+  Plan(InputIt, InputIt, OutputIt, PlanFlag = PlanFlag::Estimate) requires
+      RealIteratorWithPrecision<InputIt, Float> and
+      ComplexIteratorWithPrecision<OutputIt, Float>;
 
+  // Constructor for 1D complex to real.
+  template <typename InputIt, typename OutputIt>
+  Plan(InputIt, InputIt, OutputIt, PlanFlag = PlanFlag::Estimate) requires
+      ComplexIteratorWithPrecision<InputIt, Float> and
+      RealIteratorWithPrecision<OutputIt, Float>;
 
-    Plan();
-    
-
-    // Constructor for 1D complex data using iterators.
-        template<ComplexIterator InputIt, ComplexIterator OutputIt>
-        Plan(InputIt first, InputIt last, OutputIt d_first,DirectionFlag
-	     direction,PlanFlag flag);
-    
-    // Destructor. N
-    ~Plan(){
-      DestroyPlan();      
+  // Execute the plan.
+  void execute() {
+    if constexpr (IsSingle<Float>) {
+      fftwf_execute(ConvertPlan());
     }
-      
-    
-  private:
-
-    // Store the plan as a std::variant.
-    std::variant<fftwf_plan,fftw_plan,fftwl_plan> plan;
-
-    // Get plan in fftw3 form.
-    auto getPlan();
-
-    // Destroy the plan.
-    void DestroyPlan();
-
-    
-  };
-
-
-  template<std::floating_point Precision>
-  auto Plan<Precision>::getPlan()
-    {
-      if constexpr(IsSingle<Precision>){
-	return std::get<fftwf_plan>(plan);
-      }
-      if constexpr(IsDouble<Precision>){
-	return std::get<fftw_plan>(plan);
-      }
-      if constexpr(IsQuadruple<Precision>){
-	return std::get<fftwl_plan>(plan);		
-      }      
+    if constexpr (IsDouble<Float>) {
+      fftw_execute(ConvertPlan());
     }
-
-
-  template<std::floating_point Precision>
-  void Plan<Precision>::DestroyPlan()
-    {
-      if constexpr(IsSingle<Precision>){
-	fftwf_destroy_plan(getPlan());
-      }
-      if constexpr(IsDouble<Precision>){
-	fftw_destroy_plan(getPlan());
-      }
-      if constexpr(IsQuadruple<Precision>){
-	fftwl_destroy_plan(getPlan());
-      }      
+    if constexpr (IsQuadruple<Float>) {
+      fftwl_execute(ConvertPlan());
     }
-
-  
-  template<std::floating_point Precision>
-  template<ComplexIterator InputIt, ComplexIterator OutputIt>
-  Plan<Precision>::Plan(InputIt first, InputIt last, OutputIt d_first,DirectionFlag
-	       direction,PlanFlag flag)
-  {
   }
 
- 
-  
+  // Destructor.
+  ~Plan() {
+    if constexpr (IsSingle<Float>) {
+      fftwf_destroy_plan(ConvertPlan());
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_destroy_plan(ConvertPlan());
+    }
+    if constexpr (IsQuadruple<Float>) {
+      fftwl_destroy_plan(ConvertPlan());
+    }
+  }
+
+ private:
+  // Store the dimension.
+  size_t n;
+
+  // Store the plan as a std::variant.
+  std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
+
+  // Get plan in fftw3 form.
+  auto ConvertPlan() {
+    if constexpr (IsSingle<Float>) {
+      return std::get<fftwf_plan>(plan);
+    }
+    if constexpr (IsDouble<Float>) {
+      return std::get<fftw_plan>(plan);
+    }
+    if constexpr (IsQuadruple<Float>) {
+      return std::get<fftwl_plan>(plan);
+    }
+  }
+
+  // Reinterpret cast std::complex* to fftw_complex*.
+  auto ComplexCast(std::complex<Float>* z) {
+    if constexpr (IsSingle<Float>) {
+      return reinterpret_cast<fftwf_complex*>(z);
+    }
+    if constexpr (IsDouble<Float>) {
+      return reinterpret_cast<fftw_complex*>(z);
+    }
+    if constexpr (IsQuadruple<Float>) {
+      return reinterpret_cast<fftwf_complex*>(z);
+    }
+  }
+};
+
+// Constructor for 1D complex data.
+template <std::floating_point Float>
+template <typename InputIt, typename OutputIt>
+Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
+                  DirectionFlag direction, PlanFlag flag) requires
+    ComplexIteratorWithPrecision<InputIt, Float> and
+    ComplexIteratorWithPrecision<OutputIt, Float> {
+  n = in_last - in_first;
+  if constexpr (IsSingle<Float>) {
+    plan = fftwf_plan_dft_1d(
+        n, ComplexCast(&*in_first), ComplexCast(&*out_first),
+        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+  }
+  if constexpr (IsDouble<Float>) {
+    plan = fftw_plan_dft_1d(
+        n, ComplexCast(&*in_first), ComplexCast(&*out_first),
+        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+  }
+  if constexpr (IsQuadruple<Float>) {
+    plan = fftwl_plan_dft_1d(
+        n, ComplexCast(&*in_first), ComplexCast(&*out_first),
+        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+  }
+}
+
+// Constructor for 1D real to complex transformation.
+template <std::floating_point Float>
+template <typename InputIt, typename OutputIt>
+Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
+                  PlanFlag flag) requires
+    RealIteratorWithPrecision<InputIt, Float> and
+    ComplexIteratorWithPrecision<OutputIt, Float> {
+  n = in_last - in_first;
+  if constexpr (IsSingle<Float>) {
+    plan = fftwf_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
+                                 ConvertPlanFlag(flag));
+  }
+  if constexpr (IsDouble<Float>) {
+    plan = fftw_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
+                                ConvertPlanFlag(flag));
+  }
+  if constexpr (IsQuadruple<Float>) {
+    plan = fftwl_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
+                                 ConvertPlanFlag(flag));
+  }
+}
+
+// Constructor for 1D complex to real transformation.
+template <std::floating_point Float>
+template <typename InputIt, typename OutputIt>
+Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
+                  PlanFlag flag) requires
+    ComplexIteratorWithPrecision<InputIt, Float> and
+    RealIteratorWithPrecision<OutputIt, Float> {
+  size_t m = in_last - in_first;
+  n = 2 * (m - 1);
+  if constexpr (IsSingle<Float>) {
+    plan = fftwf_plan_dft_cr2_1d(n, &*in_first, ComplexCast(&*out_first),
+                                 ConvertPlanFlag(flag));
+  }
+  if constexpr (IsDouble<Float>) {
+    plan = fftw_plan_dft_c2r_1d(n, &*in_first, ComplexCast(&*out_first),
+                                ConvertPlanFlag(flag));
+  }
+  if constexpr (IsQuadruple<Float>) {
+    plan = fftwl_plan_dft_c2r_1d(n, &*in_first, ComplexCast(&*out_first),
+                                 ConvertPlanFlag(flag));
+  }
+}
+
 }  // namespace FFTW
 
 #endif  // FFTWPlan1D_GUARD_H

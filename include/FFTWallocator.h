@@ -22,14 +22,12 @@ struct allocator {
 };
 
 template <class T, class U>
-constexpr bool operator==(const allocator<T>&,
-                          const allocator<U>&) noexcept {
+constexpr bool operator==(const allocator<T>&, const allocator<U>&) noexcept {
   return true;
 }
 
 template <class T, class U>
-constexpr bool operator!=(const allocator<T>&,
-                          const allocator<U>&) noexcept {
+constexpr bool operator!=(const allocator<T>&, const allocator<U>&) noexcept {
   return false;
 }
 
