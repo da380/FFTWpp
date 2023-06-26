@@ -1,13 +1,16 @@
 #ifndef FFTWFlags_GUARD_H
 #define FFTWFlags_GUARD_H
 
+
+#include "fftw3.h"
+
 namespace FFTW {
 
 // Enum class for transformation directions.
-enum class FFTWDirectionFlag { Forward, Backward };
+enum class DirectionFlag { Forward, Backward };
 
-auto ConvertDirectionFlag(FFTWDirectionFlag direction) {
-  if (direction == FFTWDirectionFlag::Forward) {
+auto ConvertDirectionFlag(DirectionFlag direction) {
+  if (direction == DirectionFlag::Forward) {
     return FFTW_FORWARD;
   } else {
     return FFTW_BACKWARD;
@@ -15,20 +18,20 @@ auto ConvertDirectionFlag(FFTWDirectionFlag direction) {
 }
 
 // Enum class for plan flags.
-enum class FFTWPlanFlag { Estimate, Measure, Patient, Exhaustive };
+enum class PlanFlag { Estimate, Measure, Patient, Exhaustive };
 
-auto ConvertPlanFlag(FFTWPlanFlag flag) {
+auto ConvertPlanFlag(PlanFlag flag) {
   switch (flag) {
-    case FFTWPlanFlag::Estimate: {
+    case PlanFlag::Estimate: {
       return FFTW_ESTIMATE;
     }
-    case FFTWPlanFlag::Measure: {
+    case PlanFlag::Measure: {
       return FFTW_MEASURE;
     }
-    case FFTWPlanFlag::Patient: {
+    case PlanFlag::Patient: {
       return FFTW_PATIENT;
     }
-    case FFTWPlanFlag::Exhaustive: {
+    case PlanFlag::Exhaustive: {
       return FFTW_EXHAUSTIVE;
     }
     default:

@@ -6,7 +6,7 @@
 namespace{
 
 
-  void FFTWCleanUP()
+  void CleanUP()
   {
     fftwf_cleanup();
     fftw_cleanup();

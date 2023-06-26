@@ -1,8 +1,4 @@
 add_library(FFTW INTERFACE
-  FFTWCleanUp.h
-  FFTWAllocator.h
-  FFTWFlags.h
-  FFTWPlan1D.h  
   FFTW.h
 )
 

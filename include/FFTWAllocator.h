@@ -1,5 +1,5 @@
-#ifndef FFTWAllocator_GUARD_H
-#define FFTWAllocator_GUARD_H
+#ifndef FFTWallocator_GUARD_H
+#define FFTWallocator_GUARD_H
 
 #include <memory>
 #include <vector>
@@ -10,11 +10,11 @@ namespace FFTW {
 
 // Define a custom allocator using the fftw3 versions of malloc and free.
 template <typename T>
-struct FFTWAllocator {
+struct allocator {
   typedef T value_type;
-  FFTWAllocator() noexcept {}
+  allocator() noexcept {}
   template <class U>
-  FFTWAllocator(const FFTWAllocator<U>&) noexcept {}
+  allocator(const allocator<U>&) noexcept {}
   T* allocate(std::size_t n) {
     return static_cast<T*>(fftw_malloc(sizeof(T) * n));
   }
@@ -22,21 +22,21 @@ struct FFTWAllocator {
 };
 
 template <class T, class U>
-constexpr bool operator==(const FFTWAllocator<T>&,
-                          const FFTWAllocator<U>&) noexcept {
+constexpr bool operator==(const allocator<T>&,
+                          const allocator<U>&) noexcept {
   return true;
 }
 
 template <class T, class U>
-constexpr bool operator!=(const FFTWAllocator<T>&,
-                          const FFTWAllocator<U>&) noexcept {
+constexpr bool operator!=(const allocator<T>&,
+                          const allocator<U>&) noexcept {
   return false;
 }
 
 // Type alias for a std::vector using the custom allocator.
 template <typename T>
-using vector = std::vector<T, FFTWAllocator<T>>;
+using vector = std::vector<T, allocator<T>>;
 
 }  // namespace FFTW
 
-#endif  // FFTWAllocator_GUARD_H
+#endif  // FFTWallocator_GUARD_H
