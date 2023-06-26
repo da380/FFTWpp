@@ -1,14 +1,12 @@
-#ifndef FFFWAllocator_GUARD_H
-#define FFFWAllocator_GUARD_H
-
+#ifndef FFTWAllocator_GUARD_H
+#define FFTWAllocator_GUARD_H
 
 #include <memory>
+#include <vector>
 
-# include "fftw3.h"
+#include "fftw3.h"
 
-
-namespace FFTW++{
-
+namespace FFTW {
 
 // Define a custom allocator using the fftw3 versions of malloc and free.
 template <typename T>
@@ -35,12 +33,10 @@ constexpr bool operator!=(const FFTWAllocator<T>&,
   return false;
 }
 
-// Type alias for a std::vector using the custom allocator. 
+// Type alias for a std::vector using the custom allocator.
 template <typename T>
 using vector = std::vector<T, FFTWAllocator<T>>;
 
+}  // namespace FFTW
 
-}
-
-
-# endif // FFFWAllocator_GUARD_H
+#endif  // FFTWAllocator_GUARD_H
