@@ -41,10 +41,70 @@ class Plan {
     if constexpr (IsDouble<Float>) {
       fftw_execute(ConvertPlan());
     }
-    if constexpr (IsQuadruple<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       fftwl_execute(ConvertPlan());
     }
   }
+
+  // Execute the plan given new complex data.
+  template <typename InputIt, typename OutputIt>
+  void execute(InputIt in_first, OutputIt out_first)
+    requires
+    ComplexIteratorWithPrecision<InputIt, Float> and
+    ComplexIteratorWithPrecision<OutputIt, Float>
+  {
+    if constexpr (IsSingle<Float>) {
+      fftwf_execute_dft(ConvertPlan(),ComplexCast(&*in_first),ComplexCast(&*out_first));
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_execute_dft(ConvertPlan(),ComplexCast(&*in_first),ComplexCast(&*out_first));
+    }
+    if constexpr (IsLongDouble<Float>) {
+      fftwl_execute_dft(ConvertPlan(),ComplexCast(&*in_first),ComplexCast(&*out_first));
+    }
+  }
+
+
+
+  // Execute the plan given new real to complex data.
+  template <typename InputIt, typename OutputIt>
+  void execute(InputIt in_first, OutputIt out_first)
+    requires
+    RealIteratorWithPrecision<InputIt, Float> and
+    ComplexIteratorWithPrecision<OutputIt, Float>
+  {
+    if constexpr (IsSingle<Float>) {
+      fftwf_execute_dft_r2c(ConvertPlan(),&*in_first,ComplexCast(&*out_first));
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_execute_dft_r2c(ConvertPlan(),&*in_first,ComplexCast(&*out_first));
+    }
+    if constexpr (IsLongDouble<Float>) {
+      fftwl_execute_dft_r2c(ConvertPlan(),&*in_first,ComplexCast(&*out_first));
+    }
+  }
+
+
+  // Execute the plan given new complex to real data.
+  template <typename InputIt, typename OutputIt>
+  void execute(InputIt in_first, OutputIt out_first)
+    requires
+    ComplexIteratorWithPrecision<InputIt, Float> and
+    RealIteratorWithPrecision<OutputIt, Float>
+  {
+    if constexpr (IsSingle<Float>) {
+      fftwf_execute_dft_c2r(ConvertPlan(),ComplexCast(&*in_first),&*out_first);
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_execute_dft_c2r(ConvertPlan(),ComplexCast(&*in_first),&*out_first);
+    }
+    if constexpr (IsLongDouble<Float>) {
+      fftwl_execute_dft_c2r(ConvertPlan(),ComplexCast(&*in_first),&*out_first);
+    }
+  }
+
+
+  
 
   // Destructor.
   ~Plan() {
@@ -54,7 +114,7 @@ class Plan {
     if constexpr (IsDouble<Float>) {
       fftw_destroy_plan(ConvertPlan());
     }
-    if constexpr (IsQuadruple<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       fftwl_destroy_plan(ConvertPlan());
     }
   }
@@ -74,7 +134,7 @@ class Plan {
     if constexpr (IsDouble<Float>) {
       return std::get<fftw_plan>(plan);
     }
-    if constexpr (IsQuadruple<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       return std::get<fftwl_plan>(plan);
     }
   }
@@ -87,7 +147,7 @@ class Plan {
     if constexpr (IsDouble<Float>) {
       return reinterpret_cast<fftw_complex*>(z);
     }
-    if constexpr (IsQuadruple<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       return reinterpret_cast<fftwl_complex*>(z);
     }
   }
@@ -111,7 +171,7 @@ Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
         n, ComplexCast(&*in_first), ComplexCast(&*out_first),
         ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
   }
-  if constexpr (IsQuadruple<Float>) {
+  if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_dft_1d(
         n, ComplexCast(&*in_first), ComplexCast(&*out_first),
         ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
@@ -134,7 +194,7 @@ Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
     plan = fftw_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
                                 ConvertPlanFlag(flag));
   }
-  if constexpr (IsQuadruple<Float>) {
+  if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
                                  ConvertPlanFlag(flag));
   }
@@ -150,15 +210,15 @@ Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
   size_t m = in_last - in_first;
   n = 2 * (m - 1);
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_dft_cr2_1d(n, &*in_first, ComplexCast(&*out_first),
+    plan = fftwf_plan_dft_c2r_1d(n, ComplexCast(&*in_first), &*out_first,
                                  ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_dft_c2r_1d(n, &*in_first, ComplexCast(&*out_first),
+    plan = fftw_plan_dft_c2r_1d(n, ComplexCast(&*in_first), &*out_first,
                                 ConvertPlanFlag(flag));
   }
-  if constexpr (IsQuadruple<Float>) {
-    plan = fftwl_plan_dft_c2r_1d(n, &*in_first, ComplexCast(&*out_first),
+  if constexpr (IsLongDouble<Float>) {
+    plan = fftwl_plan_dft_c2r_1d(n, ComplexCast(&*in_first), &*out_first,
                                  ConvertPlanFlag(flag));
   }
 }

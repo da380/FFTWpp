@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <complex>
-#include <concepts>
 #include <iostream>
 #include <limits>
 #include <random>
@@ -9,52 +8,50 @@
 #include "FFTW.h"
 
 template <typename Iter>
-requires FFTW::ComplexIterator<Iter>
-void MakeComplexData(Iter first, Iter last) {
+requires FFTW::RealIterator<Iter>
+void MakeRealData(Iter first, Iter last) {
   std::random_device rd{};
   std::mt19937_64 gen{rd()};
-  std::normal_distribution<typename Iter::value_type::value_type> d{0., 1.};
+  std::normal_distribution<typename Iter::value_type> d{0., 1.};
   for (; first != last; first++) {
-    *first = {d(gen), d(gen)};
+    *first = d(gen);
   }
 }
 
-template <std::floating_point Float>
-int FFTW1DTest(bool NewData = false) {
+template <typename Float>
+int FFTW1DRealTest(bool NewData = false) {
   using Complex = std::complex<Float>;
-  using Vector = FFTW::vector<Complex>;
-  
-  int n = pow(2, 14);
+  using RealVector = FFTW::vector<Float>;
+  using ComplexVector = FFTW::vector<Complex>;
+
+  int n = 512;
 
   // Initialise the vectors.
-  Vector in(n), out(n), check(n);
+  RealVector in(n), check(n);
+  ComplexVector out(n / 2 + 1);
 
   // Form the plans.
   auto flag = FFTW::PlanFlag::Measure;
-  FFTW::Plan<Float> forward_plan(in.begin(), in.end(), out.begin(),
-                                 FFTW::DirectionFlag::Forward, flag);
-
-  FFTW::Plan<Float> backward_plan(out.begin(), out.end(), check.begin(),
-                                  FFTW::DirectionFlag::Backward, flag);
+  FFTW::Plan<Float> forward_plan(in.begin(), in.end(), out.begin(), flag);
+  FFTW::Plan<Float> backward_plan(out.begin(), out.end(), check.begin(), flag);
 
   // Set the input values
-  MakeComplexData(in.begin(), in.end());
+  MakeRealData(in.begin(), in.end());
 
   // Execute the plans.
   NewData ?    forward_plan.execute(in.begin(),out.begin()) :   forward_plan.execute();
   NewData ? backward_plan.execute(out.begin(),check.begin()) : backward_plan.execute();
 
+
   // Normalise the inverse transformation.
   auto norm = static_cast<Float>(1) / static_cast<Float>(n);
   std::transform(check.cbegin(), check.cend(), check.begin(),
-                 [norm](Complex x) { return x * norm; });
+                 [norm](Float x) { return x * norm; });
 
   // Compute the maximum residual value.
   std::transform(in.begin(), in.end(), check.begin(), in.begin(),
                  std::minus<>());
-  auto max = std::abs(*std::max_element(
-      in.begin(), in.end(),
-      [](Complex x, Complex y) { return std::abs(x) < std::abs(y); }));
+  auto max = std::abs(*std::max_element(in.begin(), in.end()));
 
   // Compare to 20 times the difference between 1 and the next representable
   // Float.
@@ -63,6 +60,3 @@ int FFTW1DTest(bool NewData = false) {
   // Return 0 if passed, 1 otherwise.
   return max < eps ? 0 : 1;
 }
-
-
-
