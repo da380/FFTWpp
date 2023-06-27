@@ -88,7 +88,7 @@ class Plan {
       return reinterpret_cast<fftw_complex*>(z);
     }
     if constexpr (IsQuadruple<Float>) {
-      return reinterpret_cast<fftwf_complex*>(z);
+      return reinterpret_cast<fftwl_complex*>(z);
     }
   }
 };

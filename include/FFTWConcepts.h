@@ -14,7 +14,7 @@ template <typename Float>
 concept IsDouble = std::same_as<Float, double>;
 
 template <typename Float>
-concept IsQuadruple = std::same_as<Float, long>;
+concept IsQuadruple = std::same_as<Float, long double>;
 
 // Concepts for complex numbers.
 template <typename T>
