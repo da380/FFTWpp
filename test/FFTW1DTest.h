@@ -1,35 +1,19 @@
 #include <algorithm>
 #include <complex>
 #include <iostream>
-#include <iterator>
 #include <limits>
-#include <list>
 #include <random>
 #include <vector>
 
 #include "FFTW.h"
 
-template <typename Float>
-void FFTW1DTest(int);
-
-int main() {
-  int n = 512;
-
-  std::cout << "Test for floats:       ";
-  FFTW1DTest<float>(n);
-
-  std::cout << "Test for doubles:      ";
-  FFTW1DTest<double>(n);
-
-  std::cout << "Test for long doubles: ";
-  FFTW1DTest<long double>(n);
-}
 
 template <typename Float>
-void FFTW1DTest(int n) {
+int FFTW1DTestHelper() {
   using Complex = std::complex<Float>;
-  using Vector = std::vector<Complex>;
-  
+  using Vector = FFTW::vector<Complex>;
+
+  int n = 512;
   
   // Initialise the vectors.
   Vector in(n), out(n), check(n);
@@ -69,10 +53,10 @@ void FFTW1DTest(int n) {
       [](Complex x, Complex y) { return std::abs(x) < std::abs(y); }));
 
   // Compare to 20 times the difference between 1 and the next representable Float.
-  constexpr float eps = 20 * std::numeric_limits<Float>::epsilon();
-  if (max < eps) {
-    std::cout << "passed\n";
-  } else {
-    std::cout << "failed\n";
-  }
+  constexpr auto eps = 20 * std::numeric_limits<Float>::epsilon();
+
+  // Return 0 if passed, 1 otherwise.
+  return max < eps ? 0 : 1;
+  
+
 };
