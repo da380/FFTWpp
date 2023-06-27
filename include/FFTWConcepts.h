@@ -6,6 +6,43 @@
 
 namespace FFTW {
 
+
+
+
+
+///////////////////////////////////////
+
+
+template<typename T>
+concept HasValueType = requires(){
+  typename T::value_type;
+};
+
+template <bool, typename T>
+struct ValueTypeHelper
+{
+  using type = T::value_type;
+};
+
+template<typename T>
+struct ValueTypeHelper<false,T>
+{
+  using type = T;
+};
+
+template<typename T>
+using ValueType = ValueTypeHelper<HasValueType<T>,T>::type;
+
+template<typename T>
+using FloatPrecision = ValueType<ValueType<T>>;
+
+
+  ///////////////////////////////
+
+
+
+
+  
 // Concepts for floating point types.
 template <typename Float>
 concept IsSingle = std::same_as<Float, float>;
