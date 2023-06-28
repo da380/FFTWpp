@@ -18,16 +18,20 @@ requires SamePrecision<InputIt, OutputIt>
 class Plan {
  public:
   // Constructor for 1D complex to complex transformation
-  Plan(InputIt, InputIt, OutputIt, DirectionFlag,
+  Plan(size_t n, InputIt, OutputIt, DirectionFlag,
        PlanFlag) requires C2CIteratorPair<InputIt, OutputIt>;
 
-  // Constructor for real to complex transformation
-  Plan(InputIt, InputIt, OutputIt,
+  // Constructor for 1D real to complex transformation
+  Plan(size_t n, InputIt, OutputIt,
        PlanFlag) requires R2CIteratorPair<InputIt, OutputIt>;
 
-  // Constructor for complex to real transformation
-  Plan(InputIt, OutputIt, OutputIt,
+  // Constructor for 1D complex to real transformation
+  Plan(size_t n, InputIt, OutputIt,
        PlanFlag) requires C2RIteratorPair<InputIt, OutputIt>;
+
+  // Constructor for 1D real to real transformations
+  Plan(size_t n, InputIt, OutputIt, DirectionFlag,
+       PlanFlag) requires R2RIteratorPair<InputIt, OutputIt>;
 
   // Execute the plan.
   void execute() {
@@ -43,51 +47,58 @@ class Plan {
   }
 
   // Execute the plan given new complex data.
-  void execute(InputIt in_first,
-               OutputIt out_first) requires C2CIteratorPair<InputIt, OutputIt> {
+  void execute(InputIt in,
+               OutputIt out) requires C2CIteratorPair<InputIt, OutputIt> {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft(ConvertPlan(), ComplexCast(&*in_first),
-                        ComplexCast(&*out_first));
+      fftwf_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft(ConvertPlan(), ComplexCast(&*in_first),
-                       ComplexCast(&*out_first));
+      fftw_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft(ConvertPlan(), ComplexCast(&*in_first),
-                        ComplexCast(&*out_first));
+      fftwl_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
     }
   }
 
   // Execute the plan given new real to complex data.
-  void execute(InputIt in_first,
-               OutputIt out_first) requires R2CIteratorPair<InputIt, OutputIt> {
+  void execute(InputIt in,
+               OutputIt out) requires R2CIteratorPair<InputIt, OutputIt> {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_r2c(ConvertPlan(), &*in_first,
-                            ComplexCast(&*out_first));
+      fftwf_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_r2c(ConvertPlan(), &*in_first, ComplexCast(&*out_first));
+      fftw_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_r2c(ConvertPlan(), &*in_first,
-                            ComplexCast(&*out_first));
+      fftwl_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
     }
   }
 
   // Execute the plan given new complex to real data.
-  void execute(InputIt in_first,
-               OutputIt out_first) requires C2RIteratorPair<InputIt, OutputIt> {
+  void execute(InputIt in,
+               OutputIt out) requires C2RIteratorPair<InputIt, OutputIt> {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in_first),
-                            &*out_first);
+      fftwf_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in_first), &*out_first);
+      fftw_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in_first),
-                            &*out_first);
+      fftwl_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
+    }
+  }
+
+  // Execute the plan given new real data.
+  void execute(InputIt in,
+               OutputIt out) requires R2RIteratorPair<InputIt, OutputIt> {
+    if constexpr (IsSingle<Float>) {
+      fftwf_execute_r2r(ConvertPlan(), &*in, &*out);
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_execute_r2r(ConvertPlan(), &*in, &*out);
+    }
+    if constexpr (IsLongDouble<Float>) {
+      fftwl_execute_r2r(ConvertPlan(), &*in, &*out);
     }
   }
 
@@ -122,7 +133,6 @@ class Plan {
   using InputValueType = GetValueType<InputIt>;
   using OutputValueType = GetValueType<OutputIt>;
 
-  // Store the dimension.
   size_t n;
 
   // Store the plan as a std::variant.
@@ -145,43 +155,40 @@ class Plan {
 // Constructor for 1D complex to complex transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
-    InputIt in_first, InputIt in_last, OutputIt out_first,
-    DirectionFlag direction, PlanFlag flag)
-requires C2CIteratorPair<InputIt, OutputIt> {
-  n = in_last - in_first;
+    size_t n, InputIt in, OutputIt out, DirectionFlag direction, PlanFlag flag)
+requires C2CIteratorPair<InputIt, OutputIt> : n{n} {
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_dft_1d(
-        n, ComplexCast(&*in_first), ComplexCast(&*out_first),
-        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+    plan = fftwf_plan_dft_1d(n, ComplexCast(&*in), ComplexCast(&*out),
+                             ConvertDirectionFlag(direction),
+                             ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_dft_1d(
-        n, ComplexCast(&*in_first), ComplexCast(&*out_first),
-        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+    plan = fftw_plan_dft_1d(n, ComplexCast(&*in), ComplexCast(&*out),
+                            ConvertDirectionFlag(direction),
+                            ConvertPlanFlag(flag));
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_dft_1d(
-        n, ComplexCast(&*in_first), ComplexCast(&*out_first),
-        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+    plan = fftwl_plan_dft_1d(n, ComplexCast(&*in), ComplexCast(&*out),
+                             ConvertDirectionFlag(direction),
+                             ConvertPlanFlag(flag));
   }
 }
 
 // Constructor for 1D real to complex transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
-    InputIt in_first, InputIt in_last, OutputIt out_first, PlanFlag flag)
-requires R2CIteratorPair<InputIt, OutputIt> {
-  n = in_last - in_first;
+    size_t n, InputIt in, OutputIt out, PlanFlag flag)
+requires R2CIteratorPair<InputIt, OutputIt> : n{n} {
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
+    plan = fftwf_plan_dft_r2c_1d(n, &*in, ComplexCast(&*out),
                                  ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
+    plan = fftw_plan_dft_r2c_1d(n, &*in, ComplexCast(&*out),
                                 ConvertPlanFlag(flag));
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
+    plan = fftwl_plan_dft_r2c_1d(n, &*in, ComplexCast(&*out),
                                  ConvertPlanFlag(flag));
   }
 }
@@ -189,20 +196,41 @@ requires R2CIteratorPair<InputIt, OutputIt> {
 // Constructor for 1D complex to real transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
-    InputIt in_first, OutputIt out_first, OutputIt out_last, PlanFlag flag)
-requires C2RIteratorPair<InputIt, OutputIt> {
-  n = out_last - out_first;
+    size_t n, InputIt in, OutputIt out, PlanFlag flag)
+requires C2RIteratorPair<InputIt, OutputIt> : n{n} {
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_dft_c2r_1d(n, ComplexCast(&*in_first), &*out_first,
+    plan = fftwf_plan_dft_c2r_1d(n, ComplexCast(&*in), &*out,
                                  ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_dft_c2r_1d(n, ComplexCast(&*in_first), &*out_first,
+    plan = fftw_plan_dft_c2r_1d(n, ComplexCast(&*in), &*out,
                                 ConvertPlanFlag(flag));
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_dft_c2r_1d(n, ComplexCast(&*in_first), &*out_first,
+    plan = fftwl_plan_dft_c2r_1d(n, ComplexCast(&*in), &*out,
                                  ConvertPlanFlag(flag));
+  }
+}
+
+// Constructor for 1D real to real transformation
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
+    size_t n, InputIt in, OutputIt out, DirectionFlag direction, PlanFlag flag)
+requires R2RIteratorPair<InputIt, OutputIt> : n{n} {
+  if constexpr (IsSingle<Float>) {
+    plan =
+        fftwf_plan_r2r_1d(n, &*in, &*out, ConvertDirectionFlag<true>(direction),
+                          ConvertPlanFlag(flag));
+  }
+  if constexpr (IsDouble<Float>) {
+    plan =
+        fftw_plan_r2r_1d(n, &*in, &*out, ConvertDirectionFlag<true>(direction),
+                         ConvertPlanFlag(flag));
+  }
+  if constexpr (IsLongDouble<Float>) {
+    plan =
+        fftwl_plan_r2r_1d(n, &*in, &*out, ConvertDirectionFlag<true>(direction),
+                          ConvertPlanFlag(flag));
   }
 }
 

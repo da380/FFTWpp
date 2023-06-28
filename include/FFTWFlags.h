@@ -8,11 +8,32 @@ namespace FFTW {
 // Enum class for transformation directions.
 enum class DirectionFlag { Forward, Backward };
 
+template <bool R2R = false>
 auto ConvertDirectionFlag(DirectionFlag direction) {
-  if (direction == DirectionFlag::Forward) {
-    return FFTW_FORWARD;
-  } else {
-    return FFTW_BACKWARD;
+  if constexpr (!R2R) {
+    switch (direction) {
+      case DirectionFlag::Forward: {
+        return FFTW_FORWARD;
+      }
+      case DirectionFlag::Backward: {
+        return FFTW_BACKWARD;
+        default:
+          return FFTW_FORWARD;
+      }
+    }
+  }
+
+  if constexpr (R2R) {
+    switch (direction) {
+      case DirectionFlag::Forward: {
+        return FFTW_R2HC;
+      }
+      case DirectionFlag::Backward: {
+        return FFTW_HC2R;
+        default:
+          return FFTW_R2HC;
+      }
+    }
   }
 }
 
