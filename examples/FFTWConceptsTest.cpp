@@ -23,10 +23,9 @@ int main()
   std::cout << FFTW::ComplexIterator<ComplexVectorIterator> << std::endl;  
 
 
-  std::cout << std::numeric_limits<float>::epsilon() << std::endl;
-  std::cout << std::numeric_limits<double>::epsilon() << std::endl;
-  std::cout << std::numeric_limits<long double>::epsilon() << std::endl;  
+  std::cout << FFTW::RealIterator<double*> << std::endl;
 
+  std::cout << FFTW::RandomAccessIterator<double*> << std::endl;
   
 }
 

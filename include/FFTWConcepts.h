@@ -18,6 +18,12 @@ struct GetValueTypeHelper {
   using value_type = T::value_type;
 };
 
+
+template < typename T>
+struct GetValueTypeHelper<false,T*> {
+  using value_type = T;
+};  
+
 template <typename T>
 struct GetValueTypeHelper<false, T> {
   using value_type = T;
