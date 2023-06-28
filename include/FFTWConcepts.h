@@ -1,49 +1,50 @@
 #ifndef FFTWConcepts_GUARD_H
 #define FFTWConcepts_GUARD_H
 
+#include <complex>
 #include <concepts>
 #include <iterator>
 
 namespace FFTW {
 
-
-
-
-
-///////////////////////////////////////
-
-
-template<typename T>
-concept HasValueType = requires(){
+// Some helper functions.
+template <typename T>
+concept HasValueType = requires() {
   typename T::value_type;
 };
 
 template <bool, typename T>
-struct ValueTypeHelper
-{
-  using type = T::value_type;
+struct GetValueTypeHelper {
+  using value_type = T::value_type;
 };
 
-template<typename T>
-struct ValueTypeHelper<false,T>
-{
-  using type = T;
+template <typename T>
+struct GetValueTypeHelper<false, T> {
+  using value_type = T;
 };
 
-template<typename T>
-using ValueType = ValueTypeHelper<HasValueType<T>,T>::type;
+template <typename T>
+using GetValueType = GetValueTypeHelper<HasValueType<T>, T>::value_type;
 
-template<typename T>
-using FloatPrecision = ValueType<ValueType<T>>;
+template <typename T>
+using GetPrecision = GetValueType<GetValueType<T>>;
 
+template <typename T>
+concept HasPrecision = requires() {
+  requires std::floating_point<GetPrecision<T>>;
+};
 
-  ///////////////////////////////
+template <typename S, typename T>
+concept SamePrecision = requires() {
+  requires HasPrecision<S>;
+  requires HasPrecision<T>;
+  requires std::same_as<GetPrecision<S>, GetPrecision<T>>;
+};
 
-
-
-
-  
 // Concepts for floating point types.
+template <typename T>
+concept IsReal = std::floating_point<T>;
+
 template <typename Float>
 concept IsSingle = std::same_as<Float, float>;
 
@@ -55,44 +56,72 @@ concept IsLongDouble = std::same_as<Float, long double>;
 
 // Concepts for complex numbers.
 template <typename T>
-struct ComplexHelper : std::false_type {};
+struct IsComplexHelper : std::false_type {};
 
 template <typename T>
-struct ComplexHelper<std::complex<T>> : std::true_type {};
+struct IsComplexHelper<std::complex<T>> : std::true_type {};
 
 template <typename T>
-concept Complex = requires() {
-  requires ComplexHelper<T>::value;
+concept IsComplex = requires() {
+  requires IsComplexHelper<T>::value;
   requires std::floating_point<typename T::value_type>;
 };
 
-// Concepts for real iterators
-template <typename Iter>
+// Concepts for iterators.
+template <typename I>
+concept RandomAccessIterator = requires() {
+  std::same_as<typename std::iterator_traits<I>::iterator_category,
+               std::random_access_iterator_tag>;
+};
+
+template <typename I>
+concept ScalarIterator = requires() {
+  requires RandomAccessIterator<I>;
+  requires std::floating_point<GetPrecision<I>>;
+};
+
+template <typename I>
 concept RealIterator = requires() {
-  requires std::contiguous_iterator<Iter>;
-  requires std::floating_point<typename Iter::value_type>;
+  requires ScalarIterator<I>;
+  requires IsReal<typename std::iterator_traits<I>::value_type>;
 };
 
-template <typename Iter, typename Float>
-concept RealIteratorWithPrecision = requires() {
-  requires RealIterator<Iter>;
-  requires std::floating_point<Float>;
-  requires std::same_as<typename Iter::value_type, Float>;
-};
-
-// Concepts for complex iterators
-template <typename Iter>
+template <typename I>
 concept ComplexIterator = requires() {
-  requires std::contiguous_iterator<Iter>;
-  requires Complex<typename Iter::value_type>;
+  requires ScalarIterator<I>;
+  requires IsComplex<typename std::iterator_traits<I>::value_type>;
 };
 
-template <typename Iter, typename Float>
-concept ComplexIteratorWithPrecision = requires() {
-  requires ComplexIterator<Iter>;
-  requires std::floating_point<Float>;
-  requires std::same_as<typename Iter::value_type::value_type, Float>;
+
+// Concepts for iterator pairs.  
+template <typename I, typename O>
+concept R2RIteratorPair = requires() {
+  requires RealIterator<I>;
+  requires RealIterator<O>;
+  requires SamePrecision<I, O>;
 };
+
+template <typename I, typename O>
+concept C2CIteratorPair = requires() {
+  requires ComplexIterator<I>;
+  requires ComplexIterator<O>;
+  requires SamePrecision<I, O>;
+};
+
+template <typename I, typename O>
+concept C2RIteratorPair = requires() {
+  requires ComplexIterator<I>;
+  requires RealIterator<O>;
+  requires SamePrecision<I, O>;
+};
+
+template <typename I, typename O>
+concept R2CIteratorPair = requires() {
+  requires RealIterator<I>;
+  requires ComplexIterator<O>;
+  requires SamePrecision<I, O>;
+};
+
 
 }  // namespace FFTW
 

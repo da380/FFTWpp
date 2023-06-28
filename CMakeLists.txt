@@ -23,6 +23,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(FFTW)
 
 add_subdirectory(include)
+add_subdirectory(examples)
 add_subdirectory(test)
 
 

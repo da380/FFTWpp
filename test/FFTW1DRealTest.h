@@ -32,8 +32,8 @@ int FFTW1DRealTest(bool NewData = false) {
 
   // Form the plans.
   auto flag = FFTW::PlanFlag::Measure;
-  FFTW::Plan<Float> forward_plan(in.begin(), in.end(), out.begin(), flag);
-  FFTW::Plan<Float> backward_plan(out.begin(), out.end(), check.begin(), flag);
+  FFTW::Plan forward_plan(in.begin(), in.end(), out.begin(), flag);
+  FFTW::Plan backward_plan(out.begin(), out.end(), check.begin(), flag);
 
   // Set the input values
   MakeRealData(in.begin(), in.end());

@@ -7,7 +7,7 @@
 #include "FFTWCleanUp.h"
 #include "FFTWFlags.h"
 #include "FFTWPlan.h"
-#include "FFTWSimple.h"
+
 
 
 #endif // FFTW_GUARD_H

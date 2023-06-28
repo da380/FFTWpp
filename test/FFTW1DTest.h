@@ -31,10 +31,10 @@ int FFTW1DTest(bool NewData = false) {
 
   // Form the plans.
   auto flag = FFTW::PlanFlag::Measure;
-  FFTW::Plan<Float> forward_plan(in.begin(), in.end(), out.begin(),
+  FFTW::Plan forward_plan(in.begin(), in.end(), out.begin(),
                                  FFTW::DirectionFlag::Forward, flag);
 
-  FFTW::Plan<Float> backward_plan(out.begin(), out.end(), check.begin(),
+  FFTW::Plan backward_plan(out.begin(), out.end(), check.begin(),
                                   FFTW::DirectionFlag::Backward, flag);
 
   // Set the input values

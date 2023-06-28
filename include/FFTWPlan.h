@@ -2,36 +2,35 @@
 #define FFTWPlan_GUARD_H
 
 #include <cassert>
+#include <complex>
 #include <variant>
 
-#include "FFTWConcepts.h"
 #include "fftw3.h"
+#include "FFTWConcepts.h"
+#include "FFTWFlags.h"
 
 namespace FFTW {
 
-template <std::floating_point Float>
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+requires SamePrecision<InputIt, OutputIt>
 class Plan {
- public:
-  Plan();
 
-  // Constructor for 1D complex to complex.
-  template <typename InputIt, typename OutputIt>
-  Plan(InputIt, InputIt, OutputIt, DirectionFlag,
-       PlanFlag = PlanFlag::Estimate) requires
-      ComplexIteratorWithPrecision<InputIt, Float> and
-      ComplexIteratorWithPrecision<OutputIt, Float>;
+public:
+  
+  // Constructor for 1D complex to complex transformation
+  Plan(InputIt, InputIt, OutputIt, DirectionFlag, PlanFlag) requires
+    C2CIteratorPair<InputIt,OutputIt>;
 
-  // Constructor for 1D real to complex.
-  template <typename InputIt, typename OutputIt>
-  Plan(InputIt, InputIt, OutputIt, PlanFlag = PlanFlag::Estimate) requires
-      RealIteratorWithPrecision<InputIt, Float> and
-      ComplexIteratorWithPrecision<OutputIt, Float>;
 
-  // Constructor for 1D complex to real.
-  template <typename InputIt, typename OutputIt>
-  Plan(InputIt, InputIt, OutputIt, PlanFlag = PlanFlag::Estimate) requires
-      ComplexIteratorWithPrecision<InputIt, Float> and
-      RealIteratorWithPrecision<OutputIt, Float>;
+  // Constructor for real to complex transformation
+  Plan(InputIt, InputIt, OutputIt, PlanFlag) requires
+    R2CIteratorPair<InputIt,OutputIt>;
+
+
+  // Constructor for complex to real transformation
+  Plan(InputIt, InputIt, OutputIt, PlanFlag) requires
+    C2RIteratorPair<InputIt,OutputIt>;
+    
 
   // Execute the plan.
   void execute() {
@@ -46,65 +45,60 @@ class Plan {
     }
   }
 
+
   // Execute the plan given new complex data.
-  template <typename InputIt, typename OutputIt>
-  void execute(InputIt in_first, OutputIt out_first)
-    requires
-    ComplexIteratorWithPrecision<InputIt, Float> and
-    ComplexIteratorWithPrecision<OutputIt, Float>
+  void execute(InputIt in_first, OutputIt out_first) requires
+    C2CIteratorPair<InputIt,OutputIt> 
   {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft(ConvertPlan(),ComplexCast(&*in_first),ComplexCast(&*out_first));
+      fftwf_execute_dft(ConvertPlan(), ComplexCast(&*in_first),
+                        ComplexCast(&*out_first));
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft(ConvertPlan(),ComplexCast(&*in_first),ComplexCast(&*out_first));
+      fftw_execute_dft(ConvertPlan(), ComplexCast(&*in_first),
+                       ComplexCast(&*out_first));
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft(ConvertPlan(),ComplexCast(&*in_first),ComplexCast(&*out_first));
+      fftwl_execute_dft(ConvertPlan(), ComplexCast(&*in_first),
+                        ComplexCast(&*out_first));
     }
   }
 
-
-
+  
   // Execute the plan given new real to complex data.
-  template <typename InputIt, typename OutputIt>
-  void execute(InputIt in_first, OutputIt out_first)
-    requires
-    RealIteratorWithPrecision<InputIt, Float> and
-    ComplexIteratorWithPrecision<OutputIt, Float>
+  void execute(InputIt in_first, OutputIt out_first) requires
+    R2CIteratorPair<InputIt,OutputIt>
   {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_r2c(ConvertPlan(),&*in_first,ComplexCast(&*out_first));
+      fftwf_execute_dft_r2c(ConvertPlan(), &*in_first,
+                            ComplexCast(&*out_first));
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_r2c(ConvertPlan(),&*in_first,ComplexCast(&*out_first));
+      fftw_execute_dft_r2c(ConvertPlan(), &*in_first, ComplexCast(&*out_first));
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_r2c(ConvertPlan(),&*in_first,ComplexCast(&*out_first));
+      fftwl_execute_dft_r2c(ConvertPlan(), &*in_first,
+                            ComplexCast(&*out_first));
     }
   }
 
 
   // Execute the plan given new complex to real data.
-  template <typename InputIt, typename OutputIt>
-  void execute(InputIt in_first, OutputIt out_first)
-    requires
-    ComplexIteratorWithPrecision<InputIt, Float> and
-    RealIteratorWithPrecision<OutputIt, Float>
+  void execute(InputIt in_first, OutputIt out_first) requires
+    C2RIteratorPair<InputIt,OutputIt>
   {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_c2r(ConvertPlan(),ComplexCast(&*in_first),&*out_first);
+      fftwf_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in_first),
+                            &*out_first);
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_c2r(ConvertPlan(),ComplexCast(&*in_first),&*out_first);
+      fftw_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in_first), &*out_first);
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_c2r(ConvertPlan(),ComplexCast(&*in_first),&*out_first);
+      fftwl_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in_first),
+                            &*out_first);
     }
   }
-
-
-  
 
   // Destructor.
   ~Plan() {
@@ -119,7 +113,14 @@ class Plan {
     }
   }
 
+
+
  private:
+  // Store some type aliases
+  using Float = GetPrecision<InputIt>;
+  using InputValueType = GetValueType<InputIt>;
+  using OutputValueType = GetValueType<OutputIt>;
+
   // Store the dimension.
   size_t n;
 
@@ -151,15 +152,18 @@ class Plan {
       return reinterpret_cast<fftwl_complex*>(z);
     }
   }
+  
 };
 
-// Constructor for 1D complex data.
-template <std::floating_point Float>
-template <typename InputIt, typename OutputIt>
-Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
+
+
+// Constructor for 1D complex to complex transformation
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+requires SamePrecision<InputIt, OutputIt>
+Plan<InputIt,OutputIt>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
                   DirectionFlag direction, PlanFlag flag) requires
-    ComplexIteratorWithPrecision<InputIt, Float> and
-    ComplexIteratorWithPrecision<OutputIt, Float> {
+  C2CIteratorPair<InputIt,OutputIt>
+{
   n = in_last - in_first;
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_dft_1d(
@@ -178,13 +182,14 @@ Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
   }
 }
 
-// Constructor for 1D real to complex transformation.
-template <std::floating_point Float>
-template <typename InputIt, typename OutputIt>
-Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
-                  PlanFlag flag) requires
-    RealIteratorWithPrecision<InputIt, Float> and
-    ComplexIteratorWithPrecision<OutputIt, Float> {
+
+// Constructor for 1D real to complex transformation
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+requires SamePrecision<InputIt, OutputIt>
+Plan<InputIt,OutputIt>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
+				   PlanFlag flag) requires
+  R2CIteratorPair<InputIt,OutputIt>
+{
   n = in_last - in_first;
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_dft_r2c_1d(n, &*in_first, ComplexCast(&*out_first),
@@ -200,13 +205,14 @@ Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
   }
 }
 
-// Constructor for 1D complex to real transformation.
-template <std::floating_point Float>
-template <typename InputIt, typename OutputIt>
-Plan<Float>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
-                  PlanFlag flag) requires
-    ComplexIteratorWithPrecision<InputIt, Float> and
-    RealIteratorWithPrecision<OutputIt, Float> {
+  
+// Constructor for 1D complex to real transformation
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+requires SamePrecision<InputIt, OutputIt>
+Plan<InputIt,OutputIt>::Plan(InputIt in_first, InputIt in_last, OutputIt out_first,
+				   PlanFlag flag) requires
+  C2RIteratorPair<InputIt,OutputIt>
+{
   size_t m = in_last - in_first;
   n = 2 * (m - 1);
   if constexpr (IsSingle<Float>) {
