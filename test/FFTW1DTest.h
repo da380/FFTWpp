@@ -45,9 +45,7 @@ int FFTW1DTest(bool NewData = false) {
   NewData ? backward_plan.execute(out.begin(),check.begin()) : backward_plan.execute();
 
   // Normalise the inverse transformation.
-  auto norm = static_cast<Float>(1) / static_cast<Float>(n);
-  std::transform(check.cbegin(), check.cend(), check.begin(),
-                 [norm](Complex x) { return x * norm; });
+  backward_plan.normalise(check.begin(), check.end());
 
   // Compute the maximum residual value.
   std::transform(in.begin(), in.end(), check.begin(), in.begin(),

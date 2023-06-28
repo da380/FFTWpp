@@ -1,6 +1,7 @@
 #ifndef FFTWallocator_GUARD_H
 #define FFTWallocator_GUARD_H
 
+#include <concepts>
 #include <memory>
 #include <vector>
 
@@ -38,7 +39,7 @@ using vector = std::vector<T, allocator<T>>;
 
 
 // Reinterpret cast std::complex* to fftw_complex*.
-  template<typename Float>
+  template<std::floating_point Float>
   auto ComplexCast(std::complex<Float>* z) {
     if constexpr (IsSingle<Float>) {
       return reinterpret_cast<fftwf_complex*>(z);
@@ -51,6 +52,16 @@ using vector = std::vector<T, allocator<T>>;
     }
   }  
 
+// Clear up remaining memory. To be, optionally, called only when all plans
+// have gone out of scope.
+void CleanUp() {
+  fftwf_cleanup();
+  fftw_cleanup();
+  fftwl_cleanup();
+}
+
+
+  
 }  // namespace FFTW
 
 #endif  // FFTWallocator_GUARD_H

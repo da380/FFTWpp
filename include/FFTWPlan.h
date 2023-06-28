@@ -101,6 +101,21 @@ public:
     }
   }
 
+  // Normalise the result of an inverse transformation.
+  void normalise(OutputIt first, OutputIt last, OutputIt dest)
+  {
+    auto norm = static_cast<Float>(1) / static_cast<Float>(n);
+    std::transform(first, last, dest,
+		   [norm](OutputValueType x) { return x * norm; });
+  }
+
+  // Overload when the new values are written in place.
+  void normalise(OutputIt first, OutputIt last)
+  {
+    normalise(first,last,first);
+  }
+  
+  
   // Destructor.
   ~Plan() {
     if constexpr (IsSingle<Float>) {
