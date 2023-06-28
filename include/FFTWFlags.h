@@ -1,7 +1,6 @@
 #ifndef FFTWFlags_GUARD_H
 #define FFTWFlags_GUARD_H
 
-
 #include "fftw3.h"
 
 namespace FFTW {

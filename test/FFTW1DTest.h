@@ -23,7 +23,7 @@ template <std::floating_point Float>
 int FFTW1DTest(bool NewData = false) {
   using Complex = std::complex<Float>;
   using Vector = FFTW::vector<Complex>;
-  
+
   int n = pow(2, 14);
 
   // Initialise the vectors.
@@ -32,17 +32,19 @@ int FFTW1DTest(bool NewData = false) {
   // Form the plans.
   auto flag = FFTW::PlanFlag::Measure;
   FFTW::Plan forward_plan(in.begin(), in.end(), out.begin(),
-                                 FFTW::DirectionFlag::Forward, flag);
+                          FFTW::DirectionFlag::Forward, flag);
 
   FFTW::Plan backward_plan(out.begin(), out.end(), check.begin(),
-                                  FFTW::DirectionFlag::Backward, flag);
+                           FFTW::DirectionFlag::Backward, flag);
 
   // Set the input values
   MakeComplexData(in.begin(), in.end());
 
   // Execute the plans.
-  NewData ?    forward_plan.execute(in.begin(),out.begin()) :   forward_plan.execute();
-  NewData ? backward_plan.execute(out.begin(),check.begin()) : backward_plan.execute();
+  NewData ? forward_plan.execute(in.begin(), out.begin())
+          : forward_plan.execute();
+  NewData ? backward_plan.execute(out.begin(), check.begin())
+          : backward_plan.execute();
 
   // Normalise the inverse transformation.
   backward_plan.normalise(check.begin(), check.end());
@@ -61,6 +63,3 @@ int FFTW1DTest(bool NewData = false) {
   // Return 0 if passed, 1 otherwise.
   return max < eps ? 0 : 1;
 }
-
-
-

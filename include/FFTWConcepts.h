@@ -92,8 +92,7 @@ concept ComplexIterator = requires() {
   requires IsComplex<typename std::iterator_traits<I>::value_type>;
 };
 
-
-// Concepts for iterator pairs.  
+// Concepts for iterator pairs.
 template <typename I, typename O>
 concept R2RIteratorPair = requires() {
   requires RealIterator<I>;
@@ -121,7 +120,6 @@ concept R2CIteratorPair = requires() {
   requires ComplexIterator<O>;
   requires SamePrecision<I, O>;
 };
-
 
 }  // namespace FFTW
 

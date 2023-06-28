@@ -39,13 +39,13 @@ int FFTW1DRealTest(bool NewData = false) {
   MakeRealData(in.begin(), in.end());
 
   // Execute the plans.
-  NewData ?    forward_plan.execute(in.begin(),out.begin()) :   forward_plan.execute();
-  NewData ? backward_plan.execute(out.begin(),check.begin()) : backward_plan.execute();
-
+  NewData ? forward_plan.execute(in.begin(), out.begin())
+          : forward_plan.execute();
+  NewData ? backward_plan.execute(out.begin(), check.begin())
+          : backward_plan.execute();
 
   // Normalise the inverse transformation.
   backward_plan.normalise(check.begin(), check.end());
-
 
   // Compute the maximum residual value.
   std::transform(in.begin(), in.end(), check.begin(), in.begin(),
