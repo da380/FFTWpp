@@ -77,7 +77,7 @@ concept RandomAccessIterator = requires() {
 template <typename I>
 concept ScalarIterator = requires() {
   requires RandomAccessIterator<I>;
-  requires std::floating_point<GetPrecision<I>>;
+  requires HasPrecision<I>;
 };
 
 template <typename I>
