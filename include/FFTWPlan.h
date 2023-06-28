@@ -8,6 +8,7 @@
 #include "fftw3.h"
 #include "FFTWConcepts.h"
 #include "FFTWFlags.h"
+#include "FFTWMemory.h"
 
 namespace FFTW {
 
@@ -140,18 +141,7 @@ public:
     }
   }
 
-  // Reinterpret cast std::complex* to fftw_complex*.
-  auto ComplexCast(std::complex<Float>* z) {
-    if constexpr (IsSingle<Float>) {
-      return reinterpret_cast<fftwf_complex*>(z);
-    }
-    if constexpr (IsDouble<Float>) {
-      return reinterpret_cast<fftw_complex*>(z);
-    }
-    if constexpr (IsLongDouble<Float>) {
-      return reinterpret_cast<fftwl_complex*>(z);
-    }
-  }
+
   
 };
 

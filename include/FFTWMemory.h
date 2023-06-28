@@ -35,6 +35,22 @@ constexpr bool operator!=(const allocator<T>&, const allocator<U>&) noexcept {
 template <typename T>
 using vector = std::vector<T, allocator<T>>;
 
+
+
+// Reinterpret cast std::complex* to fftw_complex*.
+  template<typename Float>
+  auto ComplexCast(std::complex<Float>* z) {
+    if constexpr (IsSingle<Float>) {
+      return reinterpret_cast<fftwf_complex*>(z);
+    }
+    if constexpr (IsDouble<Float>) {
+      return reinterpret_cast<fftw_complex*>(z);
+    }
+    if constexpr (IsLongDouble<Float>) {
+      return reinterpret_cast<fftwl_complex*>(z);
+    }
+  }  
+
 }  // namespace FFTW
 
 #endif  // FFTWallocator_GUARD_H
