@@ -6,6 +6,7 @@
 
 #include "FFTW.h"
 
+#include <limits>
 
 
 int main()
@@ -22,6 +23,9 @@ int main()
   std::cout << FFTW::ComplexIterator<ComplexVectorIterator> << std::endl;  
 
 
+  std::cout << std::numeric_limits<float>::epsilon() << std::endl;
+  std::cout << std::numeric_limits<double>::epsilon() << std::endl;
+  std::cout << std::numeric_limits<long double>::epsilon() << std::endl;  
 
   
 }

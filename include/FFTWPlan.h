@@ -1,6 +1,7 @@
 #ifndef FFTWPlan_GUARD_H
 #define FFTWPlan_GUARD_H
 
+#include <algorithm>
 #include <cassert>
 #include <complex>
 #include <variant>
@@ -25,7 +26,7 @@ class Plan {
        PlanFlag) requires R2CIteratorPair<InputIt, OutputIt>;
 
   // Constructor for complex to real transformation
-  Plan(InputIt, InputIt, OutputIt,
+  Plan(InputIt, OutputIt, OutputIt,
        PlanFlag) requires C2RIteratorPair<InputIt, OutputIt>;
 
   // Execute the plan.
@@ -188,10 +189,9 @@ requires R2CIteratorPair<InputIt, OutputIt> {
 // Constructor for 1D complex to real transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
-    InputIt in_first, InputIt in_last, OutputIt out_first, PlanFlag flag)
+    InputIt in_first, OutputIt out_first, OutputIt out_last, PlanFlag flag)
 requires C2RIteratorPair<InputIt, OutputIt> {
-  size_t m = in_last - in_first;
-  n = 2 * (m - 1);
+  n = out_last - out_first;
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_dft_c2r_1d(n, ComplexCast(&*in_first), &*out_first,
                                  ConvertPlanFlag(flag));

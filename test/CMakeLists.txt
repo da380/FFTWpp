@@ -9,6 +9,6 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(FFTWTests
                FFTWTests.cpp)
-target_link_libraries(FFTWTests PRIVATE FFTW gtest_main)
+target_link_libraries(FFTWTests PRIVATE FFTWpp gtest_main)
 include(GoogleTest)
 gtest_discover_tests(FFTWTests)
