@@ -22,9 +22,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Locate and set up FFTW3
 find_package(FFTW)
 
-add_subdirectory(include)
-add_subdirectory(examples)
+add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(examples)
+
 
 
 
