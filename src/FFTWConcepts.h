@@ -4,6 +4,7 @@
 #include <complex>
 #include <concepts>
 #include <iterator>
+#include <ranges>
 
 namespace FFTW {
 
@@ -126,6 +127,31 @@ concept R2CIteratorPair = requires() {
   requires ComplexIterator<O>;
   requires SamePrecision<I, O>;
 };
+
+// Concepts for ranges
+
+template<typename R>
+concept ScalarRange = requires(){
+  requires std::ranges::common_range<R>;
+  requires ScalarIterator<typename R::begin>;
+  requires ScalarIterator<typename R::end>;
+};
+
+
+template<typename R>
+concept RealRange = requires(){
+  requires std::ranges::common_range<R>;
+  requires RealIterator<typename R::begin>;
+  requires RealIterator<typename R::end>;
+};
+
+
+template<typename R>
+concept ComplexRange = requires(){
+  requires std::ranges::common_range<R>;
+  requires ComplexIterator<typename R::begin>;
+  requires ComplexIterator<typename R::end>;
+};    
 
 }  // namespace FFTW
 
