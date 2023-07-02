@@ -1,5 +1,5 @@
-#ifndef FFTWPlan_GUARD_H
-#define FFTWPlan_GUARD_H
+#ifndef FFTWPlan1D_GUARD_H
+#define FFTWPlan1D_GUARD_H
 
 #include <algorithm>
 #include <cassert>
@@ -15,22 +15,22 @@ namespace FFTW {
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 requires SamePrecision<InputIt, OutputIt>
-class Plan {
+class Plan1D {
  public:
   // Constructor for 1D complex to complex transformation
-  Plan(size_t n, InputIt, OutputIt, DirectionFlag,
+  Plan1D(size_t n, InputIt, OutputIt, DirectionFlag,
        PlanFlag) requires C2CIteratorPair<InputIt, OutputIt>;
 
   // Constructor for 1D real to complex transformation
-  Plan(size_t n, InputIt, OutputIt,
+  Plan1D(size_t n, InputIt, OutputIt,
        PlanFlag) requires R2CIteratorPair<InputIt, OutputIt>;
 
   // Constructor for 1D complex to real transformation
-  Plan(size_t n, InputIt, OutputIt,
+  Plan1D(size_t n, InputIt, OutputIt,
        PlanFlag) requires C2RIteratorPair<InputIt, OutputIt>;
 
   // Constructor for 1D real to real transformations
-  Plan(size_t n, InputIt, OutputIt, DirectionFlag,
+  Plan1D(size_t n, InputIt, OutputIt, DirectionFlag,
        PlanFlag) requires R2RIteratorPair<InputIt, OutputIt>;
 
   // Execute the plan.
@@ -115,7 +115,7 @@ class Plan {
   }
 
   // Destructor.
-  ~Plan() {
+  ~Plan1D() {
     if constexpr (IsSingle<Float>) {
       fftwf_destroy_plan(ConvertPlan());
     }
@@ -154,7 +154,7 @@ class Plan {
 
 // Constructor for 1D complex to complex transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
+requires SamePrecision<InputIt, OutputIt> Plan1D<InputIt, OutputIt>::Plan1D(
     size_t n, InputIt in, OutputIt out, DirectionFlag direction, PlanFlag flag)
 requires C2CIteratorPair<InputIt, OutputIt> : n{n} {
   if constexpr (IsSingle<Float>) {
@@ -176,7 +176,7 @@ requires C2CIteratorPair<InputIt, OutputIt> : n{n} {
 
 // Constructor for 1D real to complex transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
+requires SamePrecision<InputIt, OutputIt> Plan1D<InputIt, OutputIt>::Plan1D(
     size_t n, InputIt in, OutputIt out, PlanFlag flag)
 requires R2CIteratorPair<InputIt, OutputIt> : n{n} {
   if constexpr (IsSingle<Float>) {
@@ -195,7 +195,7 @@ requires R2CIteratorPair<InputIt, OutputIt> : n{n} {
 
 // Constructor for 1D complex to real transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
+requires SamePrecision<InputIt, OutputIt> Plan1D<InputIt, OutputIt>::Plan1D(
     size_t n, InputIt in, OutputIt out, PlanFlag flag)
 requires C2RIteratorPair<InputIt, OutputIt> : n{n} {
   if constexpr (IsSingle<Float>) {
@@ -214,7 +214,7 @@ requires C2RIteratorPair<InputIt, OutputIt> : n{n} {
 
 // Constructor for 1D real to real transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt> Plan<InputIt, OutputIt>::Plan(
+requires SamePrecision<InputIt, OutputIt> Plan1D<InputIt, OutputIt>::Plan1D(
     size_t n, InputIt in, OutputIt out, DirectionFlag direction, PlanFlag flag)
 requires R2RIteratorPair<InputIt, OutputIt> : n{n} {
   if constexpr (IsSingle<Float>) {
@@ -236,4 +236,4 @@ requires R2RIteratorPair<InputIt, OutputIt> : n{n} {
 
 }  // namespace FFTW
 
-#endif  // FFTWPlan1D_GUARD_H
+#endif  // FFTWPlan1D1D_GUARD_H

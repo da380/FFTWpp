@@ -2,7 +2,7 @@ add_library(FFTWpp INTERFACE
   FFTWConcepts.h
   FFTWMemory.h
   FFTWFlags.h
-  FFTWPlan.h
+  FFTWPlan1D.h
   FFTW.h
 )
 

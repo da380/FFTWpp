@@ -26,10 +26,10 @@ int Test1DC2C(bool NewData = false) {
 
   // Form the plans.
   auto flag = FFTW::PlanFlag::Measure;
-  FFTW::Plan forward_plan(n,in.begin(), out.begin(),
+  FFTW::Plan1D forward_plan(n,in.begin(), out.begin(),
                           FFTW::DirectionFlag::Forward, flag);
 
-  FFTW::Plan backward_plan(n,out.begin(), check.begin(),
+  FFTW::Plan1D backward_plan(n,out.begin(), check.begin(),
                            FFTW::DirectionFlag::Backward, flag);
 
   // Set the input values

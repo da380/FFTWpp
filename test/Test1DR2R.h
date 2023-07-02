@@ -32,8 +32,8 @@ int Test1DR2R(bool NewData = false) {
   auto forward = FFTW::DirectionFlag::Forward;
   auto backward = FFTW::DirectionFlag::Backward;
   //  FFTW::Plan forward_plan(n, in.begin(), out.begin(), forward, flag);
-  FFTW::Plan forward_plan(n, in.begin(), out.begin(), forward, flag);
-  FFTW::Plan backward_plan(n, out.begin(), check.begin(), backward, flag);
+  FFTW::Plan1D forward_plan(n, in.begin(), out.begin(), forward, flag);
+  FFTW::Plan1D backward_plan(n, out.begin(), check.begin(), backward, flag);
 
 
   
