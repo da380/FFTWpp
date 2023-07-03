@@ -49,23 +49,23 @@ concept IsScalar = IsReal<T> or IsComplex<T>;
 
 // Concepts for iterators.
 template <typename I>
-concept RandomAccessIterator = requires() {
+concept Iterator = requires() {
   std::same_as<typename std::iterator_traits<I>::iterator_category,
                std::random_access_iterator_tag>;
 };
 
-template <RandomAccessIterator I>
+template <Iterator I>
 using IteratorValue = typename std::iterator_traits<I>::value_type;
 
 template <typename I>
 concept RealIterator = requires() {
-  requires RandomAccessIterator<I>;
+  requires Iterator<I>;
   requires IsReal<IteratorValue<I>>;
 };
 
 template <typename I>
 concept ComplexIterator = requires() {
-  requires RandomAccessIterator<I>;
+  requires Iterator<I>;
   requires IsComplex<IteratorValue<I>>;
   requires IsReal<RemoveComplex<IteratorValue<I>>>;
 };
@@ -78,7 +78,7 @@ using IteratorPrecision = RemoveComplex<IteratorValue<I>>;
 
 template <typename I>
 concept IntegralIterator = requires() {
-  requires RandomAccessIterator<I>;
+  requires Iterator<I>;
   requires std::integral<IteratorValue<I>>;
 };
 
