@@ -8,7 +8,7 @@
 template <typename Iter>
 requires FFTW::RealIterator<Iter>
 void MakeRealData(Iter first, Iter last) {
-  using Float = FFTW::GetPrecision<Iter>;
+  using Float = FFTW::IteratorPrecision<Iter>;
   std::random_device rd{};
   std::mt19937_64 gen{rd()};
   std::normal_distribution<typename Iter::value_type> d{0., 1.};

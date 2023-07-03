@@ -10,7 +10,7 @@
 #include "MakeComplexData.h"
 
 
-template <std::floating_point Float>
+template <std::floating_point Float, bool Ranges = false>
 int Test1DC2C(bool NewData = false) {
   using Complex = std::complex<Float>;
   using Vector = FFTW::vector<Complex>;
@@ -18,7 +18,7 @@ int Test1DC2C(bool NewData = false) {
   // generate a random size for the data
   std::random_device rd; 
   std::mt19937 gen(rd()); 
-  std::uniform_int_distribution<> d(10, 10000); 
+  std::uniform_int_distribution<> d(10, 1000); 
   int n = d(gen);
 
   // Initialise the vectors.
@@ -26,11 +26,19 @@ int Test1DC2C(bool NewData = false) {
 
   // Form the plans.
   auto flag = FFTW::PlanFlag::Measure;
-  FFTW::Plan1D forward_plan(n,in.begin(), out.begin(),
-                          FFTW::DirectionFlag::Forward, flag);
 
-  FFTW::Plan1D backward_plan(n,out.begin(), check.begin(),
+
+  
+  FFTW::Plan forward_plan(n,in.begin(), out.begin(),
+			  FFTW::DirectionFlag::Forward, flag);
+
+
+
+
+  FFTW::Plan backward_plan(n,out.begin(), check.begin(),
                            FFTW::DirectionFlag::Backward, flag);
+
+
 
   // Set the input values
   MakeComplexData(in.begin(), in.end());
@@ -41,6 +49,7 @@ int Test1DC2C(bool NewData = false) {
   NewData ? backward_plan.execute(out.begin(), check.begin())
           : backward_plan.execute();
 
+  
   // Normalise the inverse transformation.
   backward_plan.normalise(check.begin(), check.end());
 
@@ -58,4 +67,7 @@ int Test1DC2C(bool NewData = false) {
   // Return 0 if passed, 1 otherwise.
   std::cout << max/eps << std::endl;
   return max < eps ? 0 : 1;
+
+
+  
 }

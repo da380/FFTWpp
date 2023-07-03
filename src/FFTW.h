@@ -4,7 +4,7 @@
 #include "FFTWConcepts.h"
 #include "FFTWFlags.h"
 #include "FFTWMemory.h"
-#include "FFTWPlan1D.h"
+#include "FFTWPlan.h"
 #include "fftw3.h"
 
 #endif  // FFTW_GUARD_H

@@ -1,5 +1,5 @@
-#ifndef FFTWPlan1D_GUARD_H
-#define FFTWPlan1D_GUARD_H
+#ifndef FFTWPlan_GUARD_H
+#define FFTWPlan_GUARD_H
 
 #include <algorithm>
 #include <cassert>
@@ -14,23 +14,22 @@
 namespace FFTW {
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt>
-class Plan1D {
+class Plan {
  public:
   // Constructor for 1D complex to complex transformation
-  Plan1D(size_t n, InputIt, OutputIt, DirectionFlag,
+  Plan(size_t n, InputIt, OutputIt, DirectionFlag,
        PlanFlag) requires C2CIteratorPair<InputIt, OutputIt>;
 
   // Constructor for 1D real to complex transformation
-  Plan1D(size_t n, InputIt, OutputIt,
+  Plan(size_t n, InputIt, OutputIt,
        PlanFlag) requires R2CIteratorPair<InputIt, OutputIt>;
 
   // Constructor for 1D complex to real transformation
-  Plan1D(size_t n, InputIt, OutputIt,
+  Plan(size_t n, InputIt, OutputIt,
        PlanFlag) requires C2RIteratorPair<InputIt, OutputIt>;
 
   // Constructor for 1D real to real transformations
-  Plan1D(size_t n, InputIt, OutputIt, DirectionFlag,
+  Plan(size_t n, InputIt, OutputIt, DirectionFlag,
        PlanFlag) requires R2RIteratorPair<InputIt, OutputIt>;
 
   // Execute the plan.
@@ -104,7 +103,7 @@ class Plan1D {
 
   // Normalise the result of an inverse transformation.
   void normalise(OutputIt first, OutputIt last, OutputIt dest) {
-    auto norm = static_cast<Float>(1) / static_cast<Float>(n);
+    auto norm = static_cast<Float>(1) / static_cast<Float>(dimension);
     std::transform(first, last, dest,
                    [norm](OutputValueType x) { return x * norm; });
   }
@@ -115,7 +114,7 @@ class Plan1D {
   }
 
   // Destructor.
-  ~Plan1D() {
+  ~Plan() {
     if constexpr (IsSingle<Float>) {
       fftwf_destroy_plan(ConvertPlan());
     }
@@ -129,11 +128,11 @@ class Plan1D {
 
  private:
   // Store some type aliases
-  using Float = GetPrecision<InputIt>;
-  using InputValueType = GetValueType<InputIt>;
-  using OutputValueType = GetValueType<OutputIt>;
+  using Float = IteratorPrecision<InputIt>;
+  using InputValueType = IteratorValue<InputIt>;
+  using OutputValueType = IteratorValue<OutputIt>;
 
-  size_t n;
+  size_t dimension;
 
   // Store the plan as a std::variant.
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
@@ -154,9 +153,9 @@ class Plan1D {
 
 // Constructor for 1D complex to complex transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt> Plan1D<InputIt, OutputIt>::Plan1D(
-    size_t n, InputIt in, OutputIt out, DirectionFlag direction, PlanFlag flag)
-requires C2CIteratorPair<InputIt, OutputIt> : n{n} {
+Plan<InputIt, OutputIt>::Plan(size_t n, InputIt in, OutputIt out,
+                              DirectionFlag direction, PlanFlag flag) requires
+    C2CIteratorPair<InputIt, OutputIt> : dimension{n} {
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_dft_1d(n, ComplexCast(&*in), ComplexCast(&*out),
                              ConvertDirectionFlag(direction),
@@ -176,9 +175,9 @@ requires C2CIteratorPair<InputIt, OutputIt> : n{n} {
 
 // Constructor for 1D real to complex transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt> Plan1D<InputIt, OutputIt>::Plan1D(
-    size_t n, InputIt in, OutputIt out, PlanFlag flag)
-requires R2CIteratorPair<InputIt, OutputIt> : n{n} {
+Plan<InputIt, OutputIt>::Plan(size_t n, InputIt in, OutputIt out,
+                              PlanFlag flag) requires
+    R2CIteratorPair<InputIt, OutputIt> : dimension{n} {
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_dft_r2c_1d(n, &*in, ComplexCast(&*out),
                                  ConvertPlanFlag(flag));
@@ -195,9 +194,9 @@ requires R2CIteratorPair<InputIt, OutputIt> : n{n} {
 
 // Constructor for 1D complex to real transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt> Plan1D<InputIt, OutputIt>::Plan1D(
-    size_t n, InputIt in, OutputIt out, PlanFlag flag)
-requires C2RIteratorPair<InputIt, OutputIt> : n{n} {
+Plan<InputIt, OutputIt>::Plan(size_t n, InputIt in, OutputIt out,
+                              PlanFlag flag) requires
+    C2RIteratorPair<InputIt, OutputIt> : dimension{n} {
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_dft_c2r_1d(n, ComplexCast(&*in), &*out,
                                  ConvertPlanFlag(flag));
@@ -214,9 +213,9 @@ requires C2RIteratorPair<InputIt, OutputIt> : n{n} {
 
 // Constructor for 1D real to real transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-requires SamePrecision<InputIt, OutputIt> Plan1D<InputIt, OutputIt>::Plan1D(
-    size_t n, InputIt in, OutputIt out, DirectionFlag direction, PlanFlag flag)
-requires R2RIteratorPair<InputIt, OutputIt> : n{n} {
+Plan<InputIt, OutputIt>::Plan(size_t n, InputIt in, OutputIt out,
+                              DirectionFlag direction, PlanFlag flag) requires
+    R2RIteratorPair<InputIt, OutputIt> : dimension{n} {
   if constexpr (IsSingle<Float>) {
     plan =
         fftwf_plan_r2r_1d(n, &*in, &*out, ConvertDirectionFlag<true>(direction),
@@ -236,4 +235,4 @@ requires R2RIteratorPair<InputIt, OutputIt> : n{n} {
 
 }  // namespace FFTW
 
-#endif  // FFTWPlan1D1D_GUARD_H
+#endif  // FFTWPlan_GUARD_

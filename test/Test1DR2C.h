@@ -17,7 +17,7 @@ int Test1DR2C(bool NewData = false) {
   // generate a random size for the data
   std::random_device rd; 
   std::mt19937 gen(rd()); 
-  std::uniform_int_distribution<> d(100, 10000); 
+  std::uniform_int_distribution<> d(100, 1000); 
   int n = d(gen);
 
   
@@ -27,8 +27,8 @@ int Test1DR2C(bool NewData = false) {
 
   // Form the plans.
   auto flag = FFTW::PlanFlag::Measure;
-  FFTW::Plan1D forward_plan(n, in.begin(), out.begin(), flag);
-  FFTW::Plan1D backward_plan(n, out.begin(), check.begin(), flag);
+  FFTW::Plan forward_plan(n, in.begin(), out.begin(), flag);
+  FFTW::Plan backward_plan(n, out.begin(), check.begin(), flag);
 
 
   

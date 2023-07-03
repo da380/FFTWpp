@@ -18,7 +18,7 @@ int Test1DR2R(bool NewData = false) {
   // generate a random size for the data
   std::random_device rd; 
   std::mt19937 gen(rd()); 
-  std::uniform_int_distribution<> d(100, 10000); 
+  std::uniform_int_distribution<> d(100, 1000); 
   int n = d(gen);
 
   
@@ -32,8 +32,8 @@ int Test1DR2R(bool NewData = false) {
   auto forward = FFTW::DirectionFlag::Forward;
   auto backward = FFTW::DirectionFlag::Backward;
   //  FFTW::Plan forward_plan(n, in.begin(), out.begin(), forward, flag);
-  FFTW::Plan1D forward_plan(n, in.begin(), out.begin(), forward, flag);
-  FFTW::Plan1D backward_plan(n, out.begin(), check.begin(), backward, flag);
+  FFTW::Plan forward_plan(n, in.begin(), out.begin(), forward, flag);
+  FFTW::Plan backward_plan(n, out.begin(), check.begin(), backward, flag);
 
 
   

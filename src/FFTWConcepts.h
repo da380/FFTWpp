@@ -8,46 +8,6 @@
 
 namespace FFTW {
 
-// Some helper functions.
-template <typename T>
-concept HasValueType = requires() {
-  typename T::value_type;
-};
-
-template <bool, typename T>
-struct GetValueTypeHelper {
-  using value_type = T::value_type;
-};
-
-
-template < typename T>
-struct GetValueTypeHelper<false,T*> {
-  using value_type = T;
-};  
-
-template <typename T>
-struct GetValueTypeHelper<false, T> {
-  using value_type = T;
-};
-
-template <typename T>
-using GetValueType = GetValueTypeHelper<HasValueType<T>, T>::value_type;
-
-template <typename T>
-using GetPrecision = GetValueType<GetValueType<T>>;
-
-template <typename T>
-concept HasPrecision = requires() {
-  requires std::floating_point<GetPrecision<T>>;
-};
-
-template <typename S, typename T>
-concept SamePrecision = requires() {
-  requires HasPrecision<S>;
-  requires HasPrecision<T>;
-  requires std::same_as<GetPrecision<S>, GetPrecision<T>>;
-};
-
 // Concepts for floating point types.
 template <typename T>
 concept IsReal = std::floating_point<T>;
@@ -69,10 +29,23 @@ template <typename T>
 struct IsComplexHelper<std::complex<T>> : std::true_type {};
 
 template <typename T>
-concept IsComplex = requires() {
-  requires IsComplexHelper<T>::value;
-  requires std::floating_point<typename T::value_type>;
+concept IsComplex = IsComplexHelper<T>::value;
+
+template <typename T>
+struct RemoveComplexHelper {
+  using value_type = T;
 };
+
+template <typename T>
+struct RemoveComplexHelper<std::complex<T>> {
+  using value_type = T;
+};
+
+template <typename T>
+using RemoveComplex = typename RemoveComplexHelper<T>::value_type;
+
+template <typename T>
+concept IsScalar = IsReal<T> or IsComplex<T>;
 
 // Concepts for iterators.
 template <typename I>
@@ -81,22 +54,32 @@ concept RandomAccessIterator = requires() {
                std::random_access_iterator_tag>;
 };
 
-template <typename I>
-concept ScalarIterator = requires() {
-  requires RandomAccessIterator<I>;
-  requires HasPrecision<I>;
-};
+template <RandomAccessIterator I>
+using IteratorValue = typename std::iterator_traits<I>::value_type;
 
 template <typename I>
 concept RealIterator = requires() {
-  requires ScalarIterator<I>;
-  requires IsReal<typename std::iterator_traits<I>::value_type>;
+  requires RandomAccessIterator<I>;
+  requires IsReal<IteratorValue<I>>;
 };
 
 template <typename I>
 concept ComplexIterator = requires() {
-  requires ScalarIterator<I>;
-  requires IsComplex<typename std::iterator_traits<I>::value_type>;
+  requires RandomAccessIterator<I>;
+  requires IsComplex<IteratorValue<I>>;
+  requires IsReal<RemoveComplex<IteratorValue<I>>>;
+};
+
+template <typename I>
+concept ScalarIterator = RealIterator<I> or ComplexIterator<I>;
+
+template <ScalarIterator I>
+using IteratorPrecision = RemoveComplex<IteratorValue<I>>;
+
+template <typename I>
+concept IntegralIterator = requires() {
+  requires RandomAccessIterator<I>;
+  requires std::integral<IteratorValue<I>>;
 };
 
 // Concepts for iterator pairs.
@@ -104,54 +87,29 @@ template <typename I, typename O>
 concept R2RIteratorPair = requires() {
   requires RealIterator<I>;
   requires RealIterator<O>;
-  requires SamePrecision<I, O>;
+  requires std::same_as<IteratorPrecision<I>, IteratorPrecision<O>>;
 };
 
 template <typename I, typename O>
 concept C2CIteratorPair = requires() {
   requires ComplexIterator<I>;
   requires ComplexIterator<O>;
-  requires SamePrecision<I, O>;
+  requires std::same_as<IteratorPrecision<I>, IteratorPrecision<O>>;
 };
 
 template <typename I, typename O>
 concept C2RIteratorPair = requires() {
   requires ComplexIterator<I>;
   requires RealIterator<O>;
-  requires SamePrecision<I, O>;
+  requires std::same_as<IteratorPrecision<I>, IteratorPrecision<O>>;
 };
 
 template <typename I, typename O>
 concept R2CIteratorPair = requires() {
   requires RealIterator<I>;
   requires ComplexIterator<O>;
-  requires SamePrecision<I, O>;
+  requires std::same_as<IteratorPrecision<I>, IteratorPrecision<O>>;
 };
-
-// Concepts for ranges
-
-template<typename R>
-concept ScalarRange = requires(){
-  requires std::ranges::common_range<R>;
-  requires ScalarIterator<typename R::begin>;
-  requires ScalarIterator<typename R::end>;
-};
-
-
-template<typename R>
-concept RealRange = requires(){
-  requires std::ranges::common_range<R>;
-  requires RealIterator<typename R::begin>;
-  requires RealIterator<typename R::end>;
-};
-
-
-template<typename R>
-concept ComplexRange = requires(){
-  requires std::ranges::common_range<R>;
-  requires ComplexIterator<typename R::begin>;
-  requires ComplexIterator<typename R::end>;
-};    
 
 }  // namespace FFTW
 

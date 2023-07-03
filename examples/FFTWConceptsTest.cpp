@@ -2,30 +2,38 @@
 #include <complex>
 #include <iostream>
 #include <iterator>
+#include <list>
 #include <vector>
 
 #include "FFTW.h"
 
-#include <limits>
+
+template <FFTW::ScalarIterator It>
+void func(It in)
+{
+
+  std::cout << "Hello\n";
+  
+}
 
 
 int main()
 {
 
-  using Precision = double;
-  using Complex = std::complex<Precision>;
-  using RealVector = std::vector<Precision>;
-  using RealVectorIterator = std::vector<Precision>::iterator;
+  using Real = double;
+  using Complex = std::complex<Real>;
+  using RealVector = std::vector<Real>;
+  using RealVectorIterator = std::vector<Real>::iterator;
   using ComplexVector = std::vector<Complex>;
   using ComplexVectorIterator = std::vector<Complex>::iterator;
+
+  using std::cout;
+  using std::endl;
   
-  std::cout << FFTW::RealIterator<ComplexVectorIterator> << std::endl;
-  std::cout << FFTW::ComplexIterator<ComplexVectorIterator> << std::endl;  
 
 
-  std::cout << FFTW::RealIterator<double*> << std::endl;
 
-  std::cout << FFTW::RandomAccessIterator<double*> << std::endl;
+
   
 }
 
