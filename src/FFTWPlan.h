@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <complex>
+#include <iostream>
 #include <variant>
 
 #include "FFTWConcepts.h"
@@ -15,45 +16,47 @@ namespace FFTW {
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 class Plan {
+  // Store some type aliases
+  using Float = IteratorPrecision<InputIt>;
+  using InputValueType = IteratorValue<InputIt>;
+  using OutputValueType = IteratorValue<OutputIt>;
+  
  public:
   // General complex to complex constructor
   template <IntegralIterator IntIt>
-  Plan(int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
-       int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-       DirectionFlag direction,
+  Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
+       int istride, int idist, OutputIt out, IntIt onembed, int ostride,
+       int odist, DirectionFlag direction,
        PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt> {
-    MakePlan(rank, n, howmany, in, inembed, istride, idist, out, onembed,
-             ostride, odist, direction, flag);
+    MakePlan(rank, dimensions, howmany, in, inembed, istride, idist, out,
+             onembed, ostride, odist, direction, flag);
   }
 
   // General real to complex constructor
   template <IntegralIterator IntIt>
-  Plan(int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
-       int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-       PlanFlag flag) requires R2CIteratorPair<InputIt, OutputIt> or
+  Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
+       int istride, int idist, OutputIt out, IntIt onembed, int ostride,
+       int odist, PlanFlag flag) requires R2CIteratorPair<InputIt, OutputIt> or
       C2RIteratorPair<InputIt, OutputIt> {
-    MakePlan(rank, n, howmany, in, inembed, istride, idist, out, onembed,
-             ostride, odist, flag);
+    MakePlan(rank, dimensions, howmany, in, inembed, istride, idist, out,
+             onembed, ostride, odist, flag);
   }
 
   // Constructor for 1D complex to complex transformation
   Plan(int dimension, InputIt in, OutputIt out, DirectionFlag direction,
-       PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt>
-      : dimension{dimension} {
-    auto n = std::vector<int>(1, dimension);
-    auto it = n.begin();
+       PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt> {
+    auto dimensions = std::vector<int>(1, dimension);
+    auto it = dimensions.begin();
     MakePlan(1, it, 1, in, it, 1, 1, out, it, 1, 1, direction, flag);
   }
 
   // Constructor for 1D real to complex transformation
   Plan(int dimension, InputIt in, OutputIt out, PlanFlag flag) requires
-      R2CIteratorPair<InputIt, OutputIt> or C2RIteratorPair<InputIt, OutputIt>
-      : dimension{dimension} {
-    auto n = std::vector<int>(1, dimension);
-    auto it = n.begin();
+      R2CIteratorPair<InputIt, OutputIt> or C2RIteratorPair<InputIt, OutputIt> {
+    auto dimensions = std::vector<int>(1, dimension);
+    auto it = dimensions.begin();
     MakePlan(1, it, 1, in, it, 1, 1, out, it, 1, 1, flag);
   }
-  
 
   // Execute the plan.
   void execute() {
@@ -125,15 +128,19 @@ class Plan {
   }
 
   // Normalise the result of an inverse transformation.
-  void normalise(OutputIt first, OutputIt last, OutputIt dest) {
-    auto norm = static_cast<Float>(1) / static_cast<Float>(dimension);
+  void normalise(OutputIt first, OutputIt last, OutputIt dest) const {
     std::transform(first, last, dest,
-                   [norm](OutputValueType x) { return x * norm; });
+                   [this](OutputValueType x) { return x * norm; });
   }
 
   // Overload when the new values are written in place.
   void normalise(OutputIt first, OutputIt last) {
     normalise(first, last, first);
+  }
+
+  Float GetNorm() const
+  {
+    return norm;
   }
 
   // Destructor.
@@ -150,12 +157,8 @@ class Plan {
   }
 
  private:
-  // Store some type aliases
-  using Float = IteratorPrecision<InputIt>;
-  using InputValueType = IteratorValue<InputIt>;
-  using OutputValueType = IteratorValue<OutputIt>;
-
-  int dimension;
+  // Normalising constant for the inverse transformation
+  Float norm;
 
   // Store the plan as a std::variant.
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
@@ -190,76 +193,89 @@ class Plan {
   }
 };
 
+template <IntegralIterator I>
+int GetDimension(I first, I last) {
+  int dim = 1;
+  for (; first != last; first++) dim *= *first;
+  return dim;
+}
+
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
 void Plan<InputIt, OutputIt>::MakePlan(
-    int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
-    int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+    int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
+    int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     DirectionFlag direction,
     PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt> {
+  norm = static_cast<Float>(1) /
+         static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_many_dft(rank, &*n, howmany, ComplexCast(&*in), &*inembed,
-                               istride, idist, ComplexCast(&*out), &*onembed,
-                               ostride, odist, ConvertDirectionFlag(direction),
-                               ConvertPlanFlag(flag));
+    plan = fftwf_plan_many_dft(
+        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
+        idist, ComplexCast(&*out), &*onembed, ostride, odist,
+        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_many_dft(rank, &*n, howmany, ComplexCast(&*in), &*inembed,
-                              istride, idist, ComplexCast(&*out), &*onembed,
-                              ostride, odist, ConvertDirectionFlag(direction),
-                              ConvertPlanFlag(flag));
+    plan = fftw_plan_many_dft(
+        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
+        idist, ComplexCast(&*out), &*onembed, ostride, odist,
+        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_many_dft(rank, &*n, howmany, ComplexCast(&*in), &*inembed,
-                               istride, idist, ComplexCast(&*out), &*onembed,
-                               ostride, odist, ConvertDirectionFlag(direction),
-                               ConvertPlanFlag(flag));
+    plan = fftwl_plan_many_dft(
+        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
+        idist, ComplexCast(&*out), &*onembed, ostride, odist,
+        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
   }
 }
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
 void Plan<InputIt, OutputIt>::MakePlan(
-    int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
-    int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+    int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
+    int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     PlanFlag flag) requires R2CIteratorPair<InputIt, OutputIt> {
+  norm = static_cast<Float>(1) /
+         static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_many_dft_r2c(rank, &*n, howmany, &*in, &*inembed, istride,
-                                   idist, ComplexCast(&*out), &*onembed,
-                                   ostride, odist, ConvertPlanFlag(flag));
+    plan = fftwf_plan_many_dft_r2c(
+        rank, &*dimensions, howmany, &*in, &*inembed, istride, idist,
+        ComplexCast(&*out), &*onembed, ostride, odist, ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_many_dft_r2c(rank, &*n, howmany, &*in, &*inembed, istride,
-                                  idist, ComplexCast(&*out), &*onembed, ostride,
-                                  odist, ConvertPlanFlag(flag));
-  }
-  if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_many_dft_r2c(rank, &*n, howmany, &*in, &*inembed, istride,
-                                   idist, ComplexCast(&*out), &*onembed,
-                                   ostride, odist, ConvertPlanFlag(flag));
-  }
-}
-
-template <ScalarIterator InputIt, ScalarIterator OutputIt>
-template <IntegralIterator IntIt>
-void Plan<InputIt, OutputIt>::MakePlan(
-    int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
-    int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    PlanFlag flag) requires C2RIteratorPair<InputIt, OutputIt> {
-  if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_many_dft_c2r(rank, &*n, howmany, ComplexCast(&*in),
-                                   &*inembed, istride, idist, &*out, &*onembed,
-                                   ostride, odist, ConvertPlanFlag(flag));
-  }
-  if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_many_dft_c2r(rank, &*n, howmany, ComplexCast(&*in),
-                                  &*inembed, istride, idist, &*out, &*onembed,
+    plan = fftw_plan_many_dft_r2c(rank, &*dimensions, howmany, &*in, &*inembed,
+                                  istride, idist, ComplexCast(&*out), &*onembed,
                                   ostride, odist, ConvertPlanFlag(flag));
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_many_dft_c2r(rank, &*n, howmany, ComplexCast(&*in),
-                                   &*inembed, istride, idist, &*out, &*onembed,
-                                   ostride, odist, ConvertPlanFlag(flag));
+    plan = fftwl_plan_many_dft_r2c(
+        rank, &*dimensions, howmany, &*in, &*inembed, istride, idist,
+        ComplexCast(&*out), &*onembed, ostride, odist, ConvertPlanFlag(flag));
+  }
+}
+
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+template <IntegralIterator IntIt>
+void Plan<InputIt, OutputIt>::MakePlan(
+    int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
+    int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+    PlanFlag flag) requires C2RIteratorPair<InputIt, OutputIt> {
+  norm = static_cast<Float>(1) /
+         static_cast<Float>(GetDimension(dimensions, dimensions + rank));
+  if constexpr (IsSingle<Float>) {
+    plan = fftwf_plan_many_dft_c2r(
+        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
+        idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
+  }
+  if constexpr (IsDouble<Float>) {
+    plan = fftw_plan_many_dft_c2r(
+        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
+        idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
+  }
+  if constexpr (IsLongDouble<Float>) {
+    plan = fftwl_plan_many_dft_c2r(
+        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
+        idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
   }
 }
 
