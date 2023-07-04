@@ -16,21 +16,44 @@ namespace FFTW {
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 class Plan {
  public:
+  // General complex to complex constructor
+  template <IntegralIterator IntIt>
+  Plan(int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
+       int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+       DirectionFlag direction,
+       PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt> {
+    MakePlan(rank, n, howmany, in, inembed, istride, idist, out, onembed,
+             ostride, odist, direction, flag);
+  }
+
+  // General real to complex constructor
+  template <IntegralIterator IntIt>
+  Plan(int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
+       int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+       PlanFlag flag) requires R2CIteratorPair<InputIt, OutputIt> or
+      C2RIteratorPair<InputIt, OutputIt> {
+    MakePlan(rank, n, howmany, in, inembed, istride, idist, out, onembed,
+             ostride, odist, flag);
+  }
+
   // Constructor for 1D complex to complex transformation
-  Plan(size_t n, InputIt, OutputIt, DirectionFlag,
-       PlanFlag) requires C2CIteratorPair<InputIt, OutputIt>;
+  Plan(int dimension, InputIt in, OutputIt out, DirectionFlag direction,
+       PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt>
+      : dimension{dimension} {
+    auto n = std::vector<int>(1, dimension);
+    auto it = n.begin();
+    MakePlan(1, it, 1, in, it, 1, 1, out, it, 1, 1, direction, flag);
+  }
 
   // Constructor for 1D real to complex transformation
-  Plan(size_t n, InputIt, OutputIt,
-       PlanFlag) requires R2CIteratorPair<InputIt, OutputIt>;
-
-  // Constructor for 1D complex to real transformation
-  Plan(size_t n, InputIt, OutputIt,
-       PlanFlag) requires C2RIteratorPair<InputIt, OutputIt>;
-
-  // Constructor for 1D real to real transformations
-  Plan(size_t n, InputIt, OutputIt, DirectionFlag,
-       PlanFlag) requires R2RIteratorPair<InputIt, OutputIt>;
+  Plan(int dimension, InputIt in, OutputIt out, PlanFlag flag) requires
+      R2CIteratorPair<InputIt, OutputIt> or C2RIteratorPair<InputIt, OutputIt>
+      : dimension{dimension} {
+    auto n = std::vector<int>(1, dimension);
+    auto it = n.begin();
+    MakePlan(1, it, 1, in, it, 1, 1, out, it, 1, 1, flag);
+  }
+  
 
   // Execute the plan.
   void execute() {
@@ -132,10 +155,26 @@ class Plan {
   using InputValueType = IteratorValue<InputIt>;
   using OutputValueType = IteratorValue<OutputIt>;
 
-  size_t dimension;
+  int dimension;
 
   // Store the plan as a std::variant.
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
+
+  // Make a general complex to complex plan
+  template <IntegralIterator IntIt>
+  void MakePlan(int, IntIt, int, InputIt, IntIt, int, int, OutputIt, IntIt, int,
+                int, DirectionFlag,
+                PlanFlag) requires C2CIteratorPair<InputIt, OutputIt>;
+
+  // Make a general real to complex plan
+  template <IntegralIterator IntIt>
+  void MakePlan(int, IntIt, int, InputIt, IntIt, int, int, OutputIt, IntIt, int,
+                int, PlanFlag) requires R2CIteratorPair<InputIt, OutputIt>;
+
+  // Make a general complex to real plan
+  template <IntegralIterator IntIt>
+  void MakePlan(int, IntIt, int, InputIt, IntIt, int, int, OutputIt, IntIt, int,
+                int, PlanFlag) requires C2RIteratorPair<InputIt, OutputIt>;
 
   // Get plan in fftw3 form.
   auto ConvertPlan() {
@@ -151,88 +190,79 @@ class Plan {
   }
 };
 
-// Constructor for 1D complex to complex transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-Plan<InputIt, OutputIt>::Plan(size_t n, InputIt in, OutputIt out,
-                              DirectionFlag direction, PlanFlag flag) requires
-    C2CIteratorPair<InputIt, OutputIt> : dimension{n} {
+template <IntegralIterator IntIt>
+void Plan<InputIt, OutputIt>::MakePlan(
+    int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
+    int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+    DirectionFlag direction,
+    PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt> {
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_dft_1d(n, ComplexCast(&*in), ComplexCast(&*out),
-                             ConvertDirectionFlag(direction),
-                             ConvertPlanFlag(flag));
+    plan = fftwf_plan_many_dft(rank, &*n, howmany, ComplexCast(&*in), &*inembed,
+                               istride, idist, ComplexCast(&*out), &*onembed,
+                               ostride, odist, ConvertDirectionFlag(direction),
+                               ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_dft_1d(n, ComplexCast(&*in), ComplexCast(&*out),
-                            ConvertDirectionFlag(direction),
-                            ConvertPlanFlag(flag));
+    plan = fftw_plan_many_dft(rank, &*n, howmany, ComplexCast(&*in), &*inembed,
+                              istride, idist, ComplexCast(&*out), &*onembed,
+                              ostride, odist, ConvertDirectionFlag(direction),
+                              ConvertPlanFlag(flag));
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_dft_1d(n, ComplexCast(&*in), ComplexCast(&*out),
-                             ConvertDirectionFlag(direction),
-                             ConvertPlanFlag(flag));
+    plan = fftwl_plan_many_dft(rank, &*n, howmany, ComplexCast(&*in), &*inembed,
+                               istride, idist, ComplexCast(&*out), &*onembed,
+                               ostride, odist, ConvertDirectionFlag(direction),
+                               ConvertPlanFlag(flag));
   }
 }
 
-// Constructor for 1D real to complex transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-Plan<InputIt, OutputIt>::Plan(size_t n, InputIt in, OutputIt out,
-                              PlanFlag flag) requires
-    R2CIteratorPair<InputIt, OutputIt> : dimension{n} {
+template <IntegralIterator IntIt>
+void Plan<InputIt, OutputIt>::MakePlan(
+    int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
+    int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+    PlanFlag flag) requires R2CIteratorPair<InputIt, OutputIt> {
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_dft_r2c_1d(n, &*in, ComplexCast(&*out),
-                                 ConvertPlanFlag(flag));
+    plan = fftwf_plan_many_dft_r2c(rank, &*n, howmany, &*in, &*inembed, istride,
+                                   idist, ComplexCast(&*out), &*onembed,
+                                   ostride, odist, ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_dft_r2c_1d(n, &*in, ComplexCast(&*out),
-                                ConvertPlanFlag(flag));
+    plan = fftw_plan_many_dft_r2c(rank, &*n, howmany, &*in, &*inembed, istride,
+                                  idist, ComplexCast(&*out), &*onembed, ostride,
+                                  odist, ConvertPlanFlag(flag));
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_dft_r2c_1d(n, &*in, ComplexCast(&*out),
-                                 ConvertPlanFlag(flag));
+    plan = fftwl_plan_many_dft_r2c(rank, &*n, howmany, &*in, &*inembed, istride,
+                                   idist, ComplexCast(&*out), &*onembed,
+                                   ostride, odist, ConvertPlanFlag(flag));
   }
 }
 
-// Constructor for 1D complex to real transformation
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-Plan<InputIt, OutputIt>::Plan(size_t n, InputIt in, OutputIt out,
-                              PlanFlag flag) requires
-    C2RIteratorPair<InputIt, OutputIt> : dimension{n} {
+template <IntegralIterator IntIt>
+void Plan<InputIt, OutputIt>::MakePlan(
+    int rank, IntIt n, int howmany, InputIt in, IntIt inembed, int istride,
+    int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+    PlanFlag flag) requires C2RIteratorPair<InputIt, OutputIt> {
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_dft_c2r_1d(n, ComplexCast(&*in), &*out,
-                                 ConvertPlanFlag(flag));
+    plan = fftwf_plan_many_dft_c2r(rank, &*n, howmany, ComplexCast(&*in),
+                                   &*inembed, istride, idist, &*out, &*onembed,
+                                   ostride, odist, ConvertPlanFlag(flag));
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_dft_c2r_1d(n, ComplexCast(&*in), &*out,
-                                ConvertPlanFlag(flag));
+    plan = fftw_plan_many_dft_c2r(rank, &*n, howmany, ComplexCast(&*in),
+                                  &*inembed, istride, idist, &*out, &*onembed,
+                                  ostride, odist, ConvertPlanFlag(flag));
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_dft_c2r_1d(n, ComplexCast(&*in), &*out,
-                                 ConvertPlanFlag(flag));
-  }
-}
-
-// Constructor for 1D real to real transformation
-template <ScalarIterator InputIt, ScalarIterator OutputIt>
-Plan<InputIt, OutputIt>::Plan(size_t n, InputIt in, OutputIt out,
-                              DirectionFlag direction, PlanFlag flag) requires
-    R2RIteratorPair<InputIt, OutputIt> : dimension{n} {
-  if constexpr (IsSingle<Float>) {
-    plan =
-        fftwf_plan_r2r_1d(n, &*in, &*out, ConvertDirectionFlag<true>(direction),
-                          ConvertPlanFlag(flag));
-  }
-  if constexpr (IsDouble<Float>) {
-    plan =
-        fftw_plan_r2r_1d(n, &*in, &*out, ConvertDirectionFlag<true>(direction),
-                         ConvertPlanFlag(flag));
-  }
-  if constexpr (IsLongDouble<Float>) {
-    plan =
-        fftwl_plan_r2r_1d(n, &*in, &*out, ConvertDirectionFlag<true>(direction),
-                          ConvertPlanFlag(flag));
+    plan = fftwl_plan_many_dft_c2r(rank, &*n, howmany, ComplexCast(&*in),
+                                   &*inembed, istride, idist, &*out, &*onembed,
+                                   ostride, odist, ConvertPlanFlag(flag));
   }
 }
 
 }  // namespace FFTW
 
-#endif  // FFTWPlan_GUARD_
+#endif  // FFTWPlan_GUARD_H
