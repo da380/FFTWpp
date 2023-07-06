@@ -12,7 +12,7 @@ namespace FFTW {
 // Define a custom allocator using the fftw3 versions of malloc and free.
 template <typename T>
 struct allocator {
-  typedef T value_type;
+  using value_type = T;
   allocator() noexcept {}
   template <class U>
   allocator(const allocator<U>&) noexcept {}
