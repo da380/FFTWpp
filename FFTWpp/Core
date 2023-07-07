@@ -1,11 +1,11 @@
-#ifndef FFTWpp_CORE_MODULE_H
-#define FFTWpp_CORE_MODULE_H
+#ifndef FFTWPP_CORE_MODULE_H
+#define FFTWPP_CORE_MODULE_H
 
 
 #include "fftw3.h"
 #include "Concepts"
-#include "Flags"
 #include "Memory"
-#include "Plan"
+#include "src/Flags.h"
+#include "src/Plan.h"
 
-#endif  // FFTWpp_CORE_MODULE_H
+#endif  

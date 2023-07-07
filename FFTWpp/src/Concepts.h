@@ -1,5 +1,10 @@
-#ifndef FFTWConcepts_GUARD_H
-#define FFTWConcepts_GUARD_H
+#ifndef FFTWPP_CONCEPTS_GUARD_H
+#define FFTWPP_CONCEPTS_GUARD_H
+
+#ifndef FFTWPP_CONCEPTS_MODULE_H
+#error \
+    "Please include FFTWpp/Concepts or FFTWpp/Core instead of including headers inside the src directory directly."
+#endif
 
 #include <complex>
 #include <concepts>
@@ -113,4 +118,4 @@ concept R2CIteratorPair = requires() {
 
 }  // namespace FFTW
 
-#endif  // FFTWConcepts_GUARD_H
+#endif  // FFTWPP_CONCEPTS_GUARD_H

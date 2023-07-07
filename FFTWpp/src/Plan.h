@@ -1,5 +1,10 @@
-#ifndef FFTWPlan_GUARD_H
-#define FFTWPlan_GUARD_H
+#ifndef FFTWPP_PLAN_GUARD_H
+#define FFTWPP_PLAN_GUARD_H
+
+#ifndef FFTWPP_CORE_MODULE_H
+#error \
+    "Please include FFTWpp/Plan or FFTWpp/Core instead of including headers inside the src directory directly."
+#endif
 
 #include <algorithm>
 #include <cassert>
@@ -20,7 +25,7 @@ class Plan {
   using Float = IteratorPrecision<InputIt>;
   using InputValueType = IteratorValue<InputIt>;
   using OutputValueType = IteratorValue<OutputIt>;
-  
+
  public:
   // General complex to complex constructor
   template <IntegralIterator IntIt>
@@ -138,10 +143,7 @@ class Plan {
     normalise(first, last, first);
   }
 
-  Float GetNorm() const
-  {
-    return norm;
-  }
+  Float GetNorm() const { return norm; }
 
   // Destructor.
   ~Plan() {
@@ -281,4 +283,4 @@ void Plan<InputIt, OutputIt>::MakePlan(
 
 }  // namespace FFTW
 
-#endif  // FFTWPlan_GUARD_H
+#endif  // FFTWPP_PLAN_GUARD_H

@@ -1,5 +1,10 @@
-#ifndef FFTWallocator_GUARD_H
-#define FFTWallocator_GUARD_H
+#ifndef FFTWPP_MEMORY_GUARD_H
+#define FFTWPP_MEMORY_GUARD_H
+
+#ifndef FFTWPP_CONCEPTS_MODULE_H
+#error \
+    "Please include FFTWpp/Memory or FFTWpp/Core instead of including headers inside the src directory directly."
+#endif
 
 #include <concepts>
 #include <memory>
@@ -60,4 +65,4 @@ void CleanUp() {
 
 }  // namespace FFTW
 
-#endif  // FFTWallocator_GUARD_H
+#endif  // FFTWPP_MEMORY_GUARD_H

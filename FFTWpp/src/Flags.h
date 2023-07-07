@@ -1,25 +1,28 @@
-#ifndef FFTWFlags_GUARD_H
-#define FFTWFlags_GUARD_H
+#ifndef FFTWPP_FLAGS_GUARD_H
+#define FFTWPP_FLAGS_GUARD_H
+
+#ifndef FFTWPP_CORE_MODULE_H
+#error \
+    "Please include FFTWpp/Core instead of including headers inside the src directory directly."
+#endif
 
 #include "fftw3.h"
 
 namespace FFTW {
 
-
-  
 // Enum class for transformation directions.
 enum class DirectionFlag { Forward, Backward };
 
 auto ConvertDirectionFlag(DirectionFlag direction) {
   switch (direction) {
-  case DirectionFlag::Forward: {
-    return FFTW_FORWARD;
-  }
-  case DirectionFlag::Backward: {
-    return FFTW_BACKWARD;
-    default:
+    case DirectionFlag::Forward: {
       return FFTW_FORWARD;
-  }
+    }
+    case DirectionFlag::Backward: {
+      return FFTW_BACKWARD;
+      default:
+        return FFTW_FORWARD;
+    }
   }
 }
 
@@ -47,4 +50,4 @@ auto ConvertPlanFlag(PlanFlag flag) {
 
 }  // namespace FFTW
 
-#endif  //  FFTWFlags_GUARD_H
+#endif  //  FFTWPP_FLAGS_GUARD_H
