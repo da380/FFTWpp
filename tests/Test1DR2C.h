@@ -5,8 +5,8 @@
 #include <random>
 #include <vector>
 
-#include "FFTW.h"
-#include "MakeRealData.h"
+#include <FFTWpp/Core>
+#include "MakeData.h"
 
 template <typename Float>
 int Test1DR2C(bool NewData = false) {

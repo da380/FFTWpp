@@ -1,0 +1,13 @@
+#ifndef FFTWpp_CORE_MODULE_H
+#define FFTWpp_CORE_MODULE_H
+
+// Include the fftw3 header file
+#include "fftw3.h"
+
+// Include header files from the source directory
+#include "src/Concepts.h"
+#include "src/Flags.h"
+#include "src/Memory.h"
+#include "src/Plan.h"
+
+#endif  // FFTWpp_CORE_MODULE_H

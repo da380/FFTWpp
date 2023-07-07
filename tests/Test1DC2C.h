@@ -6,8 +6,8 @@
 #include <random>
 #include <vector>
 
-#include "FFTW.h"
-#include "MakeComplexData.h"
+#include <FFTWpp/Core>
+#include "MakeData.h"
 
 
 template <std::floating_point Float, bool Ranges = false>

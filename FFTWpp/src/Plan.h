@@ -7,9 +7,9 @@
 #include <iostream>
 #include <variant>
 
-#include "FFTWConcepts.h"
-#include "FFTWFlags.h"
-#include "FFTWMemory.h"
+#include "Concepts.h"
+#include "Flags.h"
+#include "Memory.h"
 #include "fftw3.h"
 
 namespace FFTW {

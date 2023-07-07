@@ -2,12 +2,13 @@
 cmake_minimum_required (VERSION 3.5)
 
 
-project(FFTWpp
-        VERSION 1.0
-        LANGUAGES CXX
-        )
+project(FFTWpp)
 
-enable_testing()
+if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+  message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt. ")
+endif()
+
+      
       
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
@@ -22,8 +23,16 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Locate  FFTW3
 find_package(FFTW)
 
-# add the source files
-add_subdirectory(src)
+# Set up the library
+add_library (FFTWpp INTERFACE  ${FFTW_INCLUDES})
+
+target_link_libraries(FFTWpp INTERFACE ${FFTW_LIBRARIES})
+
+target_include_directories (FFTWpp INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
+)
+
 
 # optionally add in the examples and tests
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
