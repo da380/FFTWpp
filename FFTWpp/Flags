@@ -1,0 +1,7 @@
+#ifndef FFTWpp_FLAGS_MODULE_H
+#define FFTWpp_FLAGS_MODULE_H
+
+#include "fftw3.h"
+#include "src/Flags.h"
+
+#endif  // FFTWpp_FLAGS_MODULE_H

@@ -1,0 +1,10 @@
+#ifndef FFTWpp_PLAN_MODULE_H
+#define FFTWpp_PLAN_MODULE_H
+
+#include "fftw3.h"
+#include "Concepts"
+#include "Flags"
+#include "Memory"
+#include "src/Plan.h"
+
+#endif  // FFTWpp_PLAN_MODULE_H
