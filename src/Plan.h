@@ -27,25 +27,28 @@ class Plan {
   using OutputValueType = IteratorValue<OutputIt>;
 
  public:
-  // General complex to complex constructor
+  // Complex to complex constructor
   template <IntegralIterator IntIt>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
-       int odist, DirectionFlag direction,
-       PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt> {
-    MakePlan(rank, dimensions, howmany, in, inembed, istride, idist, out,
-             onembed, ostride, odist, direction, flag);
-  }
+       int odist, PlanFlag flga,
+       DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt>;
 
-  // General real to complex constructor
+  // Real to complex constructor
   template <IntegralIterator IntIt>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
-       int odist, PlanFlag flag) requires R2CIteratorPair<InputIt, OutputIt> or
-      C2RIteratorPair<InputIt, OutputIt> {
-    MakePlan(rank, dimensions, howmany, in, inembed, istride, idist, out,
-             onembed, ostride, odist, flag);
-  }
+       int odist, PlanFlag flag,
+       DirectionFlag direction = DirectionFlag::Forward) requires
+      R2CIteratorPair<InputIt, OutputIt>;
+
+  // Real to complex constructor
+  template <IntegralIterator IntIt>
+  Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
+       int istride, int idist, OutputIt out, IntIt onembed, int ostride,
+       int odist, PlanFlag flag,
+       DirectionFlag direction = DirectionFlag::Backward) requires
+      C2RIteratorPair<InputIt, OutputIt>;
 
   // Execute the plan.
   void execute() {
@@ -149,22 +152,6 @@ class Plan {
   // Store the plan as a std::variant.
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
 
-  // Make a general complex to complex plan
-  template <IntegralIterator IntIt>
-  void MakePlan(int, IntIt, int, InputIt, IntIt, int, int, OutputIt, IntIt, int,
-                int, DirectionFlag,
-                PlanFlag) requires C2CIteratorPair<InputIt, OutputIt>;
-
-  // Make a general real to complex plan
-  template <IntegralIterator IntIt>
-  void MakePlan(int, IntIt, int, InputIt, IntIt, int, int, OutputIt, IntIt, int,
-                int, PlanFlag) requires R2CIteratorPair<InputIt, OutputIt>;
-
-  // Make a general complex to real plan
-  template <IntegralIterator IntIt>
-  void MakePlan(int, IntIt, int, InputIt, IntIt, int, int, OutputIt, IntIt, int,
-                int, PlanFlag) requires C2RIteratorPair<InputIt, OutputIt>;
-
   // Get plan in fftw3 form.
   auto ConvertPlan() {
     if constexpr (IsSingle<Float>) {
@@ -181,16 +168,16 @@ class Plan {
 
 template <IntegralIterator I>
 int GetDimension(I first, I last) {
-  return std::reduce(first,last,1,std::multiplies<>());
+  return std::reduce(first, last, 1, std::multiplies<>());
 }
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
-void Plan<InputIt, OutputIt>::MakePlan(
+Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    DirectionFlag direction,
-    PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt> {
+    PlanFlag flag,
+    DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
@@ -215,10 +202,11 @@ void Plan<InputIt, OutputIt>::MakePlan(
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
-void Plan<InputIt, OutputIt>::MakePlan(
+Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    PlanFlag flag) requires R2CIteratorPair<InputIt, OutputIt> {
+    PlanFlag flag,
+    DirectionFlag direction) requires R2CIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
@@ -240,10 +228,11 @@ void Plan<InputIt, OutputIt>::MakePlan(
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
-void Plan<InputIt, OutputIt>::MakePlan(
+Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    PlanFlag flag) requires C2RIteratorPair<InputIt, OutputIt> {
+    PlanFlag flag,
+    DirectionFlag direction) requires C2RIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
@@ -275,15 +264,8 @@ auto Plan1D(int dimension, InputIt in, OutputIt out, PlanFlag flag,
   int odist = 1;
   int ostride = 1;
   auto it = dimensions.begin();
-  if constexpr (C2CIteratorPair<InputIt, OutputIt>) {
-    return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
-                ostride, direction, flag);
-  }
-  if constexpr (R2CIteratorPair<InputIt, OutputIt> ||
-                C2RIteratorPair<InputIt, OutputIt>) {
-    return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
-                ostride, flag);
-  }
+  return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
+	      ostride, flag, direction);
 }
 
 // Wrapper function to return a plan for many 1D transforms. It is
@@ -300,15 +282,8 @@ auto Plan1DMany(int dimension, int howmany, InputIt in, OutputIt out,
   int odist = dimension;
   int ostride = 1;
   auto it = dimensions.begin();
-  if constexpr (C2CIteratorPair<InputIt, OutputIt>) {
-    return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
-                ostride, direction, flag);
-  }
-  if constexpr (R2CIteratorPair<InputIt, OutputIt> ||
-                C2RIteratorPair<InputIt, OutputIt>) {
-    return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
-                ostride, flag);
-  }
+  return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
+	      ostride, flag, direction);
 }
 
 }  // namespace FFTWpp
