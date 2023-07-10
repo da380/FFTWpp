@@ -5,7 +5,7 @@
 #include <complex>
 #include <iterator>
 #include <random>
-#include <FFTWpp/Concepts>
+#include "FFTWpp.h"
 
 
 template <typename Iter>

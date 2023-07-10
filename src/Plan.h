@@ -1,9 +1,9 @@
 #ifndef FFTWPP_PLAN_GUARD_H
 #define FFTWPP_PLAN_GUARD_H
 
-#ifndef FFTWPP_CORE_MODULE_H
+#ifndef FFTWPP_MODULE_H
 #error \
-    "Please include FFTWpp/Plan or FFTWpp/Core instead of including headers inside the src directory directly."
+    "Please include FFTWpp.h or FFTWpp/Core instead of including headers inside the src directory directly."
 #endif
 
 #include <algorithm>

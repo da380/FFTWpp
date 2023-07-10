@@ -1,7 +1,0 @@
-#ifndef FFTWPP_MEMORY_MODULE_H
-#define FFTWPP_MEMORY_MODULE_H
-
-#include "fftw3.h"
-#include "src/Memory.h"
-
-#endif

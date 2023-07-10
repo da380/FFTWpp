@@ -1,6 +1,0 @@
-#ifndef FFTWPP_CONCEPTS_MODULE_H
-#define FFTWPP_CONCEPTS_MODULE_H
-
-#include "src/Concepts.h"
-
-#endif
