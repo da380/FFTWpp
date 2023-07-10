@@ -31,7 +31,7 @@ class Plan {
   template <IntegralIterator IntIt>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
-       int odist, PlanFlag flga,
+       int odist, PlanFlag flag,
        DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt>;
 
   // Real to complex constructor
