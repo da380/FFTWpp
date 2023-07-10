@@ -9,9 +9,9 @@
 
 
 template <typename Iter>
-requires FFTW::ComplexIterator<Iter>
+requires FFTWpp::ComplexIterator<Iter>
 void MakeComplexData(Iter first, Iter last) {
-  using Float = FFTW::IteratorPrecision<Iter>;
+  using Float = FFTWpp::IteratorPrecision<Iter>;
   using Complex = std::complex<Float>;
   std::random_device rd{};
   std::mt19937_64 gen{rd()};
@@ -22,9 +22,9 @@ void MakeComplexData(Iter first, Iter last) {
 
 
 template <typename Iter>
-requires FFTW::RealIterator<Iter>
+requires FFTWpp::RealIterator<Iter>
 void MakeRealData(Iter first, Iter last) {
-  using Float = FFTW::IteratorPrecision<Iter>;
+  using Float = FFTWpp::IteratorPrecision<Iter>;
   std::random_device rd{};
   std::mt19937_64 gen{rd()};
   std::normal_distribution<typename Iter::value_type> d{0., 1.};

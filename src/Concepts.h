@@ -11,7 +11,7 @@
 #include <iterator>
 #include <ranges>
 
-namespace FFTW {
+namespace FFTWpp {
 
 // Concepts for floating point types.
 template <typename T>
@@ -116,6 +116,6 @@ concept R2CIteratorPair = requires() {
   requires std::same_as<IteratorPrecision<I>, IteratorPrecision<O>>;
 };
 
-}  // namespace FFTW
+}  // namespace FFTWpp
 
 #endif  // FFTWPP_CONCEPTS_GUARD_H

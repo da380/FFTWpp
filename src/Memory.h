@@ -12,7 +12,7 @@
 
 #include "fftw3.h"
 
-namespace FFTW {
+namespace FFTWpp {
 
 // Define a custom allocator using the fftw3 versions of malloc and free.
 template <typename T>
@@ -63,6 +63,6 @@ void CleanUp() {
   fftwl_cleanup();
 }
 
-}  // namespace FFTW
+}  // namespace FFTWpp
 
 #endif  // FFTWPP_MEMORY_GUARD_H

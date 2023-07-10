@@ -8,7 +8,7 @@
 
 #include "fftw3.h"
 
-namespace FFTW {
+namespace FFTWpp {
 
 // Enum class for transformation directions.
 enum class DirectionFlag { Forward, Backward };
@@ -48,6 +48,6 @@ auto ConvertPlanFlag(PlanFlag flag) {
   }
 }
 
-}  // namespace FFTW
+}  // namespace FFTWpp
 
 #endif  //  FFTWPP_FLAGS_GUARD_H

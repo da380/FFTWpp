@@ -3,7 +3,7 @@
 
 #ifndef FFTWPP_MODULE_H
 #error \
-    "Please include FFTWpp.h or FFTWpp/Core instead of including headers inside the src directory directly."
+    "Please include FFTWpp.h instead of including headers inside the src directory directly."
 #endif
 
 #include <algorithm>
@@ -17,7 +17,7 @@
 #include "Memory.h"
 #include "fftw3.h"
 
-namespace FFTW {
+namespace FFTWpp {
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 class Plan {
@@ -45,22 +45,6 @@ class Plan {
       C2RIteratorPair<InputIt, OutputIt> {
     MakePlan(rank, dimensions, howmany, in, inembed, istride, idist, out,
              onembed, ostride, odist, flag);
-  }
-
-  // Constructor for 1D complex to complex transformation
-  Plan(int dimension, InputIt in, OutputIt out, DirectionFlag direction,
-       PlanFlag flag) requires C2CIteratorPair<InputIt, OutputIt> {
-    auto dimensions = std::vector<int>(1, dimension);
-    auto it = dimensions.begin();
-    MakePlan(1, it, 1, in, it, 1, 1, out, it, 1, 1, direction, flag);
-  }
-
-  // Constructor for 1D real to complex transformation
-  Plan(int dimension, InputIt in, OutputIt out, PlanFlag flag) requires
-      R2CIteratorPair<InputIt, OutputIt> or C2RIteratorPair<InputIt, OutputIt> {
-    auto dimensions = std::vector<int>(1, dimension);
-    auto it = dimensions.begin();
-    MakePlan(1, it, 1, in, it, 1, 1, out, it, 1, 1, flag);
   }
 
   // Execute the plan.
@@ -198,7 +182,7 @@ class Plan {
 template <IntegralIterator I>
 int GetDimension(I first, I last) {
   int dim = 1;
-  for (; first != last; first++) dim *= *first;
+  while(first != last) dim *= *first++;
   return dim;
 }
 
@@ -281,6 +265,54 @@ void Plan<InputIt, OutputIt>::MakePlan(
   }
 }
 
-}  // namespace FFTW
+// Wrapper function to return a plan for 1D transforms
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+auto Plan1D(int dimension, InputIt in, OutputIt out, PlanFlag flag,
+            DirectionFlag direction = DirectionFlag::Forward) {
+  int rank = 1;
+  int howmany = 1;
+  auto dimensions = std::vector<int>(rank, dimension);
+  int idist = 1;
+  int istride = 1;
+  int odist = 1;
+  int ostride = 1;
+  auto it = dimensions.begin();
+  if constexpr (C2CIteratorPair<InputIt, OutputIt>) {
+    return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
+                ostride, direction, flag);
+  }
+  if constexpr (R2CIteratorPair<InputIt, OutputIt> ||
+                C2RIteratorPair<InputIt, OutputIt>) {
+    return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
+                ostride, flag);
+  }
+}
+
+// Wrapper function to return a plan for many 1D transforms. It is
+// assumed that the data are laid out in contiguous memory such that
+// the ith entry in the jth transform is located at i + j * dimension.
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+auto Plan1DMany(int dimension, int howmany, InputIt in, OutputIt out,
+                PlanFlag flag,
+                DirectionFlag direction = DirectionFlag::Forward) {
+  int rank = 1;
+  auto dimensions = std::vector<int>(rank, dimension);
+  int idist = dimension;
+  int istride = 1;
+  int odist = dimension;
+  int ostride = 1;
+  auto it = dimensions.begin();
+  if constexpr (C2CIteratorPair<InputIt, OutputIt>) {
+    return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
+                ostride, direction, flag);
+  }
+  if constexpr (R2CIteratorPair<InputIt, OutputIt> ||
+                C2RIteratorPair<InputIt, OutputIt>) {
+    return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
+                ostride, flag);
+  }
+}
+
+}  // namespace FFTWpp
 
 #endif  // FFTWPP_PLAN_GUARD_H
