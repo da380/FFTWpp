@@ -181,9 +181,7 @@ class Plan {
 
 template <IntegralIterator I>
 int GetDimension(I first, I last) {
-  int dim = 1;
-  while(first != last) dim *= *first++;
-  return dim;
+  return std::reduce(first,last,1,std::multiplies<>());
 }
 
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
