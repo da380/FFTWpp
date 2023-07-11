@@ -166,11 +166,15 @@ class Plan {
   }
 };
 
+// Works out product of the dimensions for a (multi)dimensional transform.
+// This value is needed when normalising the result of an inverse
+// transformation.
 template <IntegralIterator I>
 int GetDimension(I first, I last) {
   return std::reduce(first, last, 1, std::multiplies<>());
 }
 
+// Constructor for complex-to-complex transforms.
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
 Plan<InputIt, OutputIt>::Plan(
@@ -200,13 +204,15 @@ Plan<InputIt, OutputIt>::Plan(
   }
 }
 
+// Constructor for real-to-complex transforms.  Note that the
+// direction argument is not used. It has a default value, and
+// so can be ignored within calls.
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
 Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    PlanFlag flag,
-    DirectionFlag direction) requires R2CIteratorPair<InputIt, OutputIt> {
+    PlanFlag flag, DirectionFlag) requires R2CIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
@@ -226,13 +232,15 @@ Plan<InputIt, OutputIt>::Plan(
   }
 }
 
+// Constructor for complex-to-real transforms. Note that the
+// direction argument is not used. It has a default value, and
+// so can be ignored within calls.
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
 Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    PlanFlag flag,
-    DirectionFlag direction) requires C2RIteratorPair<InputIt, OutputIt> {
+    PlanFlag flag, DirectionFlag) requires C2RIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
@@ -265,7 +273,7 @@ auto Plan1D(int dimension, InputIt in, OutputIt out, PlanFlag flag,
   int ostride = 1;
   auto it = dimensions.begin();
   return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
-	      ostride, flag, direction);
+              ostride, flag, direction);
 }
 
 // Wrapper function to return a plan for many 1D transforms. It is
@@ -283,7 +291,7 @@ auto Plan1DMany(int dimension, int howmany, InputIt in, OutputIt out,
   int ostride = 1;
   auto it = dimensions.begin();
   return Plan(rank, it, howmany, in, it, idist, istride, out, it, odist,
-	      ostride, flag, direction);
+              ostride, flag, direction);
 }
 
 }  // namespace FFTWpp
