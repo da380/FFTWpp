@@ -205,7 +205,7 @@ Plan<InputIt, OutputIt>::Plan(
 }
 
 // Constructor for real-to-complex transforms.  Note that the
-// direction argument is not used. It has a default value, and
+// direction argument is not used; tt has a default value, and
 // so can be ignored within calls.
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
 template <IntegralIterator IntIt>
