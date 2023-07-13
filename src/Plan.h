@@ -10,6 +10,7 @@
 #include <cassert>
 #include <complex>
 #include <iostream>
+#include <numeric>
 #include <variant>
 
 #include "Concepts.h"
