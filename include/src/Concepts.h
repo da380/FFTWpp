@@ -55,7 +55,7 @@ concept IsScalar = IsReal<T> or IsComplex<T>;
 // Concepts for iterators.
 template <typename I>
 concept Iterator = requires() {
-  std::same_as<typename std::iterator_traits<I>::iterator_category,
+  requires std::same_as<typename std::iterator_traits<I>::iterator_category,
                std::random_access_iterator_tag>;
 };
 
