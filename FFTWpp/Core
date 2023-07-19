@@ -1,5 +1,5 @@
-#ifndef FFTWPP_MODULE_H
-#define FFTWPP_MODULE_H
+#ifndef FFTWPP_CORE_MODULE_H
+#define FFTWPP_CORE_MODULE_H
 
 // Header files to be included to use the FFTWpp library.
 #include "fftw3.h"

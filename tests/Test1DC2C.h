@@ -6,7 +6,7 @@
 #include <random>
 #include <vector>
 
-#include "FFTWpp.h"
+#include <FFTWpp/Core>
 #include "MakeData.h"
 
 template <std::floating_point Float, bool Ranges = false>

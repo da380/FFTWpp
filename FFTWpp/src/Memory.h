@@ -1,10 +1,6 @@
 #ifndef FFTWPP_MEMORY_GUARD_H
 #define FFTWPP_MEMORY_GUARD_H
 
-#ifndef FFTWPP_MODULE_H
-#error \
-    "Please include FFTWpp.h instead of including headers inside the src directory directly."
-#endif
 
 #include <concepts>
 #include <memory>

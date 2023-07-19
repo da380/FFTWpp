@@ -5,7 +5,7 @@
 #include <random>
 #include <vector>
 
-#include "FFTWpp.h"
+#include <FFTWpp/Core>
 #include "MakeData.h"
 
 template <typename Float>
