@@ -1,8 +1,0 @@
-#ifndef FFTWPP_MEMORY_MODULE_H
-#define FFTWPP_MEMORY_MODULE_H
-
-// Header files to be included to use the FFTWpp library.
-#include "fftw3.h"
-#include "src/Concepts.h"
-
-#endif  

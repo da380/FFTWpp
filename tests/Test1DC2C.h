@@ -1,3 +1,4 @@
+#include <FFTWpp/All>
 #include <algorithm>
 #include <complex>
 #include <concepts>
@@ -6,7 +7,6 @@
 #include <random>
 #include <vector>
 
-#include <FFTWpp/Core>
 #include "MakeData.h"
 
 template <std::floating_point Float, bool Ranges = false>
@@ -27,10 +27,10 @@ int Test1DC2C(bool NewData = false) {
   auto flag = FFTWpp::PlanFlag::Measure;
 
   auto forward_plan = FFTWpp::Plan1D(n, in.begin(), out.begin(), flag,
-                                   FFTWpp::DirectionFlag::Forward);
+                                     FFTWpp::DirectionFlag::Forward);
 
   auto backward_plan = FFTWpp::Plan1D(n, out.begin(), check.begin(), flag,
-                                    FFTWpp::DirectionFlag::Backward);
+                                      FFTWpp::DirectionFlag::Backward);
 
   // Set the input values
   MakeComplexData(in.begin(), in.end());

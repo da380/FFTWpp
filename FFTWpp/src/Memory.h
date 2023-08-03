@@ -1,7 +1,6 @@
 #ifndef FFTWPP_MEMORY_GUARD_H
 #define FFTWPP_MEMORY_GUARD_H
 
-
 #include <concepts>
 #include <memory>
 #include <vector>
@@ -40,13 +39,13 @@ using vector = std::vector<T, allocator<T>>;
 // Reinterpret cast std::complex* to fftw_complex*.
 template <std::floating_point Float>
 auto ComplexCast(std::complex<Float>* z) {
-  if constexpr (IsSingle<Float>) {
+  if constexpr (Concepts::IsSingle<Float>) {
     return reinterpret_cast<fftwf_complex*>(z);
   }
-  if constexpr (IsDouble<Float>) {
+  if constexpr (Concepts::IsDouble<Float>) {
     return reinterpret_cast<fftw_complex*>(z);
   }
-  if constexpr (IsLongDouble<Float>) {
+  if constexpr (Concepts::IsLongDouble<Float>) {
     return reinterpret_cast<fftwl_complex*>(z);
   }
 }

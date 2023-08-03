@@ -1,3 +1,4 @@
+#include <FFTWpp/All>
 #include <algorithm>
 #include <complex>
 #include <iostream>
@@ -5,7 +6,6 @@
 #include <random>
 #include <vector>
 
-#include <FFTWpp/Core>
 #include "MakeData.h"
 
 template <typename Float>
