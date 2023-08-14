@@ -39,13 +39,13 @@ using vector = std::vector<T, allocator<T>>;
 // Reinterpret cast std::complex* to fftw_complex*.
 template <std::floating_point Float>
 auto ComplexCast(std::complex<Float>* z) {
-  if constexpr (Concepts::IsSingle<Float>) {
+  if constexpr (IsSingle<Float>) {
     return reinterpret_cast<fftwf_complex*>(z);
   }
-  if constexpr (Concepts::IsDouble<Float>) {
+  if constexpr (IsDouble<Float>) {
     return reinterpret_cast<fftw_complex*>(z);
   }
-  if constexpr (Concepts::IsLongDouble<Float>) {
+  if constexpr (IsLongDouble<Float>) {
     return reinterpret_cast<fftwl_complex*>(z);
   }
 }

@@ -19,18 +19,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Locate  FFTW3
 find_package(FFTW)
 
- # add in Concepts
-include(FetchContent)
-FetchContent_Declare(
-  Concepts
-  GIT_REPOSITORY https://github.com/da380/Concepts.git
-  GIT_TAG main
-)
-FetchContent_MakeAvailable(Concepts)
-
 # Set up the library
 add_library (FFTWpp INTERFACE ${FFTW_INCLUDES})
-target_link_libraries(FFTWpp INTERFACE ${FFTW_LIBRARIES} Concepts)
+target_link_libraries(FFTWpp INTERFACE ${FFTW_LIBRARIES})
 target_include_directories (FFTWpp INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>)

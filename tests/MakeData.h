@@ -1,7 +1,6 @@
 #ifndef MAKE_DATA_GUARD_H
 #define MAKE_DATA_GUARD_H
 
-#include <Concepts/All>
 #include <FFTWpp/All>
 #include <algorithm>
 #include <complex>
@@ -9,9 +8,9 @@
 #include <random>
 
 template <typename Iter>
-requires Concepts::ComplexIterator<Iter>
+requires FFTWpp::ComplexIterator<Iter>
 void MakeComplexData(Iter first, Iter last) {
-  using Float = Concepts::IteratorPrecision<Iter>;
+  using Float = FFTWpp::IteratorPrecision<Iter>;
   using Complex = std::complex<Float>;
   std::random_device rd{};
   std::mt19937_64 gen{rd()};
@@ -22,9 +21,9 @@ void MakeComplexData(Iter first, Iter last) {
 }
 
 template <typename Iter>
-requires Concepts::RealIterator<Iter>
+requires FFTWpp::RealIterator<Iter>
 void MakeRealData(Iter first, Iter last) {
-  using Float = Concepts::IteratorPrecision<Iter>;
+  using Float = FFTWpp::IteratorPrecision<Iter>;
   std::random_device rd{};
   std::mt19937_64 gen{rd()};
   std::normal_distribution<typename Iter::value_type> d{0., 1.};

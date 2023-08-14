@@ -1,7 +1,6 @@
 #ifndef FFTWPP_PLAN_GUARD_H
 #define FFTWPP_PLAN_GUARD_H
 
-#include <Concepts/All>
 #include <algorithm>
 #include <cassert>
 #include <complex>
@@ -16,23 +15,23 @@
 
 namespace FFTWpp {
 
-template <Concepts::ScalarIterator InputIt, Concepts::ScalarIterator OutputIt>
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
 class Plan {
   // Store some type aliases
-  using Float = Concepts::IteratorPrecision<InputIt>;
-  using InputValueType = Concepts::IteratorValue<InputIt>;
-  using OutputValueType = Concepts::IteratorValue<OutputIt>;
+  using Float = IteratorPrecision<InputIt>;
+  using InputValueType = std::iter_value_t<InputIt>;
+  using OutputValueType = std::iter_value_t<OutputIt>;
 
  public:
   // Complex to complex constructor
-  template <Concepts::IntegralIterator IntIt>
+  template <IntegralIterator IntIt>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
        int odist, PlanFlag flag,
        DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt>;
 
   // Real to complex constructor
-  template <Concepts::IntegralIterator IntIt>
+  template <IntegralIterator IntIt>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
        int odist, PlanFlag flag,
@@ -40,7 +39,7 @@ class Plan {
       R2CIteratorPair<InputIt, OutputIt>;
 
   // Real to complex constructor
-  template <Concepts::IntegralIterator IntIt>
+  template <IntegralIterator IntIt>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
        int odist, PlanFlag flag,
@@ -49,13 +48,13 @@ class Plan {
 
   // Execute the plan.
   void execute() {
-    if constexpr (Concepts::IsSingle<Float>) {
+    if constexpr (IsSingle<Float>) {
       fftwf_execute(ConvertPlan());
     }
-    if constexpr (Concepts::IsDouble<Float>) {
+    if constexpr (IsDouble<Float>) {
       fftw_execute(ConvertPlan());
     }
-    if constexpr (Concepts::IsLongDouble<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       fftwl_execute(ConvertPlan());
     }
   }
@@ -63,13 +62,13 @@ class Plan {
   // Execute the plan given new complex data.
   void execute(InputIt in,
                OutputIt out) requires C2CIteratorPair<InputIt, OutputIt> {
-    if constexpr (Concepts::IsSingle<Float>) {
+    if constexpr (IsSingle<Float>) {
       fftwf_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
     }
-    if constexpr (Concepts::IsDouble<Float>) {
+    if constexpr (IsDouble<Float>) {
       fftw_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
     }
-    if constexpr (Concepts::IsLongDouble<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       fftwl_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
     }
   }
@@ -77,13 +76,13 @@ class Plan {
   // Execute the plan given new real to complex data.
   void execute(InputIt in,
                OutputIt out) requires R2CIteratorPair<InputIt, OutputIt> {
-    if constexpr (Concepts::IsSingle<Float>) {
+    if constexpr (IsSingle<Float>) {
       fftwf_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
     }
-    if constexpr (Concepts::IsDouble<Float>) {
+    if constexpr (IsDouble<Float>) {
       fftw_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
     }
-    if constexpr (Concepts::IsLongDouble<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       fftwl_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
     }
   }
@@ -91,13 +90,13 @@ class Plan {
   // Execute the plan given new complex to real data.
   void execute(InputIt in,
                OutputIt out) requires C2RIteratorPair<InputIt, OutputIt> {
-    if constexpr (Concepts::IsSingle<Float>) {
+    if constexpr (IsSingle<Float>) {
       fftwf_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
     }
-    if constexpr (Concepts::IsDouble<Float>) {
+    if constexpr (IsDouble<Float>) {
       fftw_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
     }
-    if constexpr (Concepts::IsLongDouble<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       fftwl_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
     }
   }
@@ -105,13 +104,13 @@ class Plan {
   // Execute the plan given new real data.
   void execute(InputIt in,
                OutputIt out) requires R2RIteratorPair<InputIt, OutputIt> {
-    if constexpr (Concepts::IsSingle<Float>) {
+    if constexpr (IsSingle<Float>) {
       fftwf_execute_r2r(ConvertPlan(), &*in, &*out);
     }
-    if constexpr (Concepts::IsDouble<Float>) {
+    if constexpr (IsDouble<Float>) {
       fftw_execute_r2r(ConvertPlan(), &*in, &*out);
     }
-    if constexpr (Concepts::IsLongDouble<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       fftwl_execute_r2r(ConvertPlan(), &*in, &*out);
     }
   }
@@ -131,13 +130,13 @@ class Plan {
 
   // Destructor.
   ~Plan() {
-    if constexpr (Concepts::IsSingle<Float>) {
+    if constexpr (IsSingle<Float>) {
       fftwf_destroy_plan(ConvertPlan());
     }
-    if constexpr (Concepts::IsDouble<Float>) {
+    if constexpr (IsDouble<Float>) {
       fftw_destroy_plan(ConvertPlan());
     }
-    if constexpr (Concepts::IsLongDouble<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       fftwl_destroy_plan(ConvertPlan());
     }
   }
@@ -151,13 +150,13 @@ class Plan {
 
   // Get plan in fftw3 form.
   auto ConvertPlan() {
-    if constexpr (Concepts::IsSingle<Float>) {
+    if constexpr (IsSingle<Float>) {
       return std::get<fftwf_plan>(plan);
     }
-    if constexpr (Concepts::IsDouble<Float>) {
+    if constexpr (IsDouble<Float>) {
       return std::get<fftw_plan>(plan);
     }
-    if constexpr (Concepts::IsLongDouble<Float>) {
+    if constexpr (IsLongDouble<Float>) {
       return std::get<fftwl_plan>(plan);
     }
   }
@@ -166,14 +165,14 @@ class Plan {
 // Works out product of the dimensions for a (multi)dimensional transform.
 // This value is needed when normalising the result of an inverse
 // transformation.
-template <Concepts::IntegralIterator I>
+template <IntegralIterator I>
 int GetDimension(I first, I last) {
   return std::reduce(first, last, 1, std::multiplies<>());
 }
 
 // Constructor for complex-to-complex transforms.
-template <Concepts::ScalarIterator InputIt, Concepts::ScalarIterator OutputIt>
-template <Concepts::IntegralIterator IntIt>
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+template <IntegralIterator IntIt>
 Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
@@ -181,19 +180,19 @@ Plan<InputIt, OutputIt>::Plan(
     DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
-  if constexpr (Concepts::IsSingle<Float>) {
+  if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_many_dft(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, ComplexCast(&*out), &*onembed, ostride, odist,
         ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
   }
-  if constexpr (Concepts::IsDouble<Float>) {
+  if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_dft(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, ComplexCast(&*out), &*onembed, ostride, odist,
         ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
   }
-  if constexpr (Concepts::IsLongDouble<Float>) {
+  if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_many_dft(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, ComplexCast(&*out), &*onembed, ostride, odist,
@@ -204,25 +203,25 @@ Plan<InputIt, OutputIt>::Plan(
 // Constructor for real-to-complex transforms.  Note that the
 // direction argument is not used; tt has a default value, and
 // so can be ignored within calls.
-template <Concepts::ScalarIterator InputIt, Concepts::ScalarIterator OutputIt>
-template <Concepts::IntegralIterator IntIt>
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+template <IntegralIterator IntIt>
 Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     PlanFlag flag, DirectionFlag) requires R2CIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
-  if constexpr (Concepts::IsSingle<Float>) {
+  if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_many_dft_r2c(
         rank, &*dimensions, howmany, &*in, &*inembed, istride, idist,
         ComplexCast(&*out), &*onembed, ostride, odist, ConvertPlanFlag(flag));
   }
-  if constexpr (Concepts::IsDouble<Float>) {
+  if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_dft_r2c(rank, &*dimensions, howmany, &*in, &*inembed,
                                   istride, idist, ComplexCast(&*out), &*onembed,
                                   ostride, odist, ConvertPlanFlag(flag));
   }
-  if constexpr (Concepts::IsLongDouble<Float>) {
+  if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_many_dft_r2c(
         rank, &*dimensions, howmany, &*in, &*inembed, istride, idist,
         ComplexCast(&*out), &*onembed, ostride, odist, ConvertPlanFlag(flag));
@@ -232,25 +231,25 @@ Plan<InputIt, OutputIt>::Plan(
 // Constructor for complex-to-real transforms. Note that the
 // direction argument is not used. It has a default value, and
 // so can be ignored within calls.
-template <Concepts::ScalarIterator InputIt, Concepts::ScalarIterator OutputIt>
-template <Concepts::IntegralIterator IntIt>
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+template <IntegralIterator IntIt>
 Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     PlanFlag flag, DirectionFlag) requires C2RIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
-  if constexpr (Concepts::IsSingle<Float>) {
+  if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
   }
-  if constexpr (Concepts::IsDouble<Float>) {
+  if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
   }
-  if constexpr (Concepts::IsLongDouble<Float>) {
+  if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
@@ -258,7 +257,7 @@ Plan<InputIt, OutputIt>::Plan(
 }
 
 // Wrapper function to return a plan for 1D transforms
-template <Concepts::ScalarIterator InputIt, Concepts::ScalarIterator OutputIt>
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
 auto Plan1D(int dimension, InputIt in, OutputIt out, PlanFlag flag,
             DirectionFlag direction = DirectionFlag::Forward) {
   int rank = 1;
@@ -276,7 +275,7 @@ auto Plan1D(int dimension, InputIt in, OutputIt out, PlanFlag flag,
 // Wrapper function to return a plan for many 1D transforms. It is
 // assumed that the data are laid out in contiguous memory such that
 // the ith entry in the jth transform is located at i + j * dimension.
-template <Concepts::ScalarIterator InputIt, Concepts::ScalarIterator OutputIt>
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
 auto Plan1DMany(int dimension, int howmany, InputIt in, OutputIt out,
                 PlanFlag flag,
                 DirectionFlag direction = DirectionFlag::Forward) {
