@@ -24,27 +24,38 @@ class Plan {
 
  public:
   // Complex to complex constructor
-  template <IntegralIterator IntIt>
+  template <IntegralIterator IntIt, typename PlanFlagExpression,
+            typename DirectionFlag>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
-       int odist, PlanFlag flag,
+       int odist, PlanFlagExpression flag,
        DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt>;
 
   // Real to complex constructor
-  template <IntegralIterator IntIt>
+  template <IntegralIterator IntIt, typename PlanFlagExpression,
+            typename DirectionFlag = Direction>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
-       int odist, PlanFlag flag,
-       DirectionFlag direction = DirectionFlag::Forward) requires
+       int odist, PlanFlagExpression flag,
+       DirectionFlag direction = Forward) requires
       R2CIteratorPair<InputIt, OutputIt>;
 
   // Real to complex constructor
-  template <IntegralIterator IntIt>
+  template <IntegralIterator IntIt, typename PlanFlagExpression,
+            typename DirectionFlag = Direction>
   Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
        int istride, int idist, OutputIt out, IntIt onembed, int ostride,
-       int odist, PlanFlag flag,
-       DirectionFlag direction = DirectionFlag::Backward) requires
+       int odist, PlanFlagExpression flag,
+       DirectionFlag direction = Backward) requires
       C2RIteratorPair<InputIt, OutputIt>;
+
+  // Real to real constructor
+  template <IntegralIterator IntIt, typename PlanFlagExpression,
+            typename DirectionFlag>
+  Plan(int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
+       int istride, int idist, OutputIt out, IntIt onembed, int ostride,
+       int odist, PlanFlagExpression flag,
+       DirectionFlag direction) requires R2RIteratorPair<InputIt, OutputIt>;
 
   // Execute the plan.
   void execute() {
@@ -172,11 +183,12 @@ int GetDimension(I first, I last) {
 
 // Constructor for complex-to-complex transforms.
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-template <IntegralIterator IntIt>
+template <IntegralIterator IntIt, typename PlanFlagExpression,
+          typename DirectionFlag>
 Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    PlanFlag flag,
+    PlanFlagExpression flag,
     DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
@@ -184,19 +196,19 @@ Plan<InputIt, OutputIt>::Plan(
     plan = fftwf_plan_many_dft(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, ComplexCast(&*out), &*onembed, ostride, odist,
-        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+        direction.template Convert<InputIt, OutputIt>(), flag.Convert());
   }
   if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_dft(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, ComplexCast(&*out), &*onembed, ostride, odist,
-        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+        direction.template Convert<InputIt, OutputIt>(), flag.Convert());
   }
   if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_many_dft(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
         idist, ComplexCast(&*out), &*onembed, ostride, odist,
-        ConvertDirectionFlag(direction), ConvertPlanFlag(flag));
+        direction.template Convert<InputIt, OutputIt>(), flag.Convert());
   }
 }
 
@@ -204,27 +216,29 @@ Plan<InputIt, OutputIt>::Plan(
 // direction argument is not used; tt has a default value, and
 // so can be ignored within calls.
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-template <IntegralIterator IntIt>
+template <IntegralIterator IntIt, typename PlanFlagExpression,
+          typename DirectionFlag>
 Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    PlanFlag flag, DirectionFlag) requires R2CIteratorPair<InputIt, OutputIt> {
+    PlanFlagExpression flag,
+    DirectionFlag) requires R2CIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_many_dft_r2c(
-        rank, &*dimensions, howmany, &*in, &*inembed, istride, idist,
-        ComplexCast(&*out), &*onembed, ostride, odist, ConvertPlanFlag(flag));
+    plan = fftwf_plan_many_dft_r2c(rank, &*dimensions, howmany, &*in, &*inembed,
+                                   istride, idist, ComplexCast(&*out),
+                                   &*onembed, ostride, odist, flag.Convert());
   }
   if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_dft_r2c(rank, &*dimensions, howmany, &*in, &*inembed,
                                   istride, idist, ComplexCast(&*out), &*onembed,
-                                  ostride, odist, ConvertPlanFlag(flag));
+                                  ostride, odist, flag.Convert());
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_many_dft_r2c(
-        rank, &*dimensions, howmany, &*in, &*inembed, istride, idist,
-        ComplexCast(&*out), &*onembed, ostride, odist, ConvertPlanFlag(flag));
+    plan = fftwl_plan_many_dft_r2c(rank, &*dimensions, howmany, &*in, &*inembed,
+                                   istride, idist, ComplexCast(&*out),
+                                   &*onembed, ostride, odist, flag.Convert());
   }
 }
 
@@ -232,34 +246,68 @@ Plan<InputIt, OutputIt>::Plan(
 // direction argument is not used. It has a default value, and
 // so can be ignored within calls.
 template <ScalarIterator InputIt, ScalarIterator OutputIt>
-template <IntegralIterator IntIt>
+template <IntegralIterator IntIt, typename PlanFlagExpression,
+          typename DirectionFlag>
 Plan<InputIt, OutputIt>::Plan(
     int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
-    PlanFlag flag, DirectionFlag) requires C2RIteratorPair<InputIt, OutputIt> {
+    PlanFlagExpression flag,
+    DirectionFlag) requires C2RIteratorPair<InputIt, OutputIt> {
   norm = static_cast<Float>(1) /
          static_cast<Float>(GetDimension(dimensions, dimensions + rank));
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
+        idist, &*out, &*onembed, ostride, odist, flag.Convert());
   }
   if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
+        idist, &*out, &*onembed, ostride, odist, flag.Convert());
   }
   if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, ConvertPlanFlag(flag));
+        idist, &*out, &*onembed, ostride, odist, flag.Convert());
+  }
+}
+
+// Constructor for real-to-real transforms.
+template <ScalarIterator InputIt, ScalarIterator OutputIt>
+template <IntegralIterator IntIt, typename PlanFlagExpression,
+          typename DirectionFlag>
+Plan<InputIt, OutputIt>::Plan(
+    int rank, IntIt dimensions, int howmany, InputIt in, IntIt inembed,
+    int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
+    PlanFlagExpression flag,
+    DirectionFlag direction) requires R2RIteratorPair<InputIt, OutputIt> {
+  norm = static_cast<Float>(1) /
+         static_cast<Float>(GetDimension(dimensions, dimensions + rank));
+  if constexpr (IsSingle<Float>) {
+    plan = fftwf_plan_many_r2r(rank, &*dimensions, howmany, &*in, &*inembed,
+                               istride, idist, &*out, &*onembed, ostride, odist,
+                               direction.template Convert<InputIt, OutputIt>(),
+                               flag.Convert());
+  }
+  if constexpr (IsDouble<Float>) {
+    plan = fftw_plan_many_r2r(rank, &*dimensions, howmany, &*in, &*inembed,
+                              istride, idist, &*out, &*onembed, ostride, odist,
+                              direction.template Convert<InputIt, OutputIt>(),
+                              flag.Convert());
+  }
+  if constexpr (IsLongDouble<Float>) {
+    plan = fftwl_plan_many_r2r(rank, &*dimensions, howmany, &*in, &*inembed,
+                               istride, idist, &*out, &*onembed, ostride, odist,
+                               direction.template Convert<InputIt, OutputIt>(),
+                               flag.Convert());
   }
 }
 
 // Wrapper function to return a plan for 1D transforms
-template <ScalarIterator InputIt, ScalarIterator OutputIt>
-auto Plan1D(int dimension, InputIt in, OutputIt out, PlanFlag flag,
-            DirectionFlag direction = DirectionFlag::Forward) {
+template <ScalarIterator InputIt, ScalarIterator OutputIt,
+          typename PlanFlagExpression, typename DirectionFlag = Direction>
+auto Plan1D(int dimension, InputIt in, OutputIt out, PlanFlagExpression flag,
+            DirectionFlag direction = Forward) {
   int rank = 1;
   int howmany = 1;
   auto dimensions = std::vector<int>(rank, dimension);
@@ -275,10 +323,10 @@ auto Plan1D(int dimension, InputIt in, OutputIt out, PlanFlag flag,
 // Wrapper function to return a plan for many 1D transforms. It is
 // assumed that the data are laid out in contiguous memory such that
 // the ith entry in the jth transform is located at i + j * dimension.
-template <ScalarIterator InputIt, ScalarIterator OutputIt>
+template <ScalarIterator InputIt, ScalarIterator OutputIt,
+          typename PlanFlagExpression, typename DirectionFlag = Direction>
 auto Plan1DMany(int dimension, int howmany, InputIt in, OutputIt out,
-                PlanFlag flag,
-                DirectionFlag direction = DirectionFlag::Forward) {
+                PlanFlagExpression flag, DirectionFlag direction = Forward) {
   int rank = 1;
   auto dimensions = std::vector<int>(rank, dimension);
   int idist = dimension;

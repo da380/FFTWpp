@@ -24,13 +24,13 @@ int Test1DC2C(bool NewData = false) {
   Vector in(n), out(n), check(n);
 
   // Form the plans.
-  auto flag = FFTWpp::PlanFlag::Measure;
+  auto flag = FFTWpp::Measure;
 
-  auto forward_plan = FFTWpp::Plan1D(n, in.begin(), out.begin(), flag,
-                                     FFTWpp::DirectionFlag::Forward);
+  auto forward_plan =
+      FFTWpp::Plan1D(n, in.begin(), out.begin(), flag, FFTWpp::Forward);
 
-  auto backward_plan = FFTWpp::Plan1D(n, out.begin(), check.begin(), flag,
-                                      FFTWpp::DirectionFlag::Backward);
+  auto backward_plan =
+      FFTWpp::Plan1D(n, out.begin(), check.begin(), flag, FFTWpp::Backward);
 
   // Set the input values
   MakeComplexData(in.begin(), in.end());

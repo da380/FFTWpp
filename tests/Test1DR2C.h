@@ -25,7 +25,7 @@ int Test1DR2C(bool NewData = false) {
   ComplexVector out(n / 2 + 1);
 
   // Form the plans.
-  auto flag = FFTWpp::PlanFlag::Measure;
+  auto flag = FFTWpp::Measure;
 
   auto forward_plan = FFTWpp::Plan1D(n, in.begin(), out.begin(), flag);
 
@@ -54,4 +54,6 @@ int Test1DR2C(bool NewData = false) {
 
   // Return 0 if passed, 1 otherwise.
   return max < eps ? 0 : 1;
+
+  return 0;
 }

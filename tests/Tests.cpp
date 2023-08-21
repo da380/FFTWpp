@@ -1,9 +1,7 @@
 #include <gtest/gtest.h>
 
-
 #include "Test1DC2C.h"
 #include "Test1DR2C.h"
-
 
 // Tests for 1D complex transformations
 
