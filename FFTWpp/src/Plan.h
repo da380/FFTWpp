@@ -57,16 +57,29 @@ class Plan {
        int odist, PlanFlagExpression flag,
        DirectionFlag direction) requires R2RIteratorPair<InputIt, OutputIt>;
 
+  // return plan as an appropriate fftw3 pointer.
+  auto operator()() const {
+    if constexpr (IsSingle<Float>) {
+      return std::get<fftwf_plan>(plan);
+    }
+    if constexpr (IsDouble<Float>) {
+      return std::get<fftw_plan>(plan);
+    }
+    if constexpr (IsLongDouble<Float>) {
+      return std::get<fftwl_plan>(plan);
+    }
+  }
+
   // Execute the plan.
   void execute() {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute(ConvertPlan());
+      fftwf_execute(this->operator()());
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute(ConvertPlan());
+      fftw_execute(this->operator()());
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute(ConvertPlan());
+      fftwl_execute(this->operator()());
     }
   }
 
@@ -74,13 +87,16 @@ class Plan {
   void execute(InputIt in,
                OutputIt out) requires C2CIteratorPair<InputIt, OutputIt> {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
+      fftwf_execute_dft(this->operator()(), ComplexCast(&*in),
+                        ComplexCast(&*out));
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
+      fftw_execute_dft(this->operator()(), ComplexCast(&*in),
+                       ComplexCast(&*out));
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft(ConvertPlan(), ComplexCast(&*in), ComplexCast(&*out));
+      fftwl_execute_dft(this->operator()(), ComplexCast(&*in),
+                        ComplexCast(&*out));
     }
   }
 
@@ -88,13 +104,13 @@ class Plan {
   void execute(InputIt in,
                OutputIt out) requires R2CIteratorPair<InputIt, OutputIt> {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
+      fftwf_execute_dft_r2c(this->operator()(), &*in, ComplexCast(&*out));
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
+      fftw_execute_dft_r2c(this->operator()(), &*in, ComplexCast(&*out));
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_r2c(ConvertPlan(), &*in, ComplexCast(&*out));
+      fftwl_execute_dft_r2c(this->operator()(), &*in, ComplexCast(&*out));
     }
   }
 
@@ -102,13 +118,13 @@ class Plan {
   void execute(InputIt in,
                OutputIt out) requires C2RIteratorPair<InputIt, OutputIt> {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
+      fftwf_execute_dft_c2r(this->operator()(), ComplexCast(&*in), &*out);
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
+      fftw_execute_dft_c2r(this->operator()(), ComplexCast(&*in), &*out);
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_c2r(ConvertPlan(), ComplexCast(&*in), &*out);
+      fftwl_execute_dft_c2r(this->operator()(), ComplexCast(&*in), &*out);
     }
   }
 
@@ -116,13 +132,13 @@ class Plan {
   void execute(InputIt in,
                OutputIt out) requires R2RIteratorPair<InputIt, OutputIt> {
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_r2r(ConvertPlan(), &*in, &*out);
+      fftwf_execute_r2r(this->operator()(), &*in, &*out);
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_r2r(ConvertPlan(), &*in, &*out);
+      fftw_execute_r2r(this->operator()(), &*in, &*out);
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_r2r(ConvertPlan(), &*in, &*out);
+      fftwl_execute_r2r(this->operator()(), &*in, &*out);
     }
   }
 
@@ -142,13 +158,13 @@ class Plan {
   // Destructor.
   ~Plan() {
     if constexpr (IsSingle<Float>) {
-      fftwf_destroy_plan(ConvertPlan());
+      fftwf_destroy_plan(this->operator()());
     }
     if constexpr (IsDouble<Float>) {
-      fftw_destroy_plan(ConvertPlan());
+      fftw_destroy_plan(this->operator()());
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_destroy_plan(ConvertPlan());
+      fftwl_destroy_plan(this->operator()());
     }
   }
 
@@ -158,19 +174,6 @@ class Plan {
 
   // Store the plan as a std::variant.
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
-
-  // Get plan in fftw3 form.
-  auto ConvertPlan() {
-    if constexpr (IsSingle<Float>) {
-      return std::get<fftwf_plan>(plan);
-    }
-    if constexpr (IsDouble<Float>) {
-      return std::get<fftw_plan>(plan);
-    }
-    if constexpr (IsLongDouble<Float>) {
-      return std::get<fftwl_plan>(plan);
-    }
-  }
 };
 
 // Works out product of the dimensions for a (multi)dimensional transform.
@@ -190,8 +193,8 @@ Plan<InputIt, OutputIt>::Plan(
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     PlanFlagExpression flag,
     DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt> {
-  const int n = GetDimension(dimensions, std::next(dimensions, rank));
-  norm = static_cast<Float>(1) / static_cast<Float>(n);
+  norm = static_cast<Float>(1) / static_cast<Float>(GetDimension(
+                                     dimensions, std::next(dimensions, rank)));
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_many_dft(rank, &*dimensions, howmany, ComplexCast(&*in),
                                &*inembed, istride, idist, ComplexCast(&*out),
@@ -207,6 +210,7 @@ Plan<InputIt, OutputIt>::Plan(
                                &*inembed, istride, idist, ComplexCast(&*out),
                                &*onembed, ostride, odist, direction(), flag());
   }
+  assert(this->operator()());
 }
 
 // Constructor for real-to-complex transforms.  Note that the
@@ -237,6 +241,7 @@ Plan<InputIt, OutputIt>::Plan(
                                    istride, idist, ComplexCast(&*out),
                                    &*onembed, ostride, odist, flag());
   }
+  assert(this->operator()());
 }
 
 // Constructor for complex-to-real transforms. Note that the
@@ -253,20 +258,21 @@ Plan<InputIt, OutputIt>::Plan(
   norm = static_cast<Float>(1) / static_cast<Float>(GetDimension(
                                      dimensions, std::next(dimensions, rank)));
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_many_dft_c2r(
-        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, flag());
+    plan = fftwf_plan_many_dft_c2r(rank, &*dimensions, howmany,
+                                   ComplexCast(&*in), &*inembed, istride, idist,
+                                   &*out, &*onembed, ostride, odist, flag());
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_many_dft_c2r(
-        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, flag());
+    plan = fftw_plan_many_dft_c2r(rank, &*dimensions, howmany,
+                                  ComplexCast(&*in), &*inembed, istride, idist,
+                                  &*out, &*onembed, ostride, odist, flag());
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_many_dft_c2r(
-        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, flag());
+    plan = fftwl_plan_many_dft_c2r(rank, &*dimensions, howmany,
+                                   ComplexCast(&*in), &*inembed, istride, idist,
+                                   &*out, &*onembed, ostride, odist, flag());
   }
+  assert(this->operator()());
 }
 
 // Constructor for real-to-real transforms.
@@ -295,6 +301,7 @@ Plan<InputIt, OutputIt>::Plan(
                                istride, idist, &*out, &*onembed, ostride, odist,
                                direction.template operator()<true>(), flag());
   }
+  assert(this->operator()());
 }
 
 // Wrapper function to return a plan for 1D transforms

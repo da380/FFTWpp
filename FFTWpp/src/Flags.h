@@ -49,7 +49,16 @@ const auto Forward = Direction(DirectionOption::Forward);
 const auto Backward = Direction(DirectionOption::Backward);
 
 // Enum class listing the basic plan flags.
-enum class PlanOption { Estimate, Measure, Patient, Exhaustive, WisdomOnly };
+enum class PlanOption {
+  Estimate,
+  Measure,
+  Patient,
+  Exhaustive,
+  WisdomOnly,
+  DestroyInput,
+  PreserveInput,
+  Unaligned
+};
 
 // Define the plan flag class.
 class PlanFlag {
@@ -73,6 +82,15 @@ class PlanFlag {
       }
       case PlanOption::WisdomOnly: {
         return FFTW_WISDOM_ONLY;
+      }
+      case PlanOption::DestroyInput: {
+        return FFTW_DESTROY_INPUT;
+      }
+      case PlanOption::PreserveInput: {
+        return FFTW_PRESERVE_INPUT;
+      }
+      case PlanOption::Unaligned: {
+        return FFTW_UNALIGNED;
       }
       default:
         return FFTW_ESTIMATE;
@@ -107,6 +125,9 @@ const auto Measure = PlanFlag(PlanOption::Measure);
 const auto Patient = PlanFlag(PlanOption::Patient);
 const auto Exhaustive = PlanFlag(PlanOption::Exhaustive);
 const auto WisdomOnly = PlanFlag(PlanOption::WisdomOnly);
+const auto DestroyInput = PlanFlag(PlanOption::DestroyInput);
+const auto PreserveInput = PlanFlag(PlanOption::PreserveInput);
+const auto Unaligned = PlanFlag(PlanOption::Unaligned);
 
 }  // namespace FFTWpp
 
