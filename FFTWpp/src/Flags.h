@@ -13,9 +13,9 @@ class Direction {
   Direction() : option{DirectionOption::Forward} {}
   Direction(DirectionOption option) : option{option} {}
 
-  template <ScalarIterator InputIt, ScalarIterator OutputIt>
-  auto Convert() const {
-    if constexpr (R2RIteratorPair<InputIt, OutputIt>) {
+  template <bool R2R = false>
+  auto operator()() const {
+    if constexpr (R2R) {
       switch (option) {
         case DirectionOption::Forward: {
           return FFTW_R2HC;
@@ -57,7 +57,7 @@ class PlanFlag {
   PlanFlag() : option{PlanOption::Estimate} {}
   PlanFlag(PlanOption option) : option{option} {}
 
-  auto Convert() const {
+  auto operator()() const {
     switch (option) {
       case PlanOption::Estimate: {
         return FFTW_ESTIMATE;
@@ -88,7 +88,7 @@ template <typename PF1, typename PF2>
 class PlanFlagOr {
  public:
   PlanFlagOr(const PF1& pf1, const PF2& pf2) : pf1{pf1}, pf2{pf2} {}
-  auto Convert() const { return pf1.Convert() | pf2.Convert(); }
+  auto operator()() const { return pf1() | pf2(); }
 
  private:
   const PF1& pf1;

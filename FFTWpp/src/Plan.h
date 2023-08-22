@@ -190,25 +190,22 @@ Plan<InputIt, OutputIt>::Plan(
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     PlanFlagExpression flag,
     DirectionFlag direction) requires C2CIteratorPair<InputIt, OutputIt> {
-  norm = static_cast<Float>(1) /
-         static_cast<Float>(GetDimension(dimensions, dimensions + rank));
+  const int n = GetDimension(dimensions, std::next(dimensions, rank));
+  norm = static_cast<Float>(1) / static_cast<Float>(n);
   if constexpr (IsSingle<Float>) {
-    plan = fftwf_plan_many_dft(
-        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, ComplexCast(&*out), &*onembed, ostride, odist,
-        direction.template Convert<InputIt, OutputIt>(), flag.Convert());
+    plan = fftwf_plan_many_dft(rank, &*dimensions, howmany, ComplexCast(&*in),
+                               &*inembed, istride, idist, ComplexCast(&*out),
+                               &*onembed, ostride, odist, direction(), flag());
   }
   if constexpr (IsDouble<Float>) {
-    plan = fftw_plan_many_dft(
-        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, ComplexCast(&*out), &*onembed, ostride, odist,
-        direction.template Convert<InputIt, OutputIt>(), flag.Convert());
+    plan = fftw_plan_many_dft(rank, &*dimensions, howmany, ComplexCast(&*in),
+                              &*inembed, istride, idist, ComplexCast(&*out),
+                              &*onembed, ostride, odist, direction(), flag());
   }
   if constexpr (IsLongDouble<Float>) {
-    plan = fftwl_plan_many_dft(
-        rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, ComplexCast(&*out), &*onembed, ostride, odist,
-        direction.template Convert<InputIt, OutputIt>(), flag.Convert());
+    plan = fftwl_plan_many_dft(rank, &*dimensions, howmany, ComplexCast(&*in),
+                               &*inembed, istride, idist, ComplexCast(&*out),
+                               &*onembed, ostride, odist, direction(), flag());
   }
 }
 
@@ -223,22 +220,22 @@ Plan<InputIt, OutputIt>::Plan(
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     PlanFlagExpression flag,
     DirectionFlag) requires R2CIteratorPair<InputIt, OutputIt> {
-  norm = static_cast<Float>(1) /
-         static_cast<Float>(GetDimension(dimensions, dimensions + rank));
+  norm = static_cast<Float>(1) / static_cast<Float>(GetDimension(
+                                     dimensions, std::next(dimensions, rank)));
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_many_dft_r2c(rank, &*dimensions, howmany, &*in, &*inembed,
                                    istride, idist, ComplexCast(&*out),
-                                   &*onembed, ostride, odist, flag.Convert());
+                                   &*onembed, ostride, odist, flag());
   }
   if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_dft_r2c(rank, &*dimensions, howmany, &*in, &*inembed,
                                   istride, idist, ComplexCast(&*out), &*onembed,
-                                  ostride, odist, flag.Convert());
+                                  ostride, odist, flag());
   }
   if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_many_dft_r2c(rank, &*dimensions, howmany, &*in, &*inembed,
                                    istride, idist, ComplexCast(&*out),
-                                   &*onembed, ostride, odist, flag.Convert());
+                                   &*onembed, ostride, odist, flag());
   }
 }
 
@@ -253,22 +250,22 @@ Plan<InputIt, OutputIt>::Plan(
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     PlanFlagExpression flag,
     DirectionFlag) requires C2RIteratorPair<InputIt, OutputIt> {
-  norm = static_cast<Float>(1) /
-         static_cast<Float>(GetDimension(dimensions, dimensions + rank));
+  norm = static_cast<Float>(1) / static_cast<Float>(GetDimension(
+                                     dimensions, std::next(dimensions, rank)));
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, flag.Convert());
+        idist, &*out, &*onembed, ostride, odist, flag());
   }
   if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, flag.Convert());
+        idist, &*out, &*onembed, ostride, odist, flag());
   }
   if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_many_dft_c2r(
         rank, &*dimensions, howmany, ComplexCast(&*in), &*inembed, istride,
-        idist, &*out, &*onembed, ostride, odist, flag.Convert());
+        idist, &*out, &*onembed, ostride, odist, flag());
   }
 }
 
@@ -281,25 +278,22 @@ Plan<InputIt, OutputIt>::Plan(
     int istride, int idist, OutputIt out, IntIt onembed, int ostride, int odist,
     PlanFlagExpression flag,
     DirectionFlag direction) requires R2RIteratorPair<InputIt, OutputIt> {
-  norm = static_cast<Float>(1) /
-         static_cast<Float>(GetDimension(dimensions, dimensions + rank));
+  norm = static_cast<Float>(1) / static_cast<Float>(GetDimension(
+                                     dimensions, std::next(dimensions, rank)));
   if constexpr (IsSingle<Float>) {
     plan = fftwf_plan_many_r2r(rank, &*dimensions, howmany, &*in, &*inembed,
                                istride, idist, &*out, &*onembed, ostride, odist,
-                               direction.template Convert<InputIt, OutputIt>(),
-                               flag.Convert());
+                               direction.template operator()<true>(), flag());
   }
   if constexpr (IsDouble<Float>) {
     plan = fftw_plan_many_r2r(rank, &*dimensions, howmany, &*in, &*inembed,
                               istride, idist, &*out, &*onembed, ostride, odist,
-                              direction.template Convert<InputIt, OutputIt>(),
-                              flag.Convert());
+                              direction.template operator()<true>(), flag());
   }
   if constexpr (IsLongDouble<Float>) {
     plan = fftwl_plan_many_r2r(rank, &*dimensions, howmany, &*in, &*inembed,
                                istride, idist, &*out, &*onembed, ostride, odist,
-                               direction.template Convert<InputIt, OutputIt>(),
-                               flag.Convert());
+                               direction.template operator()<true>(), flag());
   }
 }
 
