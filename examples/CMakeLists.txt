@@ -1,5 +1,5 @@
-#add_executable(FlagExample FlagExample.cpp)
-#target_link_libraries(FlagExample FFTWpp)
+add_executable(Example Example.cpp)
+target_link_libraries(Example FFTWpp)
 
 
 

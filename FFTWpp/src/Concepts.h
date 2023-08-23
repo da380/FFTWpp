@@ -73,6 +73,14 @@ concept IntegralIterator = requires() {
 };
 
 // Concepts for iterator pairs.
+
+template <typename I, typename O>
+concept IteratorPair = requires() {
+  requires ScalarIterator<I>;
+  requires ScalarIterator<O>;
+  requires std::same_as<IteratorPrecision<I>, IteratorPrecision<O>>;
+};
+
 template <typename I, typename O>
 concept R2RIteratorPair = requires() {
   requires RealIterator<I>;

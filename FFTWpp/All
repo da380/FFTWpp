@@ -7,6 +7,7 @@
 #include "src/Memory.h"
 #include "src/Wisdom.h"
 #include "src/Flags.h"
+#include "src/Data.h"
 #include "src/Plan.h"
 
 #endif  
