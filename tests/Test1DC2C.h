@@ -40,7 +40,6 @@ int Test1DC2C(bool NewData = false) {
   NewData ? forward_plan.execute(inRef, outRef) : forward_plan.execute();
   NewData ? backward_plan.execute(outRef, checkRef) : backward_plan.execute();
 
-  // Normalise the inverse transformation
   checkRef.normalise();
 
   // Compute the maximum residual value.

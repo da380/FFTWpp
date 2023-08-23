@@ -223,6 +223,8 @@ class Plan {
     }
   }
 
+  void normalise() { out.normalise; }
+
  private:
   // Store data references.
   InRef in;
@@ -235,6 +237,16 @@ class Plan {
   // Store the plan as a std::variant.
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
 };
+
+// Returns a plan for a 1D transformation given data as ranges.
+template <typename InputRange, typename OutputRange,
+          typename PlanFlagExpression>
+auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
+                Direction direction = Forward) {
+  auto inRef = MakeDataReference1D(in.begin(), in.end());
+  auto outRef = MakeDataReference1D(out.begin(), out.end());
+  return Plan(inRef, outRef, flag, direction);
+}
 
 }  // namespace FFTWpp
 

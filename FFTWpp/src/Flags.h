@@ -6,12 +6,18 @@
 
 namespace FFTWpp {
 
+enum class NormalisationOption { No, Yes };
+
+const auto Normalise = NormalisationOption::Yes;
+
 enum class DirectionOption { Forward, Backward };
 
 class Direction {
  public:
   Direction() : option{DirectionOption::Forward} {}
   Direction(DirectionOption option) : option{option} {}
+
+  bool operator==(const Direction& other) { return option == other.option; };
 
   template <bool R2R = false>
   auto operator()() const {

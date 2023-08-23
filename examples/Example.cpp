@@ -22,14 +22,9 @@ int main() {
   // Form the plans.
   auto flag = FFTWpp::Measure;
 
-  auto inRef = FFTWpp::MakeDataReference1D(in.begin(), in.end());
-  auto outRef = FFTWpp::MakeDataReference1D(out.begin(), out.end());
+  auto forward_plan = FFTWpp::MakePlan1D(in, out, flag);
 
-  auto checkRef = FFTWpp::MakeDataReference1D(check.begin(), check.end());
-
-  auto forward_plan = FFTWpp::Plan(inRef, outRef, flag);
-
-  auto backward_plan = FFTWpp::Plan(outRef, checkRef, flag);
+  auto backward_plan = FFTWpp::MakePlan1D(out, check, flag);
 
   for (auto& x : in) x = 1;
 
