@@ -6,10 +6,12 @@
 
 namespace FFTWpp {
 
-enum class NormalisationOption { No, Yes };
+// Normalisation flags.
+enum class NormalisationOption { Normalised, UnNormalised };
+const auto Normalised = NormalisationOption::Normalised;
+const auto UnNormalised = NormalisationOption::UnNormalised;
 
-const auto Normalise = NormalisationOption::Yes;
-
+// Direction flags
 enum class DirectionOption { Forward, Backward };
 
 class Direction {
@@ -19,30 +21,16 @@ class Direction {
 
   bool operator==(const Direction& other) { return option == other.option; };
 
-  template <bool R2R = false>
   auto operator()() const {
-    if constexpr (R2R) {
-      switch (option) {
-        case DirectionOption::Forward: {
-          return FFTW_R2HC;
-        }
-        case DirectionOption::Backward: {
-          return FFTW_HC2R;
-          default:
-            return FFTW_R2HC;
-        }
+    switch (option) {
+      case DirectionOption::Forward: {
+        return FFTW_FORWARD;
       }
-    } else {
-      switch (option) {
-        case DirectionOption::Forward: {
-          return FFTW_FORWARD;
-        }
-        case DirectionOption::Backward: {
-          return FFTW_BACKWARD;
-          default:
-            return FFTW_FORWARD;
-        }
+      case DirectionOption::Backward: {
+        return FFTW_BACKWARD;
       }
+      default:
+        return FFTW_FORWARD;
     }
   }
 
@@ -54,7 +42,7 @@ class Direction {
 const auto Forward = Direction(DirectionOption::Forward);
 const auto Backward = Direction(DirectionOption::Backward);
 
-// Enum class listing the basic plan flags.
+// Planning flags.
 enum class PlanOption {
   Estimate,
   Measure,
@@ -66,7 +54,6 @@ enum class PlanOption {
   Unaligned
 };
 
-// Define the plan flag class.
 class PlanFlag {
  public:
   PlanFlag() : option{PlanOption::Estimate} {}
@@ -107,7 +94,6 @@ class PlanFlag {
   PlanOption option;
 };
 
-// Expression template for the bitwise or operation.
 template <typename PF1, typename PF2>
 class PlanFlagOr {
  public:
@@ -119,7 +105,6 @@ class PlanFlagOr {
   const PF2& pf2;
 };
 
-// Implement the bitwise or returning an expression.
 template <typename PF1, typename PF2>
 PlanFlagOr<PF1, PF2> operator|(const PF1& pf1, const PF2& pf2) {
   return {pf1, pf2};

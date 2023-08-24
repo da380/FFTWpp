@@ -19,20 +19,27 @@ int main() {
   RealVector in(n), check(n);
   ComplexVector out(n / 2 + 1);
 
-  // Form the plans.
-  auto flag = FFTWpp::Measure;
+  {
+    // Form the plans.
+    auto flag = FFTWpp::Measure;
 
-  auto forward_plan = FFTWpp::MakePlan1D(in, out, flag);
+    auto inView = FFTWpp::MakeDataView1D(in);
+    auto outView = FFTWpp::MakeDataView1D(out);
 
-  auto backward_plan = FFTWpp::MakePlan1D(out, check, flag);
+    auto forward_plan = FFTWpp::Plan(inView, outView, flag);
 
-  for (auto& x : in) x = 1;
+    auto backward_plan = FFTWpp::MakePlan1D(out, check, flag);
 
-  forward_plan.execute();
-  backward_plan.execute();
+    for (auto& x : in) x = 1;
 
-  for (auto& x : in) std::cout << x << std::endl;
-  std::cout << std::string(20, '=') << std::endl;
+    forward_plan.execute();
+    backward_plan.execute(FFTWpp::Normalised);
 
-  for (auto& x : check) std::cout << x << std::endl;
+    for (auto& x : in) std::cout << x << std::endl;
+    std::cout << std::string(20, '=') << std::endl;
+
+    for (auto& x : check) std::cout << x << std::endl;
+  }
+
+  FFTWpp::CleanUp();
 }

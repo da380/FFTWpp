@@ -104,32 +104,106 @@ class Plan {
     }
   }
 
-  // Real to real constructor.
-  Plan(InputView in, OutputView out, PlanFlagExpression flag,
-       Direction direction) requires R2RIteratorPair<InputIt, OutputIt>
-      : in{in}, out{out}, flag{flag}, direction{direction} {
-    assert(in.Comparable(out));
+  // Execute the plan.
+  void execute(NormalisationOption norm = UnNormalised) {
     if constexpr (IsSingle<Float>) {
-      plan = fftwf_plan_many_r2r(in.rank(), in.n(), in.howmany(), in.data(),
-                                 in.embed(), in.stride(), in.dist(), out.data(),
-                                 out.embed(), out.stride(), out.dist(),
-                                 direction.template operator()<true>(), flag());
+      fftwf_execute(this->operator()());
     }
-
     if constexpr (IsDouble<Float>) {
-      plan = fftw_plan_many_r2r(in.rank(), in.n(), in.howmany(), in.data(),
-                                in.embed(), in.stride(), in.dist(), out.data(),
-                                out.embed(), out.stride(), out.dist(),
-                                direction.template operator()<true>(), flag());
+      fftw_execute(this->operator()());
     }
-
     if constexpr (IsLongDouble<Float>) {
-      plan = fftwl_plan_many_r2r(in.rank(), in.n(), in.howmany(), in.data(),
-                                 in.embed(), in.stride(), in.dist(), out.data(),
-                                 out.embed(), out.stride(), out.dist(),
-                                 direction.template operator()<true>(), flag());
+      fftwl_execute(this->operator()());
+    }
+    if (norm == Normalised) {
+      out.normalise();
     }
   }
+
+  // Execute the plan given new complex-complex data.
+  void execute(InputView& newIn, OutputView& newOut,
+               NormalisationOption norm = UnNormalised) requires
+      C2CIteratorPair<InputIt, OutputIt> {
+    assert(in.Comparable(newIn));
+    assert(out.Comparable(newOut));
+    if constexpr (IsSingle<Float>) {
+      fftwf_execute_dft(this->operator()(), newIn.data(), newOut.data());
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_execute_dft(this->operator()(), newIn.data(), newOut.data());
+    }
+    if constexpr (IsLongDouble<Float>) {
+      fftwl_execute_dft(this->operator()(), newIn.data(), newOut.data());
+    }
+    if (norm == Normalised) {
+      newOut.normalise();
+    }
+  }
+
+  // Execute the plan given new complex-real data.
+  void execute(InputView& newIn, OutputView& newOut,
+               NormalisationOption norm = UnNormalised) requires
+      C2RIteratorPair<InputIt, OutputIt> {
+    assert(in.Comparable(newIn));
+    assert(out.Comparable(newOut));
+    if constexpr (IsSingle<Float>) {
+      fftwf_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
+    }
+    if constexpr (IsLongDouble<Float>) {
+      fftwl_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
+    }
+    if (norm == Normalised) {
+      newOut.normalise();
+    }
+  }
+
+  // Execute the plan given new real-complex data.
+  void execute(InputView& newIn, OutputView& newOut,
+               NormalisationOption norm = UnNormalised) requires
+      R2CIteratorPair<InputIt, OutputIt> {
+    assert(in.Comparable(newIn));
+    assert(out.Comparable(newOut));
+    if constexpr (IsSingle<Float>) {
+      fftwf_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
+    }
+    if constexpr (IsLongDouble<Float>) {
+      fftwl_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
+    }
+    if (norm == Normalised) {
+      newOut.normalise();
+    }
+  }
+
+  // Destructor.
+  ~Plan() {
+    if constexpr (IsSingle<Float>) {
+      fftwf_destroy_plan(this->operator()());
+    }
+    if constexpr (IsDouble<Float>) {
+      fftw_destroy_plan(this->operator()());
+    }
+    if constexpr (IsLongDouble<Float>) {
+      fftwl_destroy_plan(this->operator()());
+    }
+  }
+
+ private:
+  // Store data references.
+  InputView in;
+  OutputView out;
+
+  // Store transform options
+  Direction direction;
+  PlanFlagExpression flag;
+
+  // Store the plan as a std::variant.
+  std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
 
   // return plan as an appropriate fftw3 pointer.
   auto operator()() const {
@@ -143,97 +217,6 @@ class Plan {
       return std::get<fftwl_plan>(plan);
     }
   }
-
-  // Execute the plan.
-  void execute() {
-    if constexpr (IsSingle<Float>) {
-      fftwf_execute(this->operator()());
-    }
-    if constexpr (IsDouble<Float>) {
-      fftw_execute(this->operator()());
-    }
-    if constexpr (IsLongDouble<Float>) {
-      fftwl_execute(this->operator()());
-    }
-  }
-
-  // Execute the plan given new complex-complex data.
-  void execute(InputView& newIn,
-               OutputView& newOut) requires C2CIteratorPair<InputIt, OutputIt> {
-    assert(in.Comparable(newIn));
-    assert(out.Comparable(newOut));
-    if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft(this->operator()(), newIn.data(), newOut.data());
-    }
-    if constexpr (IsDouble<Float>) {
-      fftw_execute_dft(this->operator()(), newIn.data(), newOut.data());
-    }
-    if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft(this->operator()(), newIn.data(), newOut.data());
-    }
-  }
-
-  // Execute the plan given new complex-real data.
-  void execute(InputView& newIn,
-               OutputView& newOut) requires C2RIteratorPair<InputIt, OutputIt> {
-    assert(in.Comparable(newIn));
-    assert(out.Comparable(newOut));
-    if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
-    }
-    if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
-    }
-    if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
-    }
-  }
-
-  // Execute the plan given new real-complex data.
-  void execute(InputView& newIn,
-               OutputView& newOut) requires R2CIteratorPair<InputIt, OutputIt> {
-    assert(in.Comparable(newIn));
-    assert(out.Comparable(newOut));
-    if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
-    }
-    if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
-    }
-    if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
-    }
-  }
-
-  // Execute the plan given new real-real data.
-  void execute(InputView& newIn,
-               OutputView& newOut) requires R2RIteratorPair<InputIt, OutputIt> {
-    assert(in.Comparable(newIn));
-    assert(out.Comparable(newOut));
-    if constexpr (IsSingle<Float>) {
-      fftwf_execute_r2r(this->operator()(), newIn.data(), newOut.data());
-    }
-    if constexpr (IsDouble<Float>) {
-      fftw_execute_r2r(this->operator()(), newIn.data(), newOut.data());
-    }
-    if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_r2r(this->operator()(), newIn.data(), newOut.data());
-    }
-  }
-
-  void normalise() { out.normalise; }
-
- private:
-  // Store data references.
-  InputView in;
-  OutputView out;
-
-  // Store transform options
-  Direction direction;
-  PlanFlagExpression flag;
-
-  // Store the plan as a std::variant.
-  std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
 };
 
 // Returns a plan for a 1D transformation given data in range format.

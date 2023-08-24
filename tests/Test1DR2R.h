@@ -1,9 +1,10 @@
-#ifndef FFTWPP_TEST1DR2C_GUARD_H
-#define FFTWPP_TEST1DR2C_GUARD_H
+#ifndef FFTWPP_TEST1DR2R_GUARD_H
+#define FFTWPP_TEST1DR2R_GUARD_H
 
 #include <FFTWpp/All>
 #include <algorithm>
 #include <complex>
+#include <concepts>
 #include <iostream>
 #include <limits>
 #include <random>
@@ -11,36 +12,35 @@
 
 #include "MakeData.h"
 
-template <typename Float>
-int Test1DR2C(bool NewData = false) {
-  using Complex = std::complex<Float>;
-  using RealVector = FFTWpp::vector<Float>;
-  using ComplexVector = FFTWpp::vector<Complex>;
+template <std::floating_point Float, bool Ranges = false>
+int Test1DR2R(bool NewData = false) {
+  using Vector = FFTWpp::vector<Float>;
 
   // generate a random size for the data
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<> d(100, 1000);
+  std::uniform_int_distribution<> d(10, 1000);
   int n = d(gen);
 
   // Initialise the vectors.
-  RealVector in(n), check(n);
-  ComplexVector out(n / 2 + 1);
+  Vector in(n), out(n), check(n);
 
   // Form the plans.
   auto flag = FFTWpp::Measure;
 
-  auto inView = FFTWpp::MakeDataView1D(in);
+  auto view = FFTWpp::MakeDataView1D(in);
+  auto inView = view;
+
   auto outView = FFTWpp::MakeDataView1D(out);
   auto checkView = FFTWpp::MakeDataView1D(check);
 
-  auto forward_plan = FFTWpp::Plan(inView, outView, flag);
-  auto backward_plan = FFTWpp::Plan(outView, checkView, flag);
+  auto forward_plan = FFTWpp::Plan(inView, outView, flag, FFTWpp::Forward);
+
+  auto backward_plan = FFTWpp::Plan(outView, checkView, flag, FFTWpp::Backward);
 
   // Set the input values
   MakeRealData(in.begin(), in.end());
 
-  // Execute the plans.
   NewData ? forward_plan.execute(inView, outView) : forward_plan.execute();
   NewData ? backward_plan.execute(outView, checkView, FFTWpp::Normalised)
           : backward_plan.execute(FFTWpp::Normalised);
@@ -55,7 +55,8 @@ int Test1DR2C(bool NewData = false) {
   constexpr auto eps = 100 * std::numeric_limits<Float>::epsilon();
 
   // Return 0 if passed, 1 otherwise.
+  std::cout << max / eps << std::endl;
   return max < eps ? 0 : 1;
 }
 
-#endif  // FFTWPP_TEST1DR2C_GUARD_H
+#endif  // FFTWPP_TEST1DR2R_GUARD_H

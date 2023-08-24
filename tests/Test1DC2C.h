@@ -1,3 +1,6 @@
+#ifndef FFTWPP_TEST1DC2C_GUARD_H
+#define FFTWPP_TEST1DC2C_GUARD_H
+
 #include <FFTWpp/All>
 #include <algorithm>
 #include <complex>
@@ -26,7 +29,9 @@ int Test1DC2C(bool NewData = false) {
   // Form the plans.
   auto flag = FFTWpp::Measure;
 
-  auto inView = FFTWpp::MakeDataView1D(in);
+  auto view = FFTWpp::MakeDataView1D(in);
+  auto inView = view;
+
   auto outView = FFTWpp::MakeDataView1D(out);
   auto checkView = FFTWpp::MakeDataView1D(check);
 
@@ -38,9 +43,8 @@ int Test1DC2C(bool NewData = false) {
   MakeComplexData(in.begin(), in.end());
 
   NewData ? forward_plan.execute(inView, outView) : forward_plan.execute();
-  NewData ? backward_plan.execute(outView, checkView) : backward_plan.execute();
-
-  checkView.normalise();
+  NewData ? backward_plan.execute(outView, checkView, FFTWpp::Normalised)
+          : backward_plan.execute(FFTWpp::Normalised);
 
   // Compute the maximum residual value.
   std::transform(in.begin(), in.end(), check.begin(), in.begin(),
@@ -57,3 +61,5 @@ int Test1DC2C(bool NewData = false) {
   std::cout << max / eps << std::endl;
   return max < eps ? 0 : 1;
 }
+
+#endif  // FFTWPP_TEST1DC2C_GUARD_H

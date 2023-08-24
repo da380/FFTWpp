@@ -18,18 +18,11 @@
 
 namespace FFTWpp {
 
-// Tag classes for different storage orders.
-struct RowMajor {};
-struct ColumnMajor {};
-
-template <typename Storage>
-concept StorageOption =
-    std::same_as<Storage, RowMajor> or std::same_as<Storage, ColumnMajor>;
-
 template <ScalarIterator I>
 class DataView {
  public:
   using value_type = std::iter_value_t<I>;
+  using float_type = IteratorPrecision<I>;
   using iterator = I;
 
   // Constructor.
@@ -97,9 +90,9 @@ class DataView {
 
   // Normalise the data as required after an inverse transformation.
   void normalise() {
-    using Float = IteratorPrecision<I>;
-    auto dim = std::reduce(_n->begin(), _n->end(), 1, std::multiplies<>());
-    auto norm = static_cast<Float>(1) / static_cast<Float>(dim);
+    auto dim =
+        std::reduce(this->nBegin(), this->nEnd(), 1, std::multiplies<>());
+    auto norm = static_cast<float_type>(1) / static_cast<float_type>(dim);
     for (int i = 0; i < _howmany; i++) {
       I start = std::next(_start, i * _dist);
       I finish = std::next(start, dim);
@@ -118,6 +111,7 @@ class DataView {
   std::shared_ptr<std::vector<int>> _n;
   int _howmany;
   std::shared_ptr<std::vector<int>> _embed;
+
   int _stride;
   int _dist;
 
@@ -139,19 +133,23 @@ auto MakeDataView1D(R&& in) {
   return MakeDataView1D(in.begin(), in.end());
 }
 
+/*
+
 template <ScalarIterator I, StorageOption Storage = ColumnMajor>
 auto MakeDataView1DMany(I start, I finish, int howmany) {
-  auto total = std::distance(start, finish);
-  assert(total > 0);
-  assert(howmany > 0);
-  assert(total % howmany == 0);
-  int dim = total / howmany;
-  std::vector<int> n(1, dim);
-  int stride = std::same_as<Storage, RowMajor> ? 1 : dim;
-  int dist = std::same_as<Storage, RowMajor> ? dim : 1;
-  return DataView(start, finish, 1, n.begin(), n.end(), howmany, n.begin(),
-                  n.end(), stride, dist);
+auto total = std::distance(start, finish);
+assert(total > 0);
+assert(howmany > 0);
+assert(total % howmany == 0);
+int dim = total / howmany;
+std::vector<int> n(1, dim);
+int stride = std::same_as<Storage, RowMajor> ? 1 : dim;
+int dist = std::same_as<Storage, RowMajor> ? dim : 1;
+return DataView(start, finish, 1, n.begin(), n.end(), howmany, n.begin(),
+                n.end(), stride, dist);
 }
+
+*/
 
 }  // namespace FFTWpp
 

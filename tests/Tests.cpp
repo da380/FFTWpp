@@ -41,5 +41,3 @@ TEST(Test1DR2C, LongDoubleNewData) {
   EXPECT_EQ(0, Test1DR2C<long double>(true));
 }
 
-
-
