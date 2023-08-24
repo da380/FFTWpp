@@ -7,6 +7,7 @@
 #include <concepts>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <numeric>
 #include <ranges>
 #include <vector>
@@ -39,11 +40,13 @@ class DataView {
       : _start{start},
         _finish{finish},
         _rank{rank},
-        _n{std::vector<int>(nStart, nFinish)},
+        _n{std::make_shared<std::vector<int>>(nStart, nFinish)},
         _howmany{howmany},
-        _embed{std::vector<int>(embedStart, embedFinish)},
+        _embed{std::make_shared<std::vector<int>>(embedStart, embedFinish)},
         _stride{stride},
-        _dist{dist} {}
+        _dist{dist} {
+    assert(CheckConsistency());
+  }
 
   // Return appropriate fftw3 pointer to the start of the data.
   auto data() requires ComplexIterator<I> { return ComplexCast(&_start[0]); }
@@ -54,18 +57,18 @@ class DataView {
   auto end() { return _finish; }
 
   // Return const iterators to storage arrays
-  auto nBegin() const { return _n.cbegin(); }
-  auto nEnd() const { return _n.cend(); }
-  auto nRBegin() const { return _n.crbegin(); }
-  auto nREnd() const { return _n.crend(); }
-  auto embedBegin() const { return _embed.cbegin(); }
-  auto embedEnd() const { return _embed.cend(); }
+  auto nBegin() const { return _n->cbegin(); }
+  auto nEnd() const { return _n->cend(); }
+  auto nRBegin() const { return _n->crbegin(); }
+  auto nREnd() const { return _n->crend(); }
+  auto embedBegin() const { return _embed->cbegin(); }
+  auto embedEnd() const { return _embed->cend(); }
 
   // Functions returnig storage information in suitable form
   auto rank() const { return _rank; }
-  auto n() { return &_n[0]; }
+  auto n() { return &*_n->begin(); }
   auto howmany() const { return _howmany; }
-  auto embed() { return &_embed[0]; }
+  auto embed() { return &*_embed->begin(); }
   auto stride() const { return _stride; }
   auto dist() const { return _dist; }
 
@@ -95,7 +98,7 @@ class DataView {
   // Normalise the data as required after an inverse transformation.
   void normalise() {
     using Float = IteratorPrecision<I>;
-    auto dim = std::reduce(_n.begin(), _n.end(), 1, std::multiplies<>());
+    auto dim = std::reduce(_n->begin(), _n->end(), 1, std::multiplies<>());
     auto norm = static_cast<Float>(1) / static_cast<Float>(dim);
     for (int i = 0; i < _howmany; i++) {
       I start = std::next(_start, i * _dist);
@@ -112,11 +115,14 @@ class DataView {
 
   // Parameters describing data storage.
   int _rank;
-  std::vector<int> _n;
+  std::shared_ptr<std::vector<int>> _n;
   int _howmany;
-  std::vector<int> _embed;
+  std::shared_ptr<std::vector<int>> _embed;
   int _stride;
   int _dist;
+
+  // Checks consistence of stored data
+  bool CheckConsistency() { return true; }
 };
 
 template <ScalarIterator I>
