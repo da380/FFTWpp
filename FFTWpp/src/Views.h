@@ -75,7 +75,7 @@ class DataView {
     if (_rank != other.rank()) return false;
     if (_howmany != other.howmany()) return false;
     if constexpr (C2CIteratorPair<I, J> or R2RIteratorPair<I, J>) {
-      // return std::equal(this->nBegin(), this->nEnd(), other.nBegin());
+      return std::equal(this->nBegin(), this->nEnd(), other.nBegin());
     }
     if constexpr (C2RIteratorPair<I, J>) {
       auto it1 = this->nRBegin();
