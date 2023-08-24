@@ -241,7 +241,7 @@ template <typename InputRange, typename OutputRange,
           typename PlanFlagExpression>
 auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
                 Direction direction = Forward) {
-  return Plan(MakeView1D(in), MakeView1D(out), flag, direction);
+  return Plan(MakeDataView1D(in), MakeDataView1D(out), flag, direction);
 }
 
 }  // namespace FFTWpp

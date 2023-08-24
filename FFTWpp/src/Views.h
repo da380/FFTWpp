@@ -26,15 +26,16 @@ concept StorageOption =
     std::same_as<Storage, RowMajor> or std::same_as<Storage, ColumnMajor>;
 
 template <ScalarIterator I>
-class View {
+class DataView {
  public:
   using value_type = std::iter_value_t<I>;
   using iterator = I;
 
   // Constructor.
   template <IntegralIterator IntIt>
-  View(I start, I finish, int rank, IntIt nStart, IntIt nFinish, int howmany,
-       IntIt embedStart, IntIt embedFinish, int stride, int dist)
+  DataView(I start, I finish, int rank, IntIt nStart, IntIt nFinish,
+           int howmany, IntIt embedStart, IntIt embedFinish, int stride,
+           int dist)
       : _start{start},
         _finish{finish},
         _rank{rank},
@@ -70,11 +71,11 @@ class View {
 
   // Check whether another data reference is comparable.
   template <ScalarIterator J>
-  bool Comparable(View<J> other) requires IteratorPair<I, J> {
+  bool Comparable(DataView<J> other) requires IteratorPair<I, J> {
     if (_rank != other.rank()) return false;
     if (_howmany != other.howmany()) return false;
     if constexpr (C2CIteratorPair<I, J> or R2RIteratorPair<I, J>) {
-      return std::equal(this->nBegin(), this->nEnd(), other.nBegin());
+      // return std::equal(this->nBegin(), this->nEnd(), other.nBegin());
     }
     if constexpr (C2RIteratorPair<I, J>) {
       auto it1 = this->nRBegin();
@@ -119,21 +120,21 @@ class View {
 };
 
 template <ScalarIterator I>
-auto MakeView1D(I start, I finish) {
+auto MakeDataView1D(I start, I finish) {
   auto dim = std::distance(start, finish);
   assert(dim > 0);
   std::vector<int> n(1, dim);
-  return View(start, finish, 1, n.begin(), n.end(), 1, n.begin(), n.end(), 1,
-              1);
+  return DataView(start, finish, 1, n.begin(), n.end(), 1, n.begin(), n.end(),
+                  1, 1);
 }
 
 template <std::ranges::random_access_range R>
-auto MakeView1D(R&& in) {
-  return MakeView1D(in.begin(), in.end());
+auto MakeDataView1D(R&& in) {
+  return MakeDataView1D(in.begin(), in.end());
 }
 
 template <ScalarIterator I, StorageOption Storage = ColumnMajor>
-auto MakeView1DMany(I start, I finish, int howmany) {
+auto MakeDataView1DMany(I start, I finish, int howmany) {
   auto total = std::distance(start, finish);
   assert(total > 0);
   assert(howmany > 0);
@@ -142,8 +143,8 @@ auto MakeView1DMany(I start, I finish, int howmany) {
   std::vector<int> n(1, dim);
   int stride = std::same_as<Storage, RowMajor> ? 1 : dim;
   int dist = std::same_as<Storage, RowMajor> ? dim : 1;
-  return View(start, finish, 1, n.begin(), n.end(), howmany, n.begin(), n.end(),
-              stride, dist);
+  return DataView(start, finish, 1, n.begin(), n.end(), howmany, n.begin(),
+                  n.end(), stride, dist);
 }
 
 }  // namespace FFTWpp

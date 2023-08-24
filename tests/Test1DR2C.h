@@ -27,12 +27,11 @@ int Test1DR2C(bool NewData = false) {
   // Form the plans.
   auto flag = FFTWpp::Measure;
 
-  auto inView = FFTWpp::MakeView1D(in);
-  auto outView = FFTWpp::MakeView1D(out);
-  auto checkView = FFTWpp::MakeView1D(check);
+  auto inView = FFTWpp::MakeDataView1D(in);
+  auto outView = FFTWpp::MakeDataView1D(out);
+  auto checkView = FFTWpp::MakeDataView1D(check);
 
   auto forward_plan = FFTWpp::Plan(inView, outView, flag);
-
   auto backward_plan = FFTWpp::Plan(outView, checkView, flag);
 
   // Set the input values
