@@ -26,21 +26,21 @@ int Test1DC2C(bool NewData = false) {
   // Form the plans.
   auto flag = FFTWpp::Measure;
 
-  auto inRef = FFTWpp::MakeDataReference1D(in.begin(), in.end());
-  auto outRef = FFTWpp::MakeDataReference1D(out.begin(), out.end());
-  auto checkRef = FFTWpp::MakeDataReference1D(check.begin(), check.end());
+  auto inView = FFTWpp::MakeView1D(in);
+  auto outView = FFTWpp::MakeView1D(out);
+  auto checkView = FFTWpp::MakeView1D(check);
 
-  auto forward_plan = FFTWpp::Plan(inRef, outRef, flag, FFTWpp::Forward);
+  auto forward_plan = FFTWpp::Plan(inView, outView, flag, FFTWpp::Forward);
 
-  auto backward_plan = FFTWpp::Plan(outRef, checkRef, flag, FFTWpp::Backward);
+  auto backward_plan = FFTWpp::Plan(outView, checkView, flag, FFTWpp::Backward);
 
   // Set the input values
   MakeComplexData(in.begin(), in.end());
 
-  NewData ? forward_plan.execute(inRef, outRef) : forward_plan.execute();
-  NewData ? backward_plan.execute(outRef, checkRef) : backward_plan.execute();
+  NewData ? forward_plan.execute(inView, outView) : forward_plan.execute();
+  NewData ? backward_plan.execute(outView, checkView) : backward_plan.execute();
 
-  checkRef.normalise();
+  checkView.normalise();
 
   // Compute the maximum residual value.
   std::transform(in.begin(), in.end(), check.begin(), in.begin(),
