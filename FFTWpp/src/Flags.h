@@ -22,27 +22,25 @@ enum class DirectionOption { Forward, Backward };
 
 class Direction {
  public:
-  Direction() : option{DirectionOption::Forward} {}
-
   Direction(DirectionOption option) : option{option} {}
 
   bool operator==(const Direction& other) { return option == other.option; };
 
-  auto operator()() const {
-    switch (option) {
-      case DirectionOption::Forward: {
-        return FFTW_FORWARD;
+    auto operator()() const {
+      switch (option) {
+        case DirectionOption::Forward: {
+          return FFTW_FORWARD;
+        }
+        case DirectionOption::Backward: {
+          return FFTW_BACKWARD;
+        }
+        default:
+          return FFTW_FORWARD;
       }
-      case DirectionOption::Backward: {
-        return FFTW_BACKWARD;
-      }
-      default:
-        return FFTW_FORWARD;
     }
-  }
 
- private:
-  DirectionOption option;
+   private:
+    DirectionOption option;
 };
 
 const auto Forward = Direction(DirectionOption::Forward);
@@ -53,7 +51,6 @@ const auto Backward = Direction(DirectionOption::Backward);
 //////////////////////////////////
 
 enum class R2ROption {
-  NotR2R,
   HC,
   DHT,
   DCTI,
@@ -68,17 +65,11 @@ enum class R2ROption {
 
 class R2R {
  public:
-  R2R() : option{R2ROption::NotR2R} {}
   R2R(R2ROption option) : option{option} {}
-
   bool operator==(const R2R& other) { return option == other.option; };
 
   auto operator()(Direction direction) {
     switch (option) {
-      case R2ROption::NotR2R: {
-        return FFTW_R2HC;
-      }
-
       case R2ROption::HC: {
         if (direction == Forward) {
           return FFTW_R2HC;
@@ -164,11 +155,49 @@ class R2R {
     }
   }
 
+  auto LogicalSize(int n) {
+    switch (option) {
+      case R2ROption::DCTI: {
+        return 2 * (n - 1);
+      }
+
+      case R2ROption::DCTII: {
+        return 2 * n;
+      }
+
+      case R2ROption::DCTIII: {
+        return 2 * n;
+      }
+
+      case R2ROption::DCTIV: {
+        return 2 * n;
+      }
+
+      case R2ROption::DSTI: {
+        return 2 * (n + 1);
+      }
+
+      case R2ROption::DSTII: {
+        return 2 * n;
+      }
+
+      case R2ROption::DSTIII: {
+        return 2 * n;
+      }
+
+      case R2ROption::DSTIV: {
+        return 2 * n;
+      }
+
+      default:
+        return n;
+    }
+  }
+
  private:
   R2ROption option;
 };
 
-const auto NotR2R = R2R(R2ROption::NotR2R);
 const auto HC = R2R(R2ROption::HC);
 const auto DHT = R2R(R2ROption::DHT);
 const auto DCTI = R2R(R2ROption::DCTI);
@@ -198,8 +227,6 @@ enum class PlanOption {
 class PlanFlag {
  public:
   using plan_flag_t = int;
-
-  PlanFlag() : option{PlanOption::Estimate} {}
   PlanFlag(PlanOption option) : option{option} {}
 
   auto operator()() const {

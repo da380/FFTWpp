@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 #include <random>
+#include <ranges>
 #include <vector>
 
 int main() {
@@ -34,7 +35,11 @@ int main() {
 
     forward_plan.execute();
 
-    backward_plan.execute(FFTWpp::Normalised);
+    backward_plan.execute();
+
+    auto norm = backward_plan.Normalisation();
+    std::transform(check.begin(), check.end(), check.begin(),
+                   [norm](auto x) { return norm * x; });
 
     for (auto& x : in) std::cout << x << std::endl;
     std::cout << std::string(20, '=') << std::endl;

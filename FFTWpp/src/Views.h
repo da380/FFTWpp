@@ -24,7 +24,7 @@ class DataView {
   using value_type = std::iter_value_t<I>;
   using iterator = I;
 
-  // Constructor.
+  // Constructor
   template <IntegralIterator IntIt>
   DataView(I start, I finish, int rank, IntIt nStart, IntIt nFinish,
            int howMany, IntIt embedStart, IntIt embedFinish, int stride,
@@ -48,7 +48,11 @@ class DataView {
   auto begin() { return start; }
   auto end() { return finish; }
 
-  // Functions returnig storage information in suitable form
+  // Return views of the storage arrays.
+  auto NView() const { return std::views::all(*n); }
+  auto EmbedView() const { return std::views::all(*n); }
+
+  // Functions returnig storage information in suitable form.
   auto Rank() const { return rank; }
   auto N() { return &*n->begin(); }
   auto HowMany() const { return howMany; }
@@ -56,13 +60,19 @@ class DataView {
   auto Stride() const { return stride; }
   auto Dist() const { return dist; }
 
-  // Return views of the storage arrays
-  auto NView() const { return std::views::all(*n); }
-  auto EmbedView() const { return std::views::all(*n); }
-
-  // Check whether another data view is comparable.
+  // Check whether another data view has equal storage parameters.
   template <ScalarIterator J>
-  bool Comparable(DataView<J> other) requires IteratorPair<I, J> {
+  bool EqualStorage(DataView<J> other) requires IteratorPair<I, J> {
+    if (rank != other.Rank()) return false;
+    if (howMany != other.HowMany()) return false;
+    if (!std::ranges::equal(this->NView(), other.NView())) return false;
+    if (!std::ranges::equal(this->EmbedView(), other.EmbedView())) return false;
+    return true;
+  }
+
+  // Check whether another data view is suitable for transformation into.
+  template <ScalarIterator J>
+  bool Transformable(DataView<J> other) requires IteratorPair<I, J> {
     if (rank != other.Rank()) return false;
     if (howMany != other.HowMany()) return false;
     if constexpr (C2CIteratorPair<I, J> or R2RIteratorPair<I, J>) {
@@ -89,18 +99,6 @@ class DataView {
     return true;
   }
 
-  // Normalise the data as required after an inverse transformation.
-  void normalise() {
-    auto dim = std::reduce(this->NView().begin(), this->NView().end(), 1,
-                           std::multiplies<>());
-    auto norm = static_cast<value_type>(1) / static_cast<value_type>(dim);
-    for (int i = 0; i < howMany; i++) {
-      I it1 = std::next(start, i * dist);
-      I it2 = std::next(it1, dim);
-      std::transform(it1, it2, it1, [&norm](auto x) { return x * norm; });
-    }
-  }
-
  private:
   // Stored iterators to the data.
   I start;
@@ -119,6 +117,7 @@ class DataView {
   bool CheckConsistency() { return true; }
 };
 
+// Wrapper to make 1D data view.
 template <ScalarIterator I>
 auto MakeDataView1D(I start, I finish) {
   auto dim = std::distance(start, finish);

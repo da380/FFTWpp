@@ -43,8 +43,12 @@ int Test1DC2C(bool NewData = false) {
   MakeComplexData(in.begin(), in.end());
 
   NewData ? forward_plan.execute(inView, outView) : forward_plan.execute();
-  NewData ? backward_plan.execute(outView, checkView, FFTWpp::Normalised)
-          : backward_plan.execute(FFTWpp::Normalised);
+  NewData ? backward_plan.execute(outView, checkView) : backward_plan.execute();
+
+  // Normalise the transformation.
+  auto norm = backward_plan.Normalisation();
+  std::transform(check.begin(), check.end(), check.begin(),
+                 [norm](auto x) { return norm * x; });
 
   // Compute the maximum residual value.
   std::transform(in.begin(), in.end(), check.begin(), in.begin(),

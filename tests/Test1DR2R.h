@@ -34,16 +34,24 @@ int Test1DR2R(bool NewData = false) {
   auto outView = FFTWpp::MakeDataView1D(out);
   auto checkView = FFTWpp::MakeDataView1D(check);
 
-  auto forward_plan = FFTWpp::Plan(inView, outView, flag, FFTWpp::Forward);
+  auto kinds = std::vector<FFTWpp::R2R>(1, FFTWpp::DCTI);
 
-  auto backward_plan = FFTWpp::Plan(outView, checkView, flag, FFTWpp::Backward);
+  auto forward_plan =
+      FFTWpp::Plan(inView, outView, flag, FFTWpp::Forward, kinds);
+
+  auto backward_plan =
+      FFTWpp::Plan(outView, checkView, flag, FFTWpp::Backward, kinds);
 
   // Set the input values
   MakeRealData(in.begin(), in.end());
 
   NewData ? forward_plan.execute(inView, outView) : forward_plan.execute();
-  NewData ? backward_plan.execute(outView, checkView, FFTWpp::Normalised)
-          : backward_plan.execute(FFTWpp::Normalised);
+  NewData ? backward_plan.execute(outView, checkView) : backward_plan.execute();
+
+  // Normalise the transformation.
+  auto norm = backward_plan.Normalisation();
+  std::transform(check.begin(), check.end(), check.begin(),
+                 [norm](auto x) { return norm * x; });
 
   // Compute the maximum residual value.
   std::transform(in.begin(), in.end(), check.begin(), in.begin(),
