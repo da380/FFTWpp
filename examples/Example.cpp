@@ -21,7 +21,7 @@ int main() {
 
   {
     // Form the plans.
-    auto flag = FFTWpp::Measure;
+    auto flag = FFTWpp::Measure | FFTWpp::Estimate;
 
     auto inView = FFTWpp::MakeDataView1D(in);
     auto outView = FFTWpp::MakeDataView1D(out);
@@ -33,6 +33,7 @@ int main() {
     for (auto& x : in) x = 1;
 
     forward_plan.execute();
+
     backward_plan.execute(FFTWpp::Normalised);
 
     for (auto& x : in) std::cout << x << std::endl;

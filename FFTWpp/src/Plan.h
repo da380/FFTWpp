@@ -33,23 +33,23 @@ class Plan {
       : in{in}, out{out}, flag{flag}, direction{direction} {
     assert(in.Comparable(out));
     if constexpr (IsSingle<Float>) {
-      plan = fftwf_plan_many_dft(in.rank(), in.n(), in.howmany(), in.data(),
-                                 in.embed(), in.stride(), in.dist(), out.data(),
-                                 out.embed(), out.stride(), out.dist(),
+      plan = fftwf_plan_many_dft(in.Rank(), in.N(), in.HowMany(), in.Data(),
+                                 in.Embed(), in.Stride(), in.Dist(), out.Data(),
+                                 out.Embed(), out.Stride(), out.Dist(),
                                  direction(), flag());
     }
 
     if constexpr (IsDouble<Float>) {
-      plan = fftw_plan_many_dft(in.rank(), in.n(), in.howmany(), in.data(),
-                                in.embed(), in.stride(), in.dist(), out.data(),
-                                out.embed(), out.stride(), out.dist(),
+      plan = fftw_plan_many_dft(in.Rank(), in.N(), in.HowMany(), in.Data(),
+                                in.Embed(), in.Stride(), in.Dist(), out.Data(),
+                                out.Embed(), out.Stride(), out.Dist(),
                                 direction(), flag());
     }
 
     if constexpr (IsLongDouble<Float>) {
-      plan = fftwl_plan_many_dft(in.rank(), in.n(), in.howmany(), in.data(),
-                                 in.embed(), in.stride(), in.dist(), out.data(),
-                                 out.embed(), out.stride(), out.dist(),
+      plan = fftwl_plan_many_dft(in.Rank(), in.N(), in.HowMany(), in.Data(),
+                                 in.Embed(), in.Stride(), in.Dist(), out.Data(),
+                                 out.Embed(), out.Stride(), out.Dist(),
                                  direction(), flag());
     }
   }
@@ -62,20 +62,20 @@ class Plan {
     assert(in.Comparable(out));
     if constexpr (IsSingle<Float>) {
       plan = fftwf_plan_many_dft_c2r(
-          in.rank(), out.n(), in.howmany(), in.data(), in.embed(), in.stride(),
-          in.dist(), out.data(), out.embed(), out.stride(), out.dist(), flag());
+          in.Rank(), out.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
+          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
     }
 
     if constexpr (IsDouble<Float>) {
       plan = fftw_plan_many_dft_c2r(
-          in.rank(), out.n(), in.howmany(), in.data(), in.embed(), in.stride(),
-          in.dist(), out.data(), out.embed(), out.stride(), out.dist(), flag());
+          in.Rank(), out.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
+          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
     }
 
     if constexpr (IsLongDouble<Float>) {
       plan = fftwl_plan_many_dft_c2r(
-          in.rank(), out.n(), in.howmany(), in.data(), in.embed(), in.stride(),
-          in.dist(), out.data(), out.embed(), out.stride(), out.dist(), flag());
+          in.Rank(), out.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
+          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
     }
   }
 
@@ -87,20 +87,20 @@ class Plan {
     assert(in.Comparable(out));
     if constexpr (IsSingle<Float>) {
       plan = fftwf_plan_many_dft_r2c(
-          in.rank(), in.n(), in.howmany(), in.data(), in.embed(), in.stride(),
-          in.dist(), out.data(), out.embed(), out.stride(), out.dist(), flag());
+          in.Rank(), in.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
+          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
     }
 
     if constexpr (IsDouble<Float>) {
       plan = fftw_plan_many_dft_r2c(
-          in.rank(), in.n(), in.howmany(), in.data(), in.embed(), in.stride(),
-          in.dist(), out.data(), out.embed(), out.stride(), out.dist(), flag());
+          in.Rank(), in.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
+          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
     }
 
     if constexpr (IsLongDouble<Float>) {
       plan = fftwl_plan_many_dft_r2c(
-          in.rank(), in.n(), in.howmany(), in.data(), in.embed(), in.stride(),
-          in.dist(), out.data(), out.embed(), out.stride(), out.dist(), flag());
+          in.Rank(), in.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
+          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
     }
   }
 
@@ -127,13 +127,13 @@ class Plan {
     assert(in.Comparable(newIn));
     assert(out.Comparable(newOut));
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft(this->operator()(), newIn.data(), newOut.data());
+      fftwf_execute_dft(this->operator()(), newIn.Data(), newOut.Data());
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft(this->operator()(), newIn.data(), newOut.data());
+      fftw_execute_dft(this->operator()(), newIn.Data(), newOut.Data());
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft(this->operator()(), newIn.data(), newOut.data());
+      fftwl_execute_dft(this->operator()(), newIn.Data(), newOut.Data());
     }
     if (norm == Normalised) {
       newOut.normalise();
@@ -147,13 +147,13 @@ class Plan {
     assert(in.Comparable(newIn));
     assert(out.Comparable(newOut));
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
+      fftwf_execute_dft_c2r(this->operator()(), newIn.Data(), newOut.Data());
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
+      fftw_execute_dft_c2r(this->operator()(), newIn.Data(), newOut.Data());
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_c2r(this->operator()(), newIn.data(), newOut.data());
+      fftwl_execute_dft_c2r(this->operator()(), newIn.Data(), newOut.Data());
     }
     if (norm == Normalised) {
       newOut.normalise();
@@ -167,13 +167,13 @@ class Plan {
     assert(in.Comparable(newIn));
     assert(out.Comparable(newOut));
     if constexpr (IsSingle<Float>) {
-      fftwf_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
+      fftwf_execute_dft_r2c(this->operator()(), newIn.Data(), newOut.Data());
     }
     if constexpr (IsDouble<Float>) {
-      fftw_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
+      fftw_execute_dft_r2c(this->operator()(), newIn.Data(), newOut.Data());
     }
     if constexpr (IsLongDouble<Float>) {
-      fftwl_execute_dft_r2c(this->operator()(), newIn.data(), newOut.data());
+      fftwl_execute_dft_r2c(this->operator()(), newIn.Data(), newOut.Data());
     }
     if (norm == Normalised) {
       newOut.normalise();
@@ -194,7 +194,7 @@ class Plan {
   }
 
  private:
-  // Store data references.
+  // Store data views.
   InputView in;
   OutputView out;
 

@@ -1,5 +1,5 @@
-#ifndef FFTWPP_DATA_GUARD_H
-#define FFTWPP_DATA_GUARD_H
+#ifndef FFTWPP_VIEWS_GUARD_H
+#define FFTWPP_VIEWS_GUARD_H
 
 #include <algorithm>
 #include <cassert>
@@ -22,98 +22,98 @@ template <ScalarIterator I>
 class DataView {
  public:
   using value_type = std::iter_value_t<I>;
-  using float_type = IteratorPrecision<I>;
   using iterator = I;
 
   // Constructor.
   template <IntegralIterator IntIt>
   DataView(I start, I finish, int rank, IntIt nStart, IntIt nFinish,
-           int howmany, IntIt embedStart, IntIt embedFinish, int stride,
+           int howMany, IntIt embedStart, IntIt embedFinish, int stride,
            int dist)
-      : _start{start},
-        _finish{finish},
-        _rank{rank},
-        _n{std::make_shared<std::vector<int>>(nStart, nFinish)},
-        _howmany{howmany},
-        _embed{std::make_shared<std::vector<int>>(embedStart, embedFinish)},
-        _stride{stride},
-        _dist{dist} {
+      : start{start},
+        finish{finish},
+        rank{rank},
+        n{std::make_shared<std::vector<int>>(nStart, nFinish)},
+        howMany{howMany},
+        embed{std::make_shared<std::vector<int>>(embedStart, embedFinish)},
+        stride{stride},
+        dist{dist} {
     assert(CheckConsistency());
   }
 
   // Return appropriate fftw3 pointer to the start of the data.
-  auto data() requires ComplexIterator<I> { return ComplexCast(&_start[0]); }
-  auto data() requires RealIterator<I> { return &_start[0]; }
+  auto Data() requires ComplexIterator<I> { return ComplexCast(&start[0]); }
+  auto Data() requires RealIterator<I> { return &start[0]; }
 
   // Return iterators to the data
-  auto begin() { return _start; }
-  auto end() { return _finish; }
-
-  // Return const iterators to storage arrays
-  auto nBegin() const { return _n->cbegin(); }
-  auto nEnd() const { return _n->cend(); }
-  auto nRBegin() const { return _n->crbegin(); }
-  auto nREnd() const { return _n->crend(); }
-  auto embedBegin() const { return _embed->cbegin(); }
-  auto embedEnd() const { return _embed->cend(); }
+  auto begin() { return start; }
+  auto end() { return finish; }
 
   // Functions returnig storage information in suitable form
-  auto rank() const { return _rank; }
-  auto n() { return &*_n->begin(); }
-  auto howmany() const { return _howmany; }
-  auto embed() { return &*_embed->begin(); }
-  auto stride() const { return _stride; }
-  auto dist() const { return _dist; }
+  auto Rank() const { return rank; }
+  auto N() { return &*n->begin(); }
+  auto HowMany() const { return howMany; }
+  auto Embed() { return &*embed->begin(); }
+  auto Stride() const { return stride; }
+  auto Dist() const { return dist; }
 
-  // Check whether another data reference is comparable.
+  // Return views of the storage arrays
+  auto NView() const { return std::views::all(*n); }
+  auto EmbedView() const { return std::views::all(*n); }
+
+  // Check whether another data view is comparable.
   template <ScalarIterator J>
   bool Comparable(DataView<J> other) requires IteratorPair<I, J> {
-    if (_rank != other.rank()) return false;
-    if (_howmany != other.howmany()) return false;
+    if (rank != other.Rank()) return false;
+    if (howMany != other.HowMany()) return false;
     if constexpr (C2CIteratorPair<I, J> or R2RIteratorPair<I, J>) {
-      return std::equal(this->nBegin(), this->nEnd(), other.nBegin());
+      return std::ranges::equal(this->NView(), other.NView());
     }
     if constexpr (C2RIteratorPair<I, J>) {
-      auto it1 = this->nRBegin();
-      auto it2 = other.nRBegin();
-      auto check = *it1++ == *it2++ / 2 + 1;
-      return check && std::equal(it1, this->nREnd(), it2);
+      return std::ranges::equal(
+                 this->NView() | std::views::reverse | std::views::take(1),
+                 other.NView() | std::views::reverse | std::views::take(1),
+                 [](auto x, auto y) { return x == y / 2 + 1; }) &&
+             std::ranges::equal(
+                 this->NView() | std::views::reverse | std::views::drop(1),
+                 other.NView() | std::views::reverse | std::views::drop(1));
     }
     if constexpr (R2CIteratorPair<I, J>) {
-      auto it1 = this->nRBegin();
-      auto it2 = other.nRBegin();
-      auto check = *it1++ / 2 + 1 == *it2++;
-      return check && std::equal(it1, this->nREnd(), it2);
+      return std::ranges::equal(
+                 this->NView() | std::views::reverse | std::views::take(1),
+                 other.NView() | std::views::reverse | std::views::take(1),
+                 [](auto x, auto y) { return x / 2 + 1 == y; }) &&
+             std::ranges::equal(
+                 this->NView() | std::views::reverse | std::views::drop(1),
+                 other.NView() | std::views::reverse | std::views::drop(1));
     }
     return true;
   }
 
   // Normalise the data as required after an inverse transformation.
   void normalise() {
-    auto dim =
-        std::reduce(this->nBegin(), this->nEnd(), 1, std::multiplies<>());
-    auto norm = static_cast<float_type>(1) / static_cast<float_type>(dim);
-    for (int i = 0; i < _howmany; i++) {
-      I start = std::next(_start, i * _dist);
-      I finish = std::next(start, dim);
-      std::transform(start, finish, start,
-                     [&norm](auto x) { return x * norm; });
+    auto dim = std::reduce(this->NView().begin(), this->NView().end(), 1,
+                           std::multiplies<>());
+    auto norm = static_cast<value_type>(1) / static_cast<value_type>(dim);
+    for (int i = 0; i < howMany; i++) {
+      I it1 = std::next(start, i * dist);
+      I it2 = std::next(it1, dim);
+      std::transform(it1, it2, it1, [&norm](auto x) { return x * norm; });
     }
   }
 
  private:
   // Stored iterators to the data.
-  I _start;
-  I _finish;
+  I start;
+  I finish;
 
   // Parameters describing data storage.
-  int _rank;
-  std::shared_ptr<std::vector<int>> _n;
-  int _howmany;
-  std::shared_ptr<std::vector<int>> _embed;
+  int rank;
+  std::shared_ptr<std::vector<int>> n;
+  int howMany;
+  std::shared_ptr<std::vector<int>> embed;
 
-  int _stride;
-  int _dist;
+  int stride;
+  int dist;
 
   // Checks consistence of stored data
   bool CheckConsistency() { return true; }
@@ -133,24 +133,6 @@ auto MakeDataView1D(R&& in) {
   return MakeDataView1D(in.begin(), in.end());
 }
 
-/*
-
-template <ScalarIterator I, StorageOption Storage = ColumnMajor>
-auto MakeDataView1DMany(I start, I finish, int howmany) {
-auto total = std::distance(start, finish);
-assert(total > 0);
-assert(howmany > 0);
-assert(total % howmany == 0);
-int dim = total / howmany;
-std::vector<int> n(1, dim);
-int stride = std::same_as<Storage, RowMajor> ? 1 : dim;
-int dist = std::same_as<Storage, RowMajor> ? dim : 1;
-return DataView(start, finish, 1, n.begin(), n.end(), howmany, n.begin(),
-                n.end(), stride, dist);
-}
-
-*/
-
 }  // namespace FFTWpp
 
-#endif  // FFTWPP_DATA_GUARD_H
+#endif  // FFTWPP_VIEWS_GUARD_H
