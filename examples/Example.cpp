@@ -33,9 +33,9 @@ int main() {
 
     for (auto& x : in) x = 1;
 
-    forward_plan.execute();
+    forward_plan.Execute();
 
-    backward_plan.execute();
+    backward_plan.Execute();
 
     auto norm = backward_plan.Normalisation();
     std::transform(check.begin(), check.end(), check.begin(),

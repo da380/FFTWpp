@@ -1,5 +1,5 @@
-#ifndef FFTWPP_ALL_MODULE_H
-#define FFTWPP_ALL_MODULE_H
+#ifndef FFTWPP_CORE_MODULE_H
+#define FFTWPP_CORE_MODULE_H
 
 // Header files to be included to use the FFTWpp library.
 #include "fftw3.h"
@@ -9,6 +9,5 @@
 #include "src/Flags.h"
 #include "src/Views.h"
 #include "src/Plan.h"
-#include "src/Eigen.h"
 
 #endif  

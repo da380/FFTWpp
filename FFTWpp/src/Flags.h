@@ -6,14 +6,6 @@
 
 namespace FFTWpp {
 
-/////////////////////////////////
-//      Normalisation flags    //
-/////////////////////////////////
-
-enum class NormalisationOption { Normalised, UnNormalised };
-const auto Normalised = NormalisationOption::Normalised;
-const auto UnNormalised = NormalisationOption::UnNormalised;
-
 //////////////////////////////
 //      Direction flags     //
 //////////////////////////////

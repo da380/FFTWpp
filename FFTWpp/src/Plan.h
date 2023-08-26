@@ -172,7 +172,7 @@ class Plan {
   }
 
   // Execute the plan.
-  void execute() {
+  void Execute() {
     if constexpr (IsSingle<Float>) {
       fftwf_execute(this->operator()());
     }
@@ -185,7 +185,7 @@ class Plan {
   }
 
   // Execute the plan given new complex-complex data.
-  void execute(InputView newIn,
+  void Execute(InputView newIn,
                OutputView newOut) requires C2CIteratorPair<InputIt, OutputIt> {
     assert(in.EqualStorage(newIn));
     assert(out.EqualStorage(newOut));
@@ -202,7 +202,7 @@ class Plan {
   }
 
   // Execute the plan given new complex-real data.
-  void execute(InputView newIn,
+  void Execute(InputView newIn,
                OutputView newOut) requires C2RIteratorPair<InputIt, OutputIt> {
     assert(in.EqualStorage(newIn));
     assert(out.EqualStorage(newOut));
@@ -219,7 +219,7 @@ class Plan {
   }
 
   // Execute the plan given new real-complex data.
-  void execute(InputView newIn,
+  void Execute(InputView newIn,
                OutputView newOut) requires R2CIteratorPair<InputIt, OutputIt> {
     assert(in.EqualStorage(newIn));
     assert(out.EqualStorage(newOut));
@@ -236,7 +236,7 @@ class Plan {
   }
 
   // Execute the plan given new real-real data.
-  void execute(InputView newIn,
+  void Execute(InputView newIn,
                OutputView newOut) requires R2RIteratorPair<InputIt, OutputIt> {
     assert(in.EqualStorage(newIn));
     assert(out.EqualStorage(newOut));

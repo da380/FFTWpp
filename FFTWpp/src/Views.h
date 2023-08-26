@@ -109,12 +109,18 @@ class DataView {
   std::shared_ptr<std::vector<int>> n;
   int howMany;
   std::shared_ptr<std::vector<int>> embed;
-
   int stride;
   int dist;
 
   // Checks consistence of stored data
-  bool CheckConsistency() { return true; }
+  bool CheckConsistency() {
+    // size of the data
+    int dataSize = std::distance(start, finish);
+    // total size of hte storage parameters
+    int storageSize = howMany * std::reduce(embed->begin(), embed->end(), 1,
+                                            std::multiplies<>());
+    return dataSize == storageSize;
+  }
 };
 
 // Wrapper to make 1D data view.
@@ -127,6 +133,7 @@ auto MakeDataView1D(I start, I finish) {
                   1, 1);
 }
 
+// Wrapper to make 1D data view using ranges.
 template <std::ranges::random_access_range R>
 auto MakeDataView1D(R&& in) {
   return MakeDataView1D(in.begin(), in.end());

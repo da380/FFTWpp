@@ -45,8 +45,8 @@ int Test1DR2R(bool NewData = false) {
   // Set the input values
   MakeRealData(in.begin(), in.end());
 
-  NewData ? forward_plan.execute(inView, outView) : forward_plan.execute();
-  NewData ? backward_plan.execute(outView, checkView) : backward_plan.execute();
+  NewData ? forward_plan.Execute(inView, outView) : forward_plan.Execute();
+  NewData ? backward_plan.Execute(outView, checkView) : backward_plan.Execute();
 
   // Normalise the transformation.
   auto norm = backward_plan.Normalisation();
