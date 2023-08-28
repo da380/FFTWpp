@@ -42,7 +42,7 @@ const auto Backward = Direction(DirectionOption::Backward);
 //       Real-real flags        //
 //////////////////////////////////
 
-enum class R2ROption {
+enum class KindOption {
   HC,
   DHT,
   DCTI,
@@ -55,14 +55,14 @@ enum class R2ROption {
   DSTIV
 };
 
-class R2R {
+class Kind {
  public:
-  R2R(R2ROption option) : option{option} {}
-  bool operator==(const R2R& other) { return option == other.option; };
+  Kind(KindOption option) : option{option} {}
+  bool operator==(const Kind& other) { return option == other.option; };
 
   auto operator()(Direction direction) {
     switch (option) {
-      case R2ROption::HC: {
+      case KindOption::HC: {
         if (direction == Forward) {
           return FFTW_R2HC;
         } else {
@@ -70,7 +70,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DHT: {
+      case KindOption::DHT: {
         if (direction == Forward) {
           return FFTW_DHT;
         } else {
@@ -78,7 +78,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DCTI: {
+      case KindOption::DCTI: {
         if (direction == Forward) {
           return FFTW_REDFT00;
         } else {
@@ -86,7 +86,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DCTII: {
+      case KindOption::DCTII: {
         if (direction == Forward) {
           return FFTW_REDFT10;
         } else {
@@ -94,7 +94,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DCTIII: {
+      case KindOption::DCTIII: {
         if (direction == Forward) {
           return FFTW_REDFT01;
         } else {
@@ -102,7 +102,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DCTIV: {
+      case KindOption::DCTIV: {
         if (direction == Forward) {
           return FFTW_REDFT11;
         } else {
@@ -110,7 +110,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DSTI: {
+      case KindOption::DSTI: {
         if (direction == Forward) {
           return FFTW_RODFT00;
         } else {
@@ -118,7 +118,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DSTII: {
+      case KindOption::DSTII: {
         if (direction == Forward) {
           return FFTW_RODFT10;
         } else {
@@ -126,7 +126,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DSTIII: {
+      case KindOption::DSTIII: {
         if (direction == Forward) {
           return FFTW_RODFT01;
         } else {
@@ -134,7 +134,7 @@ class R2R {
         }
       }
 
-      case R2ROption::DSTIV: {
+      case KindOption::DSTIV: {
         if (direction == Forward) {
           return FFTW_RODFT11;
         } else {
@@ -149,35 +149,35 @@ class R2R {
 
   auto LogicalSize(int n) {
     switch (option) {
-      case R2ROption::DCTI: {
+      case KindOption::DCTI: {
         return 2 * (n - 1);
       }
 
-      case R2ROption::DCTII: {
+      case KindOption::DCTII: {
         return 2 * n;
       }
 
-      case R2ROption::DCTIII: {
+      case KindOption::DCTIII: {
         return 2 * n;
       }
 
-      case R2ROption::DCTIV: {
+      case KindOption::DCTIV: {
         return 2 * n;
       }
 
-      case R2ROption::DSTI: {
+      case KindOption::DSTI: {
         return 2 * (n + 1);
       }
 
-      case R2ROption::DSTII: {
+      case KindOption::DSTII: {
         return 2 * n;
       }
 
-      case R2ROption::DSTIII: {
+      case KindOption::DSTIII: {
         return 2 * n;
       }
 
-      case R2ROption::DSTIV: {
+      case KindOption::DSTIV: {
         return 2 * n;
       }
 
@@ -187,19 +187,19 @@ class R2R {
   }
 
  private:
-  R2ROption option;
+  KindOption option;
 };
 
-const auto HC = R2R(R2ROption::HC);
-const auto DHT = R2R(R2ROption::DHT);
-const auto DCTI = R2R(R2ROption::DCTI);
-const auto DCTII = R2R(R2ROption::DCTII);
-const auto DCTIII = R2R(R2ROption::DCTIII);
-const auto DCTIV = R2R(R2ROption::DCTIV);
-const auto DSTI = R2R(R2ROption::DSTI);
-const auto DSTII = R2R(R2ROption::DSTII);
-const auto DSTIII = R2R(R2ROption::DSTIII);
-const auto DSTIV = R2R(R2ROption::DSTIV);
+const auto HC = Kind(KindOption::HC);
+const auto DHT = Kind(KindOption::DHT);
+const auto DCTI = Kind(KindOption::DCTI);
+const auto DCTII = Kind(KindOption::DCTII);
+const auto DCTIII = Kind(KindOption::DCTIII);
+const auto DCTIV = Kind(KindOption::DCTIV);
+const auto DSTI = Kind(KindOption::DSTI);
+const auto DSTII = Kind(KindOption::DSTII);
+const auto DSTIII = Kind(KindOption::DSTIII);
+const auto DSTIV = Kind(KindOption::DSTIV);
 
 ///////////////////////////////////
 //         Planning flags        //

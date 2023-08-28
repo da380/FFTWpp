@@ -108,12 +108,12 @@ class Plan {
   // Real to real constructors
   Plan(InputView in, OutputView out, PlanFlagExpression flag,
        Direction direction,
-       std::vector<R2R> kinds) requires R2RIteratorPair<InputIt, OutputIt>
+       std::vector<Kind> kinds) requires R2RIteratorPair<InputIt, OutputIt>
       : in{in},
         out{out},
         flag{flag},
         direction{direction},
-        kinds{std::make_shared<std::vector<R2R>>(kinds)} {
+        kinds{std::make_shared<std::vector<Kind>>(kinds)} {
     assert(in.Transformable(out));
     assert(kinds.size() == in.Rank());
     std::vector<kind_value_type> k(in.Rank());
@@ -273,7 +273,7 @@ class Plan {
   // Store transform options
   Direction direction;
   PlanFlagExpression flag;
-  std::shared_ptr<std::vector<R2R>> kinds;
+  std::shared_ptr<std::vector<Kind>> kinds;
 
   // Store the plan as a std::variant.
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
@@ -285,6 +285,14 @@ template <typename InputRange, typename OutputRange,
 auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
                 Direction direction = Forward) {
   return Plan(MakeDataView1D(in), MakeDataView1D(out), flag, direction);
+}
+
+template <typename InputRange, typename OutputRange,
+          typename PlanFlagExpression>
+auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
+                Kind kind, Direction direction = Forward) {
+  auto kinds = std::vector<Kind>(1, kind);
+  return Plan(MakeDataView1D(in), MakeDataView1D(out), flag, direction, kinds);
 }
 
 }  // namespace FFTWpp

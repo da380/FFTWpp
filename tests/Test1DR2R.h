@@ -34,10 +34,10 @@ int Test1DR2R(bool NewData = false) {
   auto outView = FFTWpp::MakeDataView1D(out);
   auto checkView = FFTWpp::MakeDataView1D(check);
 
-  auto kinds = std::vector<FFTWpp::R2R>(1, FFTWpp::DCTI);
+  auto kinds = std::vector<FFTWpp::Kind>(1, FFTWpp::DCTI);
 
   auto forward_plan =
-      FFTWpp::Plan(inView, outView, flag, FFTWpp::Forward, kinds);
+      FFTWpp::MakePlan1D(inView, outView, flag, FFTWpp::Forward, kinds);
 
   auto backward_plan =
       FFTWpp::Plan(outView, checkView, flag, FFTWpp::Backward, kinds);
