@@ -3,4 +3,6 @@
 
 #include <Eigen/Core>
 
+namespace FFTWpp {}
+
 #endif  // FFTWPP_EIGEN_GUARD_H

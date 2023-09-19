@@ -285,29 +285,6 @@ class Plan {
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//                          Make plans from ranges                           //
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-// Plan for a 1D transformation given data as iterators.
-template <typename InputRange, typename OutputRange,
-          typename PlanFlagExpression>
-auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
-                Direction direction = Forward) {
-  return Plan(MakeDataView1D(in), MakeDataView1D(out), flag, direction);
-}
-
-// Plan for a 1D real-to-real transformation given data in range format.
-template <typename InputRange, typename OutputRange,
-          typename PlanFlagExpression>
-auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
-                Kind kind, Direction direction = Forward) {
-  auto kinds = std::vector<Kind>(1, kind);
-  return Plan(MakeDataView1D(in), MakeDataView1D(out), flag, kinds, direction);
-}
-
 }  // namespace FFTWpp
 
 #endif  // FFTWPP_PLAN_GUARD_H

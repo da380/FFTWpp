@@ -18,6 +18,12 @@
 
 namespace FFTWpp {
 
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//               Definition of the DataView class           //
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+
 template <ScalarIterator I>
 class DataView {
  public:
@@ -25,16 +31,14 @@ class DataView {
   using iterator = I;
 
   // Constructor
-  template <IntegralIterator IntIt>
-  DataView(I start, I finish, int rank, IntIt nStart, IntIt nFinish,
-           int howMany, IntIt embedStart, IntIt embedFinish, int stride,
-           int dist)
+  DataView(I start, I finish, int rank, std::vector<int> n, int howMany,
+           std::vector<int> embed, int stride, int dist)
       : start{start},
         finish{finish},
         rank{rank},
-        n{std::make_shared<std::vector<int>>(nStart, nFinish)},
+        n{std::make_shared<std::vector<int>>(n)},
         howMany{howMany},
-        embed{std::make_shared<std::vector<int>>(embedStart, embedFinish)},
+        embed{std::make_shared<std::vector<int>>(embed)},
         stride{stride},
         dist{dist} {
     assert(CheckConsistency());
@@ -123,20 +127,45 @@ class DataView {
   }
 };
 
-// Wrapper to make 1D data view.
+/////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
+//           Wrappers for building DataViews in common cases           //
+/////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+// Wrappers to make DataView for 1D transformation
 template <ScalarIterator I>
 auto MakeDataView1D(I start, I finish) {
   auto dim = std::distance(start, finish);
   assert(dim > 0);
   std::vector<int> n(1, dim);
-  return DataView(start, finish, 1, n.begin(), n.end(), 1, n.begin(), n.end(),
-                  1, 1);
+  return DataView(start, finish, 1, n, 1, n, 1, 1);
 }
 
-// Wrapper to make 1D data view using ranges.
 template <std::ranges::random_access_range R>
 auto MakeDataView1D(R&& in) {
-  return MakeDataView1D(in.begin(), in.end());
+  return MakeDataView1D(std::begin(in), std::end(in));
+}
+
+// Wrappers to make DataView for many 1D transformations. Here it
+// assumed that the ith datum within the kth transform is located
+// at i + k*dim, with dim the dimension.
+template <ScalarIterator I>
+auto MakeDataView1DMany(I start, I finish, int howMany) {
+  assert(howMany > 0);
+  int dim = std::distance(start, finish);
+  assert(dim % howMany == 0);
+  dim /= howMany;
+  int rank = 1;
+  std::vector<int> n(1, dim);
+  int stride = 1;
+  int dist = dim;
+  return DataView(start, finish, rank, n, howMany, n, stride, dist);
+}
+
+template <std::ranges::random_access_range R>
+auto MakeDataView1DMany(R&& in, int howMany) {
+  return MakeDataView1DMany(std::begin(in), std::end(in), howMany);
 }
 
 }  // namespace FFTWpp
