@@ -37,10 +37,10 @@ int Test1DR2R(bool NewData = false) {
   auto kinds = std::vector<FFTWpp::Kind>(1, FFTWpp::DCTI);
 
   auto forward_plan =
-      FFTWpp::MakePlan1D(inView, outView, flag, FFTWpp::Forward, kinds);
+      FFTWpp::Plan(inView, outView, flag, kinds, FFTWpp::Forward);
 
   auto backward_plan =
-      FFTWpp::Plan(outView, checkView, flag, FFTWpp::Backward, kinds);
+      FFTWpp::Plan(outView, checkView, flag, kinds, FFTWpp::Backward);
 
   // Set the input values
   MakeRealData(in.begin(), in.end());

@@ -15,6 +15,12 @@
 
 namespace FFTWpp {
 
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                        Definition of the Plan class                       //
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 template <typename InputView, typename OutputView, typename PlanFlagExpression>
 class Plan {
  public:
@@ -107,8 +113,8 @@ class Plan {
 
   // Real to real constructors
   Plan(InputView in, OutputView out, PlanFlagExpression flag,
-       Direction direction,
-       std::vector<Kind> kinds) requires R2RIteratorPair<InputIt, OutputIt>
+       std::vector<Kind> kinds,
+       Direction direction) requires R2RIteratorPair<InputIt, OutputIt>
       : in{in},
         out{out},
         flag{flag},
@@ -279,7 +285,13 @@ class Plan {
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
 };
 
-// Returns a plan for a 1D transformation given data in range format.
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                          Make plans from ranges                           //
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Plan for a 1D transformation given data as iterators.
 template <typename InputRange, typename OutputRange,
           typename PlanFlagExpression>
 auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
@@ -287,12 +299,13 @@ auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
   return Plan(MakeDataView1D(in), MakeDataView1D(out), flag, direction);
 }
 
+// Plan for a 1D real-to-real transformation given data in range format.
 template <typename InputRange, typename OutputRange,
           typename PlanFlagExpression>
 auto MakePlan1D(InputRange& in, OutputRange& out, PlanFlagExpression flag,
                 Kind kind, Direction direction = Forward) {
   auto kinds = std::vector<Kind>(1, kind);
-  return Plan(MakeDataView1D(in), MakeDataView1D(out), flag, direction, kinds);
+  return Plan(MakeDataView1D(in), MakeDataView1D(out), flag, kinds, direction);
 }
 
 }  // namespace FFTWpp
