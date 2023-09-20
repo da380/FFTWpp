@@ -1,6 +1,8 @@
 #ifndef FFTWPP_FLAGS_GUARD_H
 #define FFTWPP_FLAGS_GUARD_H
 
+#include <iostream>
+
 #include "Concepts.h"
 #include "fftw3.h"
 
@@ -18,21 +20,21 @@ class Direction {
 
   bool operator==(const Direction& other) { return option == other.option; };
 
-    auto operator()() const {
-      switch (option) {
-        case DirectionOption::Forward: {
-          return FFTW_FORWARD;
-        }
-        case DirectionOption::Backward: {
-          return FFTW_BACKWARD;
-        }
-        default:
-          return FFTW_FORWARD;
+  auto operator()() const {
+    switch (option) {
+      case DirectionOption::Forward: {
+        return FFTW_FORWARD;
       }
+      case DirectionOption::Backward: {
+        return FFTW_BACKWARD;
+      }
+      default:
+        return FFTW_FORWARD;
     }
+  }
 
-   private:
-    DirectionOption option;
+ private:
+  DirectionOption option;
 };
 
 const auto Forward = Direction(DirectionOption::Forward);
@@ -205,100 +207,31 @@ const auto DSTIV = Kind(KindOption::DSTIV);
 //         Planning flags        //
 ///////////////////////////////////
 
-enum class PlanOption {
-  Estimate,
-  Measure,
-  Patient,
-  Exhaustive,
-  WisdomOnly,
-  DestroyInput,
-  PreserveInput,
-  Unaligned
-};
-
 class PlanFlag {
+  using FlagType = decltype(FFTW_ESTIMATE);
+
  public:
-  using plan_flag_t = int;
-  PlanFlag(PlanOption option) : option{option} {}
-
-  auto operator()() const {
-    switch (option) {
-      case PlanOption::Estimate: {
-        return FFTW_ESTIMATE;
-      }
-
-      case PlanOption::Measure: {
-        return FFTW_MEASURE;
-      }
-
-      case PlanOption::Patient: {
-        return FFTW_PATIENT;
-      }
-
-      case PlanOption::Exhaustive: {
-        return FFTW_EXHAUSTIVE;
-      }
-
-      case PlanOption::WisdomOnly: {
-        return FFTW_WISDOM_ONLY;
-      }
-
-      case PlanOption::DestroyInput: {
-        return FFTW_DESTROY_INPUT;
-      }
-
-      case PlanOption::PreserveInput: {
-        return FFTW_PRESERVE_INPUT;
-      }
-
-      case PlanOption::Unaligned: {
-        return FFTW_UNALIGNED;
-      }
-
-      default:
-        return FFTW_ESTIMATE;
-    }
-  }
+  PlanFlag(FlagType value) : value{value} {}
+  FlagType operator()() const { return value; }
 
  private:
-  PlanOption option;
+  FlagType value;
 };
 
-template <typename PF1, typename PF2>
-requires requires() {
-  typename PF1::plan_flag_t;
-  typename PF2::plan_flag_t;
-}
-class PlanFlagOr {
- public:
-  using plan_flag_t = int;
-  PlanFlagOr(const PF1& pf1, const PF2& pf2) : pf1{pf1}, pf2{pf2} {}
-  auto operator()() const { return pf1() | pf2(); }
-
- private:
-  const PF1& pf1;
-  const PF2& pf2;
-};
-
-template <typename PF1, typename PF2>
-requires requires() {
-  typename PF1::plan_flag_t;
-  typename PF2::plan_flag_t;
-}
-PlanFlagOr<PF1, PF2> operator|(const PF1& pf1, const PF2& pf2) {
-  return {pf1, pf2};
+PlanFlag operator|(const PlanFlag& pf1, const PlanFlag& pf2) {
+  return PlanFlag(pf1() | pf2());
 }
 
-  // Define constant instances of the basic plan flags for convienience.
-  const auto Estimate = PlanFlag(PlanOption::Estimate);
-  const auto Measure = PlanFlag(PlanOption::Measure);
-  const auto Patient = PlanFlag(PlanOption::Patient);
-  const auto Exhaustive = PlanFlag(PlanOption::Exhaustive);
-  const auto WisdomOnly = PlanFlag(PlanOption::WisdomOnly);
-  const auto DestroyInput = PlanFlag(PlanOption::DestroyInput);
-  const auto PreserveInput = PlanFlag(PlanOption::PreserveInput);
-  const auto Unaligned = PlanFlag(PlanOption::Unaligned);
+// Define constant instances of the basic plan flags for convienience.
+const auto Estimate = PlanFlag(FFTW_ESTIMATE);
+const auto Measure = PlanFlag(FFTW_MEASURE);
+const auto Patient = PlanFlag(FFTW_PATIENT);
+const auto Exhaustive = PlanFlag(FFTW_EXHAUSTIVE);
+const auto WisdomOnly = PlanFlag(FFTW_WISDOM_ONLY);
+const auto DestroyInput = PlanFlag(FFTW_DESTROY_INPUT);
+const auto PreserveInput = PlanFlag(FFTW_PRESERVE_INPUT);
+const auto Unaligned = PlanFlag(FFTW_UNALIGNED);
 
-  }  // namespace FFTWpp
+}  // namespace FFTWpp
 
 #endif  //  FFTWPP_FLAGS_GUARD_H

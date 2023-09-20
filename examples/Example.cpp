@@ -5,6 +5,7 @@
 #include <limits>
 #include <random>
 #include <ranges>
+#include <typeinfo>
 #include <vector>
 
 int main() {
@@ -29,13 +30,11 @@ int main() {
     auto outView = FFTWpp::MakeDataView1D(out);
     auto checkView = FFTWpp::MakeDataView1D(check);
 
-    // Build the plans using wisdom only
-
     auto forward_plan =
-        FFTWpp::Plan(inView, outView, FFTWpp::Patient, FFTWpp::Forward);
+        FFTWpp::Plan(inView, outView, FFTWpp::Measure, FFTWpp::Forward);
 
     auto backward_plan =
-        FFTWpp::Plan(outView, checkView, FFTWpp::Patient, FFTWpp::Backward);
+        FFTWpp::Plan(outView, checkView, FFTWpp::Measure, FFTWpp::Backward);
 
     forward_plan.Execute();
 

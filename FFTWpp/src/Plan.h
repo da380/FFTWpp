@@ -21,7 +21,7 @@ namespace FFTWpp {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename InputView, typename OutputView, typename PlanFlagExpression>
+template <typename InputView, typename OutputView>
 class Plan {
  public:
   using InputIt = InputView::iterator;
@@ -35,7 +35,7 @@ class Plan {
   Plan() = delete;
 
   // Complex to complex constructor.
-  Plan(InputView in, OutputView out, PlanFlagExpression flag,
+  Plan(InputView in, OutputView out, PlanFlag flag,
        Direction direction) requires C2CIteratorPair<InputIt, OutputIt>
       : in{in}, out{out}, flag{flag}, direction{direction} {
     assert(in.Transformable(out));
@@ -62,7 +62,7 @@ class Plan {
   }
 
   // Complex to real constructor.
-  Plan(InputView in, OutputView out, PlanFlagExpression flag,
+  Plan(InputView in, OutputView out, PlanFlag flag,
        Direction direction = Backward) requires
       C2RIteratorPair<InputIt, OutputIt>
       : in{in}, out{out}, flag{flag}, direction{Backward} {
@@ -87,7 +87,7 @@ class Plan {
   }
 
   // Real to complex constructor.
-  Plan(InputView in, OutputView out, PlanFlagExpression flag,
+  Plan(InputView in, OutputView out, PlanFlag flag,
        Direction direction = Forward) requires
       R2CIteratorPair<InputIt, OutputIt>
       : in{in}, out{out}, flag{flag}, direction{Forward} {
@@ -112,8 +112,7 @@ class Plan {
   }
 
   // Real to real constructors
-  Plan(InputView in, OutputView out, PlanFlagExpression flag,
-       std::vector<Kind> kinds,
+  Plan(InputView in, OutputView out, PlanFlag flag, std::vector<Kind> kinds,
        Direction direction) requires R2RIteratorPair<InputIt, OutputIt>
       : in{in},
         out{out},
@@ -278,7 +277,7 @@ class Plan {
 
   // Store transform options
   Direction direction;
-  PlanFlagExpression flag;
+  PlanFlag flag;
   std::shared_ptr<std::vector<Kind>> kinds;
 
   // Store the plan as a std::variant.
