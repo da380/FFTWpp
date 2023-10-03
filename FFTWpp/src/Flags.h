@@ -16,12 +16,12 @@ enum class DirectionOption { Forward, Backward };
 
 class Direction {
  public:
-  Direction(DirectionOption option) : option{option} {}
+  Direction(DirectionOption option) : _option{option} {}
 
-  bool operator==(const Direction& other) { return option == other.option; };
+  bool operator==(const Direction& other) { return _option == other._option; };
 
   auto operator()() const {
-    switch (option) {
+    switch (_option) {
       case DirectionOption::Forward: {
         return FFTW_FORWARD;
       }
@@ -34,7 +34,7 @@ class Direction {
   }
 
  private:
-  DirectionOption option;
+  DirectionOption _option;
 };
 
 const auto Forward = Direction(DirectionOption::Forward);
@@ -59,11 +59,11 @@ enum class KindOption {
 
 class Kind {
  public:
-  Kind(KindOption option) : option{option} {}
-  bool operator==(const Kind& other) { return option == other.option; };
+  Kind(KindOption option) : _option{option} {}
+  bool operator==(const Kind& other) { return _option == other._option; };
 
   auto operator()(Direction direction) {
-    switch (option) {
+    switch (_option) {
       case KindOption::HC: {
         if (direction == Forward) {
           return FFTW_R2HC;
@@ -150,7 +150,7 @@ class Kind {
   }
 
   auto LogicalSize(int n) {
-    switch (option) {
+    switch (_option) {
       case KindOption::DCTI: {
         return 2 * (n - 1);
       }
@@ -189,7 +189,7 @@ class Kind {
   }
 
  private:
-  KindOption option;
+  KindOption _option;
 };
 
 const auto HC = Kind(KindOption::HC);
@@ -211,11 +211,11 @@ class PlanFlag {
   using FlagType = decltype(FFTW_ESTIMATE);
 
  public:
-  PlanFlag(FlagType value) : value{value} {}
-  FlagType operator()() const { return value; }
+  PlanFlag(FlagType value) : _value{value} {}
+  FlagType operator()() const { return _value; }
 
  private:
-  FlagType value;
+  FlagType _value;
 };
 
 PlanFlag operator|(const PlanFlag& pf1, const PlanFlag& pf2) {

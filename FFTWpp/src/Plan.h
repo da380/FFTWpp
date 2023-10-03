@@ -37,27 +37,27 @@ class Plan {
   // Complex to complex constructor.
   Plan(InputView in, OutputView out, PlanFlag flag,
        Direction direction) requires C2CIteratorPair<InputIt, OutputIt>
-      : in{in}, out{out}, flag{flag}, direction{direction} {
-    assert(in.Transformable(out));
+      : _in{in}, _out{out}, _flag{flag}, _direction{direction} {
+    assert(in.Transformable(_out));
     if constexpr (IsSingle<Float>) {
-      plan = fftwf_plan_many_dft(in.Rank(), in.N(), in.HowMany(), in.Data(),
-                                 in.Embed(), in.Stride(), in.Dist(), out.Data(),
-                                 out.Embed(), out.Stride(), out.Dist(),
-                                 direction(), flag());
+      _plan = fftwf_plan_many_dft(
+          _in.Rank(), _in.N(), _in.HowMany(), _in.Data(), _in.Embed(),
+          _in.Stride(), _in.Dist(), _out.Data(), _out.Embed(), _out.Stride(),
+          _out.Dist(), _direction(), _flag());
     }
 
     if constexpr (IsDouble<Float>) {
-      plan = fftw_plan_many_dft(in.Rank(), in.N(), in.HowMany(), in.Data(),
-                                in.Embed(), in.Stride(), in.Dist(), out.Data(),
-                                out.Embed(), out.Stride(), out.Dist(),
-                                direction(), flag());
+      _plan = fftw_plan_many_dft(_in.Rank(), _in.N(), _in.HowMany(), _in.Data(),
+                                 _in.Embed(), _in.Stride(), _in.Dist(),
+                                 _out.Data(), _out.Embed(), _out.Stride(),
+                                 _out.Dist(), _direction(), _flag());
     }
 
     if constexpr (IsLongDouble<Float>) {
-      plan = fftwl_plan_many_dft(in.Rank(), in.N(), in.HowMany(), in.Data(),
-                                 in.Embed(), in.Stride(), in.Dist(), out.Data(),
-                                 out.Embed(), out.Stride(), out.Dist(),
-                                 direction(), flag());
+      _plan = fftwl_plan_many_dft(
+          _in.Rank(), _in.N(), _in.HowMany(), _in.Data(), _in.Embed(),
+          _in.Stride(), _in.Dist(), _out.Data(), _out.Embed(), _out.Stride(),
+          _out.Dist(), _direction(), _flag());
     }
   }
 
@@ -65,24 +65,27 @@ class Plan {
   Plan(InputView in, OutputView out, PlanFlag flag,
        Direction direction = Backward) requires
       C2RIteratorPair<InputIt, OutputIt>
-      : in{in}, out{out}, flag{flag}, direction{Backward} {
-    assert(in.Transformable(out));
+      : _in{in}, _out{out}, _flag{flag}, _direction{Backward} {
+    assert(_in.Transformable(_out));
     if constexpr (IsSingle<Float>) {
-      plan = fftwf_plan_many_dft_c2r(
-          in.Rank(), out.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
-          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
+      _plan = fftwf_plan_many_dft_c2r(_in.Rank(), _out.N(), _in.HowMany(),
+                                      _in.Data(), _in.Embed(), _in.Stride(),
+                                      _in.Dist(), _out.Data(), _out.Embed(),
+                                      _out.Stride(), _out.Dist(), _flag());
     }
 
     if constexpr (IsDouble<Float>) {
-      plan = fftw_plan_many_dft_c2r(
-          in.Rank(), out.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
-          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
+      _plan = fftw_plan_many_dft_c2r(_in.Rank(), _out.N(), _in.HowMany(),
+                                     _in.Data(), _in.Embed(), _in.Stride(),
+                                     _in.Dist(), _out.Data(), _out.Embed(),
+                                     _out.Stride(), _out.Dist(), _flag());
     }
 
     if constexpr (IsLongDouble<Float>) {
-      plan = fftwl_plan_many_dft_c2r(
-          in.Rank(), out.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
-          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
+      _plan = fftwl_plan_many_dft_c2r(_in.Rank(), _out.N(), _in.HowMany(),
+                                      _in.Data(), _in.Embed(), _in.Stride(),
+                                      _in.Dist(), _out.Data(), _out.Embed(),
+                                      _out.Stride(), _out.Dist(), _flag());
     }
   }
 
@@ -90,87 +93,91 @@ class Plan {
   Plan(InputView in, OutputView out, PlanFlag flag,
        Direction direction = Forward) requires
       R2CIteratorPair<InputIt, OutputIt>
-      : in{in}, out{out}, flag{flag}, direction{Forward} {
-    assert(in.Transformable(out));
+      : _in{in}, _out{out}, _flag{flag}, _direction{Forward} {
+    assert(_in.Transformable(_out));
     if constexpr (IsSingle<Float>) {
-      plan = fftwf_plan_many_dft_r2c(
-          in.Rank(), in.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
-          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
+      _plan = fftwf_plan_many_dft_r2c(_in.Rank(), _in.N(), _in.HowMany(),
+                                      _in.Data(), _in.Embed(), _in.Stride(),
+                                      _in.Dist(), _out.Data(), _out.Embed(),
+                                      _out.Stride(), _out.Dist(), _flag());
     }
 
     if constexpr (IsDouble<Float>) {
-      plan = fftw_plan_many_dft_r2c(
-          in.Rank(), in.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
-          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
+      _plan = fftw_plan_many_dft_r2c(_in.Rank(), _in.N(), _in.HowMany(),
+                                     _in.Data(), _in.Embed(), _in.Stride(),
+                                     _in.Dist(), _out.Data(), _out.Embed(),
+                                     _out.Stride(), _out.Dist(), _flag());
     }
 
     if constexpr (IsLongDouble<Float>) {
-      plan = fftwl_plan_many_dft_r2c(
-          in.Rank(), in.N(), in.HowMany(), in.Data(), in.Embed(), in.Stride(),
-          in.Dist(), out.Data(), out.Embed(), out.Stride(), out.Dist(), flag());
+      _plan = fftwl_plan_many_dft_r2c(in.Rank(), in.N(), in.HowMany(),
+                                      in.Data(), in.Embed(), in.Stride(),
+                                      in.Dist(), _out.Data(), _out.Embed(),
+                                      _out.Stride(), _out.Dist(), _flag());
     }
   }
 
   // Real to real constructors
   Plan(InputView in, OutputView out, PlanFlag flag, std::vector<Kind> kinds,
        Direction direction) requires R2RIteratorPair<InputIt, OutputIt>
-      : in{in},
-        out{out},
-        flag{flag},
-        direction{direction},
-        kinds{std::make_shared<std::vector<Kind>>(kinds)} {
-    assert(in.Transformable(out));
-    assert(kinds.size() == in.Rank());
-    std::vector<kind_value_type> k(in.Rank());
-    std::transform(this->kinds->begin(), this->kinds->end(), k.begin(),
-                   [direction](auto kind) { return kind(direction); });
+      : _in{in},
+        _out{out},
+        _flag{flag},
+        _direction{direction},
+        _kinds{std::make_shared<std::vector<Kind>>(kinds)} {
+    assert(_in.Transformable(_out));
+    assert(_kinds->size() == _in.Rank());
+    std::vector<kind_value_type> k(_in.Rank());
+    std::transform(this->_kinds->begin(), this->_kinds->end(), k.begin(),
+                   [this](auto kind) { return kind(_direction); });
 
     if constexpr (IsSingle<Float>) {
-      plan = fftwf_plan_many_r2r(in.Rank(), in.N(), in.HowMany(), in.Data(),
-                                 in.Embed(), in.Stride(), in.Dist(), out.Data(),
-                                 out.Embed(), out.Stride(), out.Dist(), &k[0],
-                                 flag());
+      _plan = fftwf_plan_many_r2r(_in.Rank(), _in.N(), _in.HowMany(),
+                                  _in.Data(), _in.Embed(), _in.Stride(),
+                                  _in.Dist(), _out.Data(), _out.Embed(),
+                                  _out.Stride(), _out.Dist(), &k[0], _flag());
     }
 
     if constexpr (IsDouble<Float>) {
-      plan = fftw_plan_many_r2r(in.Rank(), in.N(), in.HowMany(), in.Data(),
-                                in.Embed(), in.Stride(), in.Dist(), out.Data(),
-                                out.Embed(), out.Stride(), out.Dist(), &k[0],
-                                flag());
+      _plan = fftw_plan_many_r2r(_in.Rank(), _in.N(), _in.HowMany(), _in.Data(),
+                                 _in.Embed(), _in.Stride(), _in.Dist(),
+                                 _out.Data(), _out.Embed(), _out.Stride(),
+                                 _out.Dist(), &k[0], _flag());
     }
 
     if constexpr (IsLongDouble<Float>) {
-      plan = fftwl_plan_many_r2r(in.Rank(), in.N(), in.HowMany(), in.Data(),
-                                 in.Embed(), in.Stride(), in.Dist(), out.Data(),
-                                 out.Embed(), out.Stride(), out.Dist(), &k[0],
-                                 flag());
+      _plan = fftwl_plan_many_r2r(_in.Rank(), _in.N(), _in.HowMany(),
+                                  _in.Data(), _in.Embed(), _in.Stride(),
+                                  _in.Dist(), _out.Data(), _out.Embed(),
+                                  _out.Stride(), _out.Dist(), &k[0], _flag());
     }
   }
 
   // return plan as an appropriate fftw3 pointer.
   auto operator()() const {
     if constexpr (IsSingle<Float>) {
-      return std::get<fftwf_plan>(plan);
+      return std::get<fftwf_plan>(_plan);
     }
     if constexpr (IsDouble<Float>) {
-      return std::get<fftw_plan>(plan);
+      return std::get<fftw_plan>(_plan);
     }
     if constexpr (IsLongDouble<Float>) {
-      return std::get<fftwl_plan>(plan);
+      return std::get<fftwl_plan>(_plan);
     }
   }
 
   auto Normalisation() {
     return static_cast<OutputValueType>(1) /
-           static_cast<OutputValueType>(std::reduce(
-               out.NView().begin(), out.NView().end(), 1, std::multiplies<>()));
+           static_cast<OutputValueType>(std::reduce(_out.NView().begin(),
+                                                    _out.NView().end(), 1,
+                                                    std::multiplies<>()));
   }
 
   auto Normalisation() requires R2RIteratorPair<InputIt, OutputIt> {
     int dim = 1;
-    auto nIt = in.NView().begin();
-    auto kindIt = kinds->begin();
-    while (nIt != in.NView().end()) {
+    auto nIt = _in.NView().begin();
+    auto kindIt = _kinds->begin();
+    while (nIt != _in.NView().end()) {
       dim *= (kindIt++)->LogicalSize(*nIt++);
     }
     return static_cast<OutputValueType>(1) / static_cast<OutputValueType>(dim);
@@ -192,8 +199,8 @@ class Plan {
   // Execute the plan given new complex-complex data.
   void Execute(InputView newIn,
                OutputView newOut) requires C2CIteratorPair<InputIt, OutputIt> {
-    assert(in.EqualStorage(newIn));
-    assert(out.EqualStorage(newOut));
+    assert(_in.EqualStorage(newIn));
+    assert(_out.EqualStorage(newOut));
     assert(newIn.Transformable(newOut));
     if constexpr (IsSingle<Float>) {
       fftwf_execute_dft(this->operator()(), newIn.Data(), newOut.Data());
@@ -209,8 +216,8 @@ class Plan {
   // Execute the plan given new complex-real data.
   void Execute(InputView newIn,
                OutputView newOut) requires C2RIteratorPair<InputIt, OutputIt> {
-    assert(in.EqualStorage(newIn));
-    assert(out.EqualStorage(newOut));
+    assert(_in.EqualStorage(newIn));
+    assert(_out.EqualStorage(newOut));
     assert(newIn.Transformable(newOut));
     if constexpr (IsSingle<Float>) {
       fftwf_execute_dft_c2r(this->operator()(), newIn.Data(), newOut.Data());
@@ -226,8 +233,8 @@ class Plan {
   // Execute the plan given new real-complex data.
   void Execute(InputView newIn,
                OutputView newOut) requires R2CIteratorPair<InputIt, OutputIt> {
-    assert(in.EqualStorage(newIn));
-    assert(out.EqualStorage(newOut));
+    assert(_in.EqualStorage(newIn));
+    assert(_out.EqualStorage(newOut));
     assert(newIn.Transformable(newOut));
     if constexpr (IsSingle<Float>) {
       fftwf_execute_dft_r2c(this->operator()(), newIn.Data(), newOut.Data());
@@ -243,8 +250,8 @@ class Plan {
   // Execute the plan given new real-real data.
   void Execute(InputView newIn,
                OutputView newOut) requires R2RIteratorPair<InputIt, OutputIt> {
-    assert(in.EqualStorage(newIn));
-    assert(out.EqualStorage(newOut));
+    assert(_in.EqualStorage(newIn));
+    assert(_out.EqualStorage(newOut));
     assert(newIn.Transformable(newOut));
     if constexpr (IsSingle<Float>) {
       fftwf_execute_r2r(this->operator()(), newIn.Data(), newOut.Data());
@@ -272,16 +279,16 @@ class Plan {
 
  private:
   // Store data views.
-  InputView in;
-  OutputView out;
+  InputView _in;
+  OutputView _out;
 
   // Store transform options
-  Direction direction;
-  PlanFlag flag;
-  std::shared_ptr<std::vector<Kind>> kinds;
+  Direction _direction;
+  PlanFlag _flag;
+  std::shared_ptr<std::vector<Kind>> _kinds;
 
   // Store the plan as a std::variant.
-  std::variant<fftwf_plan, fftw_plan, fftwl_plan> plan;
+  std::variant<fftwf_plan, fftw_plan, fftwl_plan> _plan;
 };
 
 }  // namespace FFTWpp

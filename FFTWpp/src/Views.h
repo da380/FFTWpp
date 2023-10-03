@@ -20,7 +20,69 @@ namespace FFTWpp {
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
-//               Definition of the DataView class           //
+//             Definition of the DataLayout class           //
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+
+class DataLayout {
+ public:
+  // Constructors.
+  DataLayout() = delete;
+  DataLayout(int rank, std::vector<int> n, int howMany, std::vector<int> embed,
+             int stride, int dist)
+      : _rank{rank},
+        _n{std::make_shared<std::vector<int>>(n)},
+        _howMany{howMany},
+        _embed{std::make_shared<std::vector<int>>(embed)},
+        _stride{stride},
+        _dist{dist} {}
+
+  // Return views of the storage arrays.
+  auto NView() const { return std::views::all(*_n); }
+  auto EmbedView() const { return std::views::all(*_n); }
+
+  // Functions returnig storage information in suitable form.
+  auto Rank() const { return _rank; }
+  auto N() { return &*_n->begin(); }
+  auto HowMany() const { return _howMany; }
+  auto Embed() { return &*_embed->begin(); }
+  auto Stride() const { return _stride; }
+  auto Dist() const { return _dist; }
+
+  // Return the total storage size.
+  std::size_t StorageSize() const {
+    return HowMany() * std::reduce(EmbedView().begin(), EmbedView().end(), 1,
+                                   std::multiplies<>());
+  }
+
+  // Check whether another data view has equal storage parameters.
+  bool EqualStorage(DataLayout& other) {
+    if (_rank != other.Rank()) return false;
+    if (_howMany != other.HowMany()) return false;
+    if (!std::ranges::equal(this->NView(), other.NView())) return false;
+    if (!std::ranges::equal(this->EmbedView(), other.EmbedView())) return false;
+    return true;
+  }
+
+  // Generate fake date of a given type.
+  template <typename value_type, typename Allocator = allocator<value_type>>
+  std::shared_ptr<std::vector<value_type, Allocator>> FakeData() {
+    return std::make_shared<std::vector<value_type, Allocator>>(StorageSize());
+  }
+
+ private:
+  // Parameters describing data storage.
+  int _rank;
+  std::shared_ptr<std::vector<int>> _n;
+  int _howMany;
+  std::shared_ptr<std::vector<int>> _embed;
+  int _stride;
+  int _dist;
+};
+
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//              Definition of the DataView class            //
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
@@ -30,45 +92,46 @@ class DataView {
   using value_type = std::iter_value_t<I>;
   using iterator = I;
 
-  // Constructor
+  // Constructor given iterators and storage parameters.
   DataView(I start, I finish, int rank, std::vector<int> n, int howMany,
            std::vector<int> embed, int stride, int dist)
-      : start{start},
-        finish{finish},
-        rank{rank},
-        n{std::make_shared<std::vector<int>>(n)},
-        howMany{howMany},
-        embed{std::make_shared<std::vector<int>>(embed)},
-        stride{stride},
-        dist{dist} {
+      : _start{start},
+        _finish{finish},
+        _layout{DataLayout(rank, n, howMany, embed, stride, dist)} {
+    assert(CheckConsistency());
+  }
+
+  // Constructor given iterators and DataLayout instance.
+  DataView(I start, I finish, DataLayout layout)
+      : _start{start}, _finish{finish}, _layout{layout} {
     assert(CheckConsistency());
   }
 
   // Return appropriate fftw3 pointer to the start of the data.
-  auto Data() requires ComplexIterator<I> { return ComplexCast(&start[0]); }
-  auto Data() requires RealIterator<I> { return &start[0]; }
+  auto Data() requires ComplexIterator<I> { return ComplexCast(&_start[0]); }
+  auto Data() requires RealIterator<I> { return &_start[0]; }
 
   // Return iterators to the data
-  auto begin() { return start; }
-  auto end() { return finish; }
+  auto begin() { return _start; }
+  auto end() { return _finish; }
 
   // Return views of the storage arrays.
-  auto NView() const { return std::views::all(*n); }
-  auto EmbedView() const { return std::views::all(*n); }
+  auto NView() const { return _layout.NView(); }
+  auto EmbedView() const { return _layout.EmbedView(); }
 
   // Functions returnig storage information in suitable form.
-  auto Rank() const { return rank; }
-  auto N() { return &*n->begin(); }
-  auto HowMany() const { return howMany; }
-  auto Embed() { return &*embed->begin(); }
-  auto Stride() const { return stride; }
-  auto Dist() const { return dist; }
+  auto Rank() const { return _layout.Rank(); }
+  auto N() { return _layout.N(); }
+  auto HowMany() const { return _layout.HowMany(); }
+  auto Embed() { return _layout.Embed(); }
+  auto Stride() const { return _layout.Stride(); }
+  auto Dist() const { return _layout.Dist(); }
 
   // Check whether another data view has equal storage parameters.
   template <ScalarIterator J>
-  bool EqualStorage(DataView<J> other) requires IteratorPair<I, J> {
-    if (rank != other.Rank()) return false;
-    if (howMany != other.HowMany()) return false;
+  bool EqualStorage(DataView<J>& other) requires IteratorPair<I, J> {
+    if (this->Rank() != other.Rank()) return false;
+    if (this->HowMany() != other.HowMany()) return false;
     if (!std::ranges::equal(this->NView(), other.NView())) return false;
     if (!std::ranges::equal(this->EmbedView(), other.EmbedView())) return false;
     return true;
@@ -76,9 +139,9 @@ class DataView {
 
   // Check whether another data view is suitable for transformation into.
   template <ScalarIterator J>
-  bool Transformable(DataView<J> other) requires IteratorPair<I, J> {
-    if (rank != other.Rank()) return false;
-    if (howMany != other.HowMany()) return false;
+  bool Transformable(DataView<J>& other) requires IteratorPair<I, J> {
+    if (this->Rank() != other.Rank()) return false;
+    if (this->HowMany() != other.HowMany()) return false;
     if constexpr (C2CIteratorPair<I, J> or R2RIteratorPair<I, J>) {
       return std::ranges::equal(this->NView(), other.NView());
     }
@@ -105,24 +168,20 @@ class DataView {
 
  private:
   // Stored iterators to the data.
-  I start;
-  I finish;
+  I _start;
+  I _finish;
 
-  // Parameters describing data storage.
-  int rank;
-  std::shared_ptr<std::vector<int>> n;
-  int howMany;
-  std::shared_ptr<std::vector<int>> embed;
-  int stride;
-  int dist;
+  // Store the data layout.
+  DataLayout _layout;
 
   // Checks consistence of stored data
   bool CheckConsistency() {
     // size of the data
-    int dataSize = std::distance(start, finish);
+    int dataSize = std::distance(_start, _finish);
     // total size of hte storage parameters
-    int storageSize = howMany * std::reduce(embed->begin(), embed->end(), 1,
-                                            std::multiplies<>());
+    int storageSize =
+        HowMany() * std::reduce(EmbedView().begin(), EmbedView().end(), 1,
+                                std::multiplies<>());
     return dataSize == storageSize;
   }
 };
