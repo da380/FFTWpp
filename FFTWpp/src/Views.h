@@ -26,8 +26,7 @@ namespace FFTWpp {
 
 class DataLayout {
  public:
-  // Constructors.
-  DataLayout() = delete;
+  // General constructor.
   DataLayout(int rank, std::vector<int> n, int howMany, std::vector<int> embed,
              int stride, int dist)
       : _rank{rank},
@@ -37,8 +36,36 @@ class DataLayout {
         _stride{stride},
         _dist{dist} {}
 
+  // Copy constructor.
+  DataLayout(DataLayout const&) = default;
+
+  // Move constructor.
+  DataLayout(DataLayout&& other)
+      : _rank{std::move(other._rank)},
+        _n{std::move(other._n)},
+        _howMany{std::move(other._howMany)},
+        _embed{std::move(other._embed)},
+        _stride{std::move(other._stride)},
+        _dist{std::move(other._dist)} {}
+
+  // Copy assigment.
+  DataLayout& operator=(DataLayout const&) = default;
+
+  // Move assigment.
+  DataLayout& operator=(DataLayout&& other) {
+    _rank = std::move(other._rank);
+    _n = std::move(other._n);
+    _howMany = std::move(other._howMany);
+    _embed = std::move(other._embed);
+    _stride = std::move(other._stride);
+    _dist = std::move(other._dist);
+    return *this;
+  }
+
   // Return views of the storage arrays.
-  auto NView() const { return std::views::all(*_n); }
+  auto NView() const {
+  return std::views::all(*_n);
+}
   auto EmbedView() const { return std::views::all(*_n); }
 
   // Functions returnig storage information in suitable form.
@@ -107,6 +134,26 @@ class DataView {
     assert(CheckConsistency());
   }
 
+  // Copy constructor.
+  DataView(DataView const&) = default;
+
+  // Move constructor.
+  DataView(DataView&& other)
+      : _start{std::move(other._start)},
+        _finish{std::move(other._finish)},
+        _layout{std::move(other._layout)} {}
+
+  // Copy assigment.
+  DataView& operator=(DataView const&) = default;
+
+  // Move assigment.
+  DataView& operator=(DataView&& other) {
+    _start = std::move(other._start);
+    _finish = std::move(other._finish);
+    _layout = std::move(other._layout);
+    return *this;
+  }
+
   // Return appropriate fftw3 pointer to the start of the data.
   auto Data() requires ComplexIterator<I> { return ComplexCast(&_start[0]); }
   auto Data() requires RealIterator<I> { return &_start[0]; }
@@ -119,7 +166,7 @@ class DataView {
   auto NView() const { return _layout.NView(); }
   auto EmbedView() const { return _layout.EmbedView(); }
 
-  // Functions returnig storage information in suitable form.
+  // Functions returning storage information in suitable form.
   auto Rank() const { return _layout.Rank(); }
   auto N() { return _layout.N(); }
   auto HowMany() const { return _layout.HowMany(); }
@@ -130,12 +177,11 @@ class DataView {
   // Check whether another data view has equal storage parameters.
   template <ScalarIterator J>
   bool EqualStorage(DataView<J>& other) requires IteratorPair<I, J> {
-    if (this->Rank() != other.Rank()) return false;
-    if (this->HowMany() != other.HowMany()) return false;
-    if (!std::ranges::equal(this->NView(), other.NView())) return false;
-    if (!std::ranges::equal(this->EmbedView(), other.EmbedView())) return false;
-    return true;
+    return _layout.EqualStorage(other._layout);
   }
+
+  // Return the total size of the data.
+  size_t StorageSize() { return _layout.StorageSize(); }
 
   // Check whether another data view is suitable for transformation into.
   template <ScalarIterator J>

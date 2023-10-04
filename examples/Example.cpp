@@ -36,6 +36,10 @@ int main() {
     auto backward_plan =
         FFTWpp::Plan(outView, checkView, FFTWpp::Measure, FFTWpp::Backward);
 
+    auto copy_plan = std::move(forward_plan);
+
+    forward_plan = std::move(copy_plan);
+
     forward_plan.Execute();
 
     backward_plan.Execute();
