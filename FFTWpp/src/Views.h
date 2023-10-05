@@ -212,6 +212,9 @@ class DataView {
     return true;
   }
 
+  // Return reference to the data layout.
+  auto& Layout() { return _layout; }
+
   // Return a shared pointer to data of the correct size.
   auto FakeData() { return _layout.FakeData<value_type>(); }
 

@@ -21,6 +21,10 @@ namespace FFTWpp {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// Tag class and constant value for the try-wisdom option.
+struct TryWisdomFlag {};
+constexpr auto TryWisdom = TryWisdomFlag{};
+
 template <typename InputView, typename OutputView>
 class Plan {
  public:
@@ -47,6 +51,28 @@ class Plan {
     assert(!IsNull());
   }
 
+  // Constructor for C2C, C2R, R2C that tries to use wisdom first.
+  Plan(TryWisdomFlag, InputView in, OutputView out, PlanFlag flag,
+       Direction direction = Forward) requires
+      C2CIteratorPair<InputIt, OutputIt> or
+      C2RIteratorPair<InputIt, OutputIt> or R2CIteratorPair<InputIt, OutputIt>
+      : _in{in},
+        _out{out},
+        _flag{WisdomOnly},
+        _direction{direction},
+        _plan{MakePlan()} {
+    if (!IsNull()) return;
+    {
+      auto FIn = in.FakeData();
+      auto FOut = out.FakeData();
+      auto FInView = DataView(FIn->begin(), FIn->end(), in.Layout());
+      auto FOutView = DataView(FOut->begin(), FOut->end(), out.Layout());
+      auto FPlan = Plan(FInView, FOutView, flag, direction);
+    }
+    _flag = flag;
+    _plan = MakePlan();
+  }
+
   // Constructor for R2R.
   Plan(InputView in, OutputView out, PlanFlag flag, std::vector<Kind> kinds,
        Direction direction = Forward) requires
@@ -57,6 +83,28 @@ class Plan {
         _direction{direction},
         _kinds{std::make_shared<std::vector<Kind>>(kinds)},
         _plan{MakePlan()} {}
+
+  // Constructor for R2R that tries to use wisdom first.
+  Plan(TryWisdomFlag, InputView in, OutputView out, PlanFlag flag,
+       std::vector<Kind> kinds, Direction direction = Forward) requires
+      R2RIteratorPair<InputIt, OutputIt>
+      : _in{in},
+        _out{out},
+        _flag{WisdomOnly},
+        _direction{direction},
+        _kinds{std::make_shared<std::vector<Kind>>(kinds)},
+        _plan{MakePlan()} {
+    if (!IsNull()) return;
+    {
+      auto FIn = in.FakeData();
+      auto FOut = out.FakeData();
+      auto FInView = DataView(FIn->begin(), FIn->end(), in.Layout());
+      auto FOutView = DataView(FOut->begin(), FOut->end(), out.Layout());
+      auto FPlan = Plan(FInView, FOutView, flag, direction, kinds);
+    }
+    _flag = flag;
+    _plan = MakePlan();
+  }
 
   // Copy constructor.
   Plan(Plan const& other)
@@ -119,6 +167,7 @@ class Plan {
     }
   }
 
+  // Returns true is plan is not set up.
   auto IsNull() { return operator()() == nullptr; }
 
   auto Normalisation() {
