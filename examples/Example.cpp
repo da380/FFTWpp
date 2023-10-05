@@ -9,13 +9,13 @@
 #include <vector>
 
 int main() {
-  using Float = double;
-  using Complex = std::complex<Float>;
-  using RealVector = FFTWpp::vector<Float>;
+  using Real = double;
+  using Complex = std::complex<Real>;
+  using RealVector = FFTWpp::vector<Real>;
   using ComplexVector = FFTWpp::vector<Complex>;
 
   {
-    // generate a random size for the data
+    // set the size of
     int n = 10;
 
     // Initialise the vectors.
@@ -25,32 +25,39 @@ int main() {
     // Set the input values.
     for (auto& x : in) x = 1;
 
-    // Form the data views
-    auto inView = FFTWpp::MakeDataView1D(in);
-    auto outView = FFTWpp::MakeDataView1D(out);
-    auto checkView = FFTWpp::MakeDataView1D(check);
+    // Form the data layouts.
+    auto inLayout = FFTWpp::DataLayout(1, {n}, 1, {n}, 1, 1);
+    auto outLayout = FFTWpp::DataLayout(1, {n / 2 + 1}, 1, {n / 2 + 1}, 1, 1);
 
-    auto forward_plan = FFTWpp::Plan(FFTWpp::TryWisdom, inView, outView,
-                                     FFTWpp::Measure, FFTWpp::Forward);
+    // Generate wisdom.
+    FFTWpp::GenerateWisdom<Real, Complex, true>(inLayout, outLayout,
+                                                FFTWpp::Exhaustive);
 
-    auto backward_plan =
-        FFTWpp::Plan(outView, checkView, FFTWpp::Measure, FFTWpp::Backward);
+    // Form the data views.
+    auto inView = FFTWpp::DataView(in.begin(), in.end(), inLayout);
+    auto outView = FFTWpp::DataView(out.begin(), out.end(), outLayout);
+    auto checkView = FFTWpp::DataView(check.begin(), check.end(), inLayout);
 
+    // Form the plans using the wisdom generated.
+    auto forward_plan = FFTWpp::Plan(inView, outView, FFTWpp::WisdomOnly);
+    auto backward_plan = FFTWpp::Plan(outView, checkView, FFTWpp::WisdomOnly);
+
+    // Do some moves for fun.
     auto copy_plan = std::move(forward_plan);
-
     forward_plan = std::move(copy_plan);
 
+    // Execute the plans.
     forward_plan.Execute();
-
     backward_plan.Execute();
 
+    // Normalise the results.
     auto norm = backward_plan.Normalisation();
     std::transform(check.begin(), check.end(), check.begin(),
                    [norm](auto x) { return norm * x; });
 
+    // Print in and check for comparison.
     for (auto& x : in) std::cout << x << std::endl;
     std::cout << std::string(10, '=') << std::endl;
-
     for (auto& x : check) std::cout << x << std::endl;
   }
 

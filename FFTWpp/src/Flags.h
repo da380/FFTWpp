@@ -33,8 +33,14 @@ class Direction {
     }
   }
 
- private:
-  DirectionOption _option;
+  Direction Reverse() const {
+    if (_option == DirectionOption::Forward) {
+      return Direction(DirectionOption::Backward);
+    }
+    return Direction(DirectionOption::Forward);
+  }
+
+private : DirectionOption _option;
 };
 
 const auto Forward = Direction(DirectionOption::Forward);
