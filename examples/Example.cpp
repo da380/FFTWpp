@@ -30,8 +30,12 @@ int main() {
     auto outView = FFTWpp::MakeDataView1D(out);
     auto checkView = FFTWpp::MakeDataView1D(check);
 
-    auto forward_plan =
-        FFTWpp::Plan(inView, outView, FFTWpp::Measure, FFTWpp::Forward);
+    auto forward_plan = FFTWpp::Plan(
+        inView, outView, FFTWpp::WisdomOnly | FFTWpp::Measure, FFTWpp::Forward);
+
+    std::cout << forward_plan.IsNull() << std::endl;
+
+    return 0;
 
     auto backward_plan =
         FFTWpp::Plan(outView, checkView, FFTWpp::Measure, FFTWpp::Backward);

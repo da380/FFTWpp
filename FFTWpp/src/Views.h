@@ -92,9 +92,9 @@ class DataLayout {
   }
 
   // Generate fake date of a given type.
-  template <typename value_type, typename Allocator = allocator<value_type>>
-  std::shared_ptr<std::vector<value_type, Allocator>> FakeData() {
-    return std::make_shared<std::vector<value_type, Allocator>>(StorageSize());
+  template <typename value_type>
+  auto FakeData() {
+    return std::make_shared<vector<value_type>>(StorageSize());
   }
 
  private:
@@ -211,6 +211,9 @@ class DataView {
     }
     return true;
   }
+
+  // Return a shared pointer to data of the correct size.
+  auto FakeData() { return _layout.FakeData<value_type>(); }
 
  private:
   // Stored iterators to the data.

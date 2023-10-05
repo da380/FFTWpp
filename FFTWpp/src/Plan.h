@@ -43,7 +43,9 @@ class Plan {
         _out{out},
         _flag{flag},
         _direction{direction},
-        _plan{MakePlan()} {}
+        _plan{MakePlan()} {
+    assert(!IsNull());
+  }
 
   // Constructor for R2R.
   Plan(InputView in, OutputView out, PlanFlag flag, std::vector<Kind> kinds,
@@ -101,6 +103,9 @@ class Plan {
     return *this;
   }
 
+  // Destructor.
+  ~Plan() { Destroy(); }
+
   // return plan as an appropriate fftw3 pointer.
   auto operator()() const {
     if constexpr (IsSingle<Float>) {
@@ -114,23 +119,24 @@ class Plan {
     }
   }
 
-    auto Normalisation() {
-      return static_cast<OutputValueType>(1) /
-             static_cast<OutputValueType>(std::reduce(_out.NView().begin(),
-                                                      _out.NView().end(), 1,
-                                                      std::multiplies<>()));
-    }
+  auto IsNull() { return operator()() == nullptr; }
 
-    auto Normalisation() requires R2RIteratorPair<InputIt, OutputIt> {
-      int dim = 1;
-      auto nIt = _in.NView().begin();
-      auto kindIt = _kinds->begin();
-      while (nIt != _in.NView().end()) {
-        dim *= (kindIt++)->LogicalSize(*nIt++);
-      }
-      return static_cast<OutputValueType>(1) /
-             static_cast<OutputValueType>(dim);
+  auto Normalisation() {
+    return static_cast<OutputValueType>(1) /
+           static_cast<OutputValueType>(std::reduce(_out.NView().begin(),
+                                                    _out.NView().end(), 1,
+                                                    std::multiplies<>()));
+  }
+
+  auto Normalisation() requires R2RIteratorPair<InputIt, OutputIt> {
+    int dim = 1;
+    auto nIt = _in.NView().begin();
+    auto kindIt = _kinds->begin();
+    while (nIt != _in.NView().end()) {
+      dim *= (kindIt++)->LogicalSize(*nIt++);
     }
+    return static_cast<OutputValueType>(1) / static_cast<OutputValueType>(dim);
+  }
 
     // Execute the plan.
     void Execute() {
@@ -215,9 +221,6 @@ class Plan {
         fftwl_execute_r2r(this->operator()(), newIn.Data(), newOut.Data());
       }
     }
-
-    // Destructor.
-    ~Plan() { Destroy(); }
 
    private:
     // Store data views.
