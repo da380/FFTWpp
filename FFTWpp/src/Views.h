@@ -70,9 +70,9 @@ class DataLayout {
 
   // Functions returnig storage information in suitable form.
   auto Rank() const { return _rank; }
-  auto N() { return &*_n->begin(); }
+  auto N() { return _n->data(); }
   auto HowMany() const { return _howMany; }
-  auto Embed() { return &*_embed->begin(); }
+  auto Embed() { return _embed->data(); }
   auto Stride() const { return _stride; }
   auto Dist() const { return _dist; }
 
