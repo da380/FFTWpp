@@ -9,6 +9,6 @@
 #include "src/Flags.h"
 #include "src/Views.h"
 #include "src/Plan.h"
-#include "src/Eigen.h"
+#include "src/Transform.h"
 
 #endif  

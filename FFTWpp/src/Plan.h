@@ -22,10 +22,6 @@ namespace FFTWpp {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// Tag class and constant value for the try-wisdom option.
-struct TryWisdomFlag {};
-constexpr auto TryWisdom = TryWisdomFlag{};
-
 template <typename InputView, typename OutputView>
 class Plan {
  public:
@@ -271,8 +267,8 @@ class Plan {
 
   // Make a plan for C2C transformation.
   auto MakePlan() requires C2CIteratorPair<InputIt, OutputIt> {
+    assert(_in.Transformable(_out));
     if constexpr (IsSingle<Precision>) {
-      assert(_in.Transformable(_out));
       return fftwf_plan_many_dft(_in.Rank(), _in.N(), _in.HowMany(), _in.Data(),
                                  _in.Embed(), _in.Stride(), _in.Dist(),
                                  _out.Data(), _out.Embed(), _out.Stride(),
@@ -379,7 +375,6 @@ class Plan {
 template <typename in_value_type, typename out_value_type, bool both = false>
 void GenerateWisdom(DataLayout inLayout, DataLayout outLayout, PlanFlag flag,
                     Direction direction = Forward) {
-  assert(flag != WisdomOnly);
   auto in = inLayout.FakeData<in_value_type>();
   auto out = outLayout.FakeData<out_value_type>();
   auto inView = DataView(in->begin(), in->end(), inLayout);
@@ -396,7 +391,6 @@ template <typename in_value_type, typename out_value_type, bool both = false>
 requires IsScalar<in_value_type> and IsScalar<out_value_type>
 void GenerateWisdom(DataLayout inLayout, DataLayout outLayout, PlanFlag flag,
                     std::vector<Kind> kinds, Direction direction = Forward) {
-  assert(flag != WisdomOnly);
   auto in = inLayout.FakeData<in_value_type>();
   auto out = outLayout.FakeData<out_value_type>();
   auto inView = DataView(in->begin(), in->end(), inLayout);

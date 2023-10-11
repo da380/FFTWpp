@@ -19,18 +19,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Locate  FFTW3
 find_package(FFTW)
 
-# add in Eigen3
-include(FetchContent)
-FetchContent_Declare(
-  Eigen3
-  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-  GIT_TAG master
-)
-FetchContent_MakeAvailable(Eigen3)
-
 # Set up the library
 add_library (FFTWpp INTERFACE ${FFTW_INCLUDES})
-target_link_libraries(FFTWpp INTERFACE ${FFTW_LIBRARIES} Eigen3::Eigen)
+target_link_libraries(FFTWpp INTERFACE ${FFTW_LIBRARIES})
 target_include_directories (FFTWpp INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>)
