@@ -122,6 +122,8 @@ class DataView {
   using value_type = std::iter_value_t<I>;
   using iterator = I;
 
+  DataView() = default;
+
   // Constructor given iterators and storage parameters.
   DataView(I start, I finish, int rank, std::vector<int> n, int howMany,
            std::vector<int> embed, int stride, int dist)
