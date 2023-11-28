@@ -18,7 +18,8 @@ class Direction {
  public:
   Direction(DirectionOption option) : _option{option} {}
 
-  bool operator==(const Direction& other) { return _option == other._option; };
+  bool operator==(const Direction& other) { return _option == other._option; }
+  bool operator!=(const Direction& other) { return !(*this == other); }
 
   auto operator()() const {
     switch (_option) {
@@ -66,7 +67,8 @@ enum class KindOption {
 class Kind {
  public:
   Kind(KindOption option) : _option{option} {}
-  bool operator==(const Kind& other) { return _option == other._option; };
+  bool operator==(const Kind& other) { return _option == other._option; }
+  bool operator!=(const Kind& other) { return !(*this == other); }
 
   auto operator()(Direction direction) {
     switch (_option) {
@@ -219,6 +221,8 @@ class PlanFlag {
  public:
   PlanFlag(FlagType value) : _value{value} {}
   FlagType operator()() const { return _value; }
+  bool operator==(const PlanFlag& other) { return _value == other._value; }
+  bool operator!=(const PlanFlag& other) { return !(*this == other); }
 
  private:
   FlagType _value;

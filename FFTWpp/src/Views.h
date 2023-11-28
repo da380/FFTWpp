@@ -26,6 +26,9 @@ namespace FFTWpp {
 
 class DataLayout {
  public:
+  // Default constructor.
+  DataLayout() = default;
+
   // General constructor.
   DataLayout(int rank, std::vector<int> n, int howMany, std::vector<int> embed,
              int stride, int dist)
