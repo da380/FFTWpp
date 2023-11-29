@@ -30,12 +30,14 @@ class DataLayout {
   DataLayout() = default;
 
   // General constructor.
-  DataLayout(int rank, std::vector<int> n, int howMany, std::vector<int> embed,
-             int stride, int dist)
+  template <IntegralRange IntRange>
+  DataLayout(int rank, IntRange n, int howMany, IntRange embed, int stride,
+             int dist)
       : _rank{rank},
-        _n{std::make_shared<std::vector<int>>(n)},
+        _n{std::make_shared<std::vector<int>>(std::begin(n), std::end(n))},
         _howMany{howMany},
-        _embed{std::make_shared<std::vector<int>>(embed)},
+        _embed{std::make_shared<std::vector<int>>(std::begin(embed),
+                                                  std::end(embed))},
         _stride{stride},
         _dist{dist} {}
 
@@ -125,8 +127,9 @@ class DataView {
   DataView() = default;
 
   // Constructor given iterators and storage parameters.
-  DataView(I start, I finish, int rank, std::vector<int> n, int howMany,
-           std::vector<int> embed, int stride, int dist)
+  template <IntegralRange IntRange>
+  DataView(I start, I finish, int rank, IntRange n, int howMany, IntRange embed,
+           int stride, int dist)
       : _start{start},
         _finish{finish},
         _layout{DataLayout(rank, n, howMany, embed, stride, dist)} {

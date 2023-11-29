@@ -26,8 +26,10 @@ int main() {
     for (auto& x : in) x = 1;
 
     // Form the data layouts.
-    auto inLayout = FFTWpp::DataLayout(1, {n}, 1, {n}, 1, 1);
-    auto outLayout = FFTWpp::DataLayout(1, {n / 2 + 1}, 1, {n / 2 + 1}, 1, 1);
+    auto inLayout =
+        FFTWpp::DataLayout(1, std::vector{n}, 1, std::vector{n}, 1, 1);
+    auto outLayout = FFTWpp::DataLayout(1, std::vector{n / 2 + 1}, 1,
+                                        std::vector{n / 2 + 1}, 1, 1);
 
     // Generate wisdom.
     FFTWpp::GenerateWisdom<Real, Complex, true>(inLayout, outLayout,
