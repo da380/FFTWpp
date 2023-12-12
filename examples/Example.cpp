@@ -28,6 +28,7 @@ int main() {
     // Form the data layouts.
     auto inLayout =
         FFTWpp::DataLayout(1, std::vector{n}, 1, std::vector{n}, 1, 1);
+
     auto outLayout = FFTWpp::DataLayout(1, std::vector{n / 2 + 1}, 1,
                                         std::vector{n / 2 + 1}, 1, 1);
 

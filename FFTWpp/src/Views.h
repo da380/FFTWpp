@@ -31,7 +31,7 @@ class DataLayout {
 
   // General constructor.
   template <IntegralRange IntRange>
-  DataLayout(int rank, IntRange n, int howMany, IntRange embed, int stride,
+  DataLayout(int rank, IntRange&& n, int howMany, IntRange&& embed, int stride,
              int dist)
       : _rank{rank},
         _n{std::make_shared<std::vector<int>>(std::begin(n), std::end(n))},
@@ -128,8 +128,8 @@ class DataView {
 
   // Constructor given iterators and storage parameters.
   template <IntegralRange IntRange>
-  DataView(I start, I finish, int rank, IntRange n, int howMany, IntRange embed,
-           int stride, int dist)
+  DataView(I start, I finish, int rank, IntRange&& n, int howMany,
+           IntRange&& embed, int stride, int dist)
       : _start{start},
         _finish{finish},
         _layout{DataLayout(rank, n, howMany, embed, stride, dist)} {
