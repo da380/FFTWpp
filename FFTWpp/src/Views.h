@@ -68,9 +68,7 @@ class DataLayout {
   }
 
   // Return views of the storage arrays.
-  auto NView() const {
-  return std::views::all(*_n);
-}
+  auto NView() const { return std::views::all(*_n); }
   auto EmbedView() const { return std::views::all(*_n); }
 
   // Functions returnig storage information in suitable form.
