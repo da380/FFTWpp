@@ -6,19 +6,98 @@
 #include <complex>
 #include <iostream>
 #include <numeric>
+#include <ranges>
 #include <variant>
 
 #include "Concepts.h"
+#include "Core.h"
 #include "Flags.h"
-#include "Memory.h"
+#include "Views.h"
 #include "Wisdom.h"
 #include "fftw3.h"
 
 namespace FFTWpp {
 
+namespace Testing {
+
+template <std::ranges::view InView, std::ranges::view OutView>
+requires requires() {
+  requires std::ranges::output_range<InView,
+                                     std::ranges::range_value_t<InView>>;
+  requires std::contiguous_iterator<std::ranges::iterator_t<InView>>;
+  requires IsScalar<std::ranges::range_value_t<InView>>;
+  requires std::ranges::output_range<OutView,
+                                     std::ranges::range_value_t<OutView>>;
+  requires std::contiguous_iterator<std::ranges::iterator_t<OutView>>;
+  requires IsScalar<std::ranges::range_value_t<OutView>>;
+  requires std::same_as<RemoveComplex<std::ranges::range_value_t<InView>>,
+                        RemoveComplex<std::ranges::range_value_t<OutView>>>;
+}
+class Plan {
+  using InType = std::ranges::range_value_t<InView>;
+  using OutType = std::ranges::range_value_t<OutView>;
+  using Precision = RemoveComplex<InView>;
+  // using kind_value_type = decltype(FFTW_HC2R);
+
+ public:
+  // Remove default constructor;
+  Plan() = delete;
+
+  // Constructor for C2C, C2R, R2C.
+
+  /*
+  Plan(DataView<InView> in, DataView<InView> out, PlanFlag flag,
+       Direction direction = Forward)
+  requires IsComplex<InType> || IsComplex<OutType>
+      : _in{in},
+        _out{out},
+        _flag{flag},
+        _direction{direction},
+        _plan{MakePlan()} {
+    assert(!IsNull());
+  }
+*/
+  void MakePlan() {}
+
+  // return pointer to the fftw3 plan.
+  auto Pointer() const {
+    if constexpr (IsSingle<Precision>) {
+      return std::get<fftwf_plan>(_plan);
+    }
+    if constexpr (IsDouble<Precision>) {
+      return std::get<fftw_plan>(_plan);
+    }
+    if constexpr (IsLongDouble<Precision>) {
+      return std::get<fftwl_plan>(_plan);
+    }
+  }
+
+  // Returns true is plan is not set up.
+  auto IsNull() { return Pointer() == nullptr; }
+
+  // Normalisation factor for inverse transformations.
+  auto Normalisation() {
+    return static_cast<OutType>(1) /
+           static_cast<OutType>(
+               std::ranges::fold_left_first(_out.N(), std::multiplies<>())
+                   .value());
+  }
+
+  // Execute the plan.
+  void Execute() { Execute(Pointer()); }
+
+ private:
+  DataView<InView> _in;
+  DataView<OutView> _out;
+  PlanFlag _flag;
+  std::variant<fftwf_plan, fftw_plan, fftwl_plan> _plan;
+};
+
+}  // namespace Testing
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//                        Definition of the Plan class                       //
+//                        Definition of the Plan class //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -37,9 +116,10 @@ class Plan {
 
   // Constructor for C2C, C2R, R2C.
   Plan(InputView in, OutputView out, PlanFlag flag,
-       Direction direction = Forward) requires
-      C2CIteratorPair<InputIt, OutputIt> or
-      C2RIteratorPair<InputIt, OutputIt> or R2CIteratorPair<InputIt, OutputIt>
+       Direction direction = Forward)
+  requires C2CIteratorPair<InputIt, OutputIt> or
+               C2RIteratorPair<InputIt, OutputIt> or
+               R2CIteratorPair<InputIt, OutputIt>
       : _in{in},
         _out{out},
         _flag{flag},
@@ -50,8 +130,8 @@ class Plan {
 
   // Constructor for R2R.
   Plan(InputView in, OutputView out, PlanFlag flag, std::vector<Kind> kinds,
-       Direction direction = Forward) requires
-      R2RIteratorPair<InputIt, OutputIt>
+       Direction direction = Forward)
+  requires R2RIteratorPair<InputIt, OutputIt>
       : _in{in},
         _out{out},
         _flag{flag},
@@ -130,7 +210,9 @@ class Plan {
                                                       std::multiplies<>()));
   }
 
-  auto Normalisation() requires R2RIteratorPair<InputIt, OutputIt> {
+  auto Normalisation()
+  requires R2RIteratorPair<InputIt, OutputIt>
+  {
     int dim = 1;
     auto nIt = _in.NView().begin();
     auto kindIt = _kinds->begin();
@@ -156,8 +238,9 @@ class Plan {
   }
 
   // Execute the plan given new complex-complex data.
-  void Execute(InputView newIn,
-               OutputView newOut) requires C2CIteratorPair<InputIt, OutputIt> {
+  void Execute(InputView newIn, OutputView newOut)
+  requires C2CIteratorPair<InputIt, OutputIt>
+  {
     assert(!IsNull());
     assert(_in.EqualStorage(newIn));
     assert(_out.EqualStorage(newOut));
@@ -174,8 +257,9 @@ class Plan {
   }
 
   // Execute the plan given new complex-real data.
-  void Execute(InputView newIn,
-               OutputView newOut) requires C2RIteratorPair<InputIt, OutputIt> {
+  void Execute(InputView newIn, OutputView newOut)
+  requires C2RIteratorPair<InputIt, OutputIt>
+  {
     assert(!IsNull());
     assert(_in.EqualStorage(newIn));
     assert(_out.EqualStorage(newOut));
@@ -192,8 +276,9 @@ class Plan {
   }
 
   // Execute the plan given new real-complex data.
-  void Execute(InputView newIn,
-               OutputView newOut) requires R2CIteratorPair<InputIt, OutputIt> {
+  void Execute(InputView newIn, OutputView newOut)
+  requires R2CIteratorPair<InputIt, OutputIt>
+  {
     assert(!IsNull());
     assert(_in.EqualStorage(newIn));
     assert(_out.EqualStorage(newOut));
@@ -210,8 +295,9 @@ class Plan {
   }
 
   // Execute the plan given new real-real data.
-  void Execute(InputView newIn,
-               OutputView newOut) requires R2RIteratorPair<InputIt, OutputIt> {
+  void Execute(InputView newIn, OutputView newOut)
+  requires R2RIteratorPair<InputIt, OutputIt>
+  {
     assert(!IsNull());
     assert(_in.EqualStorage(newIn));
     assert(_out.EqualStorage(newOut));
@@ -266,7 +352,9 @@ class Plan {
   }
 
   // Make a plan for C2C transformation.
-  auto MakePlan() requires C2CIteratorPair<InputIt, OutputIt> {
+  auto MakePlan()
+  requires C2CIteratorPair<InputIt, OutputIt>
+  {
     assert(_in.Transformable(_out));
     if constexpr (IsSingle<Precision>) {
       return fftwf_plan_many_dft(_in.Rank(), _in.N(), _in.HowMany(), _in.Data(),
@@ -291,7 +379,9 @@ class Plan {
   }
 
   // Make plan for C2R transformation
-  auto MakePlan() requires C2RIteratorPair<InputIt, OutputIt> {
+  auto MakePlan()
+  requires C2RIteratorPair<InputIt, OutputIt>
+  {
     assert(_in.Transformable(_out));
     if constexpr (IsSingle<Precision>) {
       return fftwf_plan_many_dft_c2r(_in.Rank(), _out.N(), _in.HowMany(),
@@ -316,7 +406,9 @@ class Plan {
   }
 
   // Make plan for R2C transform.
-  auto MakePlan() requires R2CIteratorPair<InputIt, OutputIt> {
+  auto MakePlan()
+  requires R2CIteratorPair<InputIt, OutputIt>
+  {
     assert(_in.Transformable(_out));
     if constexpr (IsSingle<Precision>) {
       return fftwf_plan_many_dft_r2c(_in.Rank(), _in.N(), _in.HowMany(),
@@ -341,7 +433,9 @@ class Plan {
   }
 
   // Make plan for R2R transform
-  auto MakePlan() requires R2RIteratorPair<InputIt, OutputIt> {
+  auto MakePlan()
+  requires R2RIteratorPair<InputIt, OutputIt>
+  {
     assert(_in.Transformable(_out));
     assert(_kinds->size() == _in.Rank());
     std::vector<kind_value_type> k(_in.Rank());

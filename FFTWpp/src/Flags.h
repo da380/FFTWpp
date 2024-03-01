@@ -2,11 +2,56 @@
 #define FFTWPP_FLAGS_GUARD_H
 
 #include <iostream>
+#include <tuple>
 
 #include "Concepts.h"
 #include "fftw3.h"
 
 namespace FFTWpp {
+
+namespace Testing {
+
+enum class Direction { Forward, Backward };
+constexpr auto Forward = Direction::Forward;
+constexpr auto Backward = Direction::Backward;
+
+// Tag classes for transformation types.
+struct R2HC {};
+struct HC2R {};
+struct DHT {};
+struct DCTI {};
+struct DCTII {};
+struct DCTIII {};
+struct DCTIV {};
+struct DSTI {};
+struct DSTII {};
+struct DSTIII {};
+struct DSTIV {};
+
+template <typename... Tags>
+class Transformation {
+ public:
+  Transformation() : _direction{Direction::Forward} {}
+
+  Transformation(Direction direction) : _direction{direction} {}
+
+  auto operator()() const
+  requires(sizeof...(Tags) == 0)
+  {
+    if (_direction == Forward) {
+      return FFTW_FORWARD;
+    } else {
+      return FFTW_BACKWARD;
+    }
+  }
+
+  auto operator()() const { return 0; }
+
+ private:
+  Direction _direction;
+  std::tuple<Tags...> _tags;
+};
+}  // namespace Testing
 
 //////////////////////////////
 //      Direction flags     //
@@ -41,7 +86,8 @@ class Direction {
     return Direction(DirectionOption::Forward);
   }
 
-private : DirectionOption _option;
+ private:
+  DirectionOption _option;
 };
 
 const auto Forward = Direction(DirectionOption::Forward);

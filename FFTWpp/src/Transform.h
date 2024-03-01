@@ -9,8 +9,8 @@
 #include <variant>
 
 #include "Concepts.h"
+#include "Core.h"
 #include "Flags.h"
-#include "Memory.h"
 #include "Plan.h"
 #include "Wisdom.h"
 #include "fftw3.h"
@@ -21,10 +21,10 @@ template <std::ranges::random_access_range InRange,
           std::ranges::random_access_range OutRange>
 requires C2CIteratorPair<std::ranges::iterator_t<InRange>,
                          std::ranges::iterator_t<OutRange>> or
-    C2RIteratorPair<std::ranges::iterator_t<InRange>,
-                    std::ranges::iterator_t<OutRange>> or
-    R2CIteratorPair<std::ranges::iterator_t<InRange>,
-                    std::ranges::iterator_t<OutRange>>
+         C2RIteratorPair<std::ranges::iterator_t<InRange>,
+                         std::ranges::iterator_t<OutRange>> or
+         R2CIteratorPair<std::ranges::iterator_t<InRange>,
+                         std::ranges::iterator_t<OutRange>>
 void Transform1D(InRange in, OutRange out, Direction direction = Forward) {
   auto n = in.size();
   auto inView = DataView(std::begin(in), std::end(in), 1, {n}, 1, {n}, 1, 1);

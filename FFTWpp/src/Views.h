@@ -13,10 +13,121 @@
 #include <vector>
 
 #include "Concepts.h"
-#include "Memory.h"
+#include "Core.h"
 #include "fftw3.h"
 
 namespace FFTWpp {
+
+namespace Testing {
+
+class Layout {
+ public:
+  Layout() = default;
+
+  template <std::ranges::range R1, std::ranges::range R2>
+  requires requires() {
+    requires std::integral<std::ranges::range_value_t<R1>>;
+    requires std::integral<std::ranges::range_value_t<R2>>;
+  }
+  Layout(int rank, R1&& n, int howMany, R2&& embed, int stride, int dist)
+      : _rank{rank},
+        _n{std::vector<int>(std::begin(n), std::end(n))},
+        _howMany{howMany},
+        _embed{std::vector<int>(std::begin(embed), std::end(embed))},
+        _stride{stride},
+        _dist{dist} {}
+
+  // Access the layout information.
+  auto Rank() const { return _rank; }
+  auto N() const { return std::views::all(_n); }
+  auto HowMany() const { return _howMany; }
+  auto Embed() const { return std::views::all(_embed); }
+  auto Stride() const { return _stride; }
+  auto Dist() const { return _dist; }
+
+  // Return pointers to the storage vectors.
+  auto NPointer() { return _n.data(); }
+  auto EmbedPointer() { return _embed.data(); }
+
+  // Return the total storage size.
+  auto size() const {
+    return HowMany() *
+           std::ranges::fold_left_first(Embed(), std::multiplies<>())
+               .value_or(0);
+  }
+
+  bool operator==(const Layout&) const = default;
+
+ private:
+  int _rank;                // Rank of the transformations (i.e., 1D, 2D, etc).
+  std::vector<int> _n;      // Vector of dimensions along each rank.
+  int _howMany;             // Number of transforms to be performed.
+  std::vector<int> _embed;  // Size along each rank.
+  int _stride;              // Offset between elements of the data.
+  int _dist;                // Offset between the start of each transformation.
+};
+
+template <std::ranges::view View>
+requires requires() {
+  requires std::ranges::output_range<View, std::ranges::range_value_t<View>>;
+  requires std::contiguous_iterator<std::ranges::iterator_t<View>>;
+  requires IsScalar<std::ranges::range_value_t<View>>;
+}
+class DataView : public std::ranges::view_interface<DataView<View>>,
+                 public Layout {
+  using std::ranges::view_interface<DataView<View>>::size;
+
+ public:
+  // Constructor given layout information.
+  template <std::ranges::range R1, std::ranges::range R2>
+  requires requires() {
+    requires std::integral<std::ranges::range_value_t<R1>>;
+    requires std::integral<std::ranges::range_value_t<R2>>;
+  }
+  DataView(int rank, R1&& n, int howMany, R2&& embed, int stride, int dist,
+           View view)
+      : Layout(rank, n, howMany, embed, stride, dist), _view{view} {
+    assert(CheckSize());
+  }
+
+  // Constructor given a layout.
+  DataView(Layout& layout, View view) : Layout(layout), _view{view} {
+    assert(CheckSize());
+  }
+
+  // Methods to inherit from view_interface.
+  auto begin() { return _view.begin(); }
+  auto end() { return _view.end(); }
+
+  // Return appropriate fftw3 pointer to the start of the data.
+  auto DataPointer()
+  requires IsComplex<std::ranges::range_value_t<View>>
+  {
+    return ComplexCast(_view.data());
+  }
+  auto DataPointer()
+  requires IsReal<std::ranges::range_value_t<View>>
+  {
+    return _view.data();
+  }
+
+ private:
+  // Store view to the data.
+  View _view;
+
+  // Check the dimensions are consistent.
+  auto CheckSize() const { return size() == Layout::size(); }
+};
+
+// Deduction guides to construct from a range.
+template <std::ranges::range R1, std::ranges::range R2, std::ranges::range R3>
+DataView(int, R1&&, int, R2&&, int, int, R3&&)
+    -> DataView<std::ranges::views::all_t<R3>>;
+
+template <std::ranges::range R>
+DataView(Layout&, R&&) -> DataView<std::ranges::views::all_t<R>>;
+
+}  // namespace Testing
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
@@ -44,32 +155,15 @@ class DataLayout {
   // Copy constructor.
   DataLayout(DataLayout const&) = default;
 
-  // Move constructor.
-  DataLayout(DataLayout&& other)
-      : _rank{std::move(other._rank)},
-        _n{std::move(other._n)},
-        _howMany{std::move(other._howMany)},
-        _embed{std::move(other._embed)},
-        _stride{std::move(other._stride)},
-        _dist{std::move(other._dist)} {}
+  DataLayout(DataLayout&& other) = default;
 
-  // Copy assigment.
   DataLayout& operator=(DataLayout const&) = default;
 
-  // Move assigment.
-  DataLayout& operator=(DataLayout&& other) {
-    _rank = std::move(other._rank);
-    _n = std::move(other._n);
-    _howMany = std::move(other._howMany);
-    _embed = std::move(other._embed);
-    _stride = std::move(other._stride);
-    _dist = std::move(other._dist);
-    return *this;
-  }
+  DataLayout& operator=(DataLayout&& other) = default;
 
   // Return views of the storage arrays.
   auto NView() const { return std::views::all(*_n); }
-  auto EmbedView() const { return std::views::all(*_n); }
+  auto EmbedView() const { return std::views::all(*_embed); }
 
   // Functions returnig storage information in suitable form.
   auto Rank() const { return _rank; }
@@ -161,8 +255,16 @@ class DataView {
   }
 
   // Return appropriate fftw3 pointer to the start of the data.
-  auto Data() requires ComplexIterator<I> { return ComplexCast(&_start[0]); }
-  auto Data() requires RealIterator<I> { return &_start[0]; }
+  auto Data()
+  requires ComplexIterator<I>
+  {
+    return ComplexCast(&_start[0]);
+  }
+  auto Data()
+  requires RealIterator<I>
+  {
+    return &_start[0];
+  }
 
   // Return iterators to the data
   auto begin() { return _start; }
@@ -182,7 +284,9 @@ class DataView {
 
   // Check whether another data view has equal storage parameters.
   template <ScalarIterator J>
-  bool EqualStorage(DataView<J>& other) requires IteratorPair<I, J> {
+  bool EqualStorage(DataView<J>& other)
+  requires IteratorPair<I, J>
+  {
     return _layout.EqualStorage(other._layout);
   }
 
@@ -191,7 +295,9 @@ class DataView {
 
   // Check whether another data view is suitable for transformation into.
   template <ScalarIterator J>
-  bool Transformable(DataView<J>& other) requires IteratorPair<I, J> {
+  bool Transformable(DataView<J>& other)
+  requires IteratorPair<I, J>
+  {
     if (this->Rank() != other.Rank()) return false;
     if (this->HowMany() != other.HowMany()) return false;
     if constexpr (C2CIteratorPair<I, J> or R2RIteratorPair<I, J>) {
