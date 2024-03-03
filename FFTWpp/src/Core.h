@@ -8,12 +8,13 @@
 #include <variant>
 #include <vector>
 
-// #include "Concepts.h"
 #include "fftw3.h"
 
 namespace FFTWpp {
 
-// Concepts for real and complex floating point types.
+//------------------------------------------------------//
+//          Concepts for real and complex floats        //
+//------------------------------------------------------//
 template <typename T>
 concept IsReal = std::floating_point<T>;
 
@@ -51,7 +52,9 @@ using RemoveComplex = typename RemoveComplexHelper<T>::value_type;
 template <typename T>
 concept IsScalar = IsReal<T> or IsComplex<T>;
 
-// Define a custom allocator using the fftw3 versions of malloc and free.
+//--------------------------------------------------------------//
+//                    Custom fftw3 allocator                    //
+//--------------------------------------------------------------//
 template <typename T>
 struct allocator {
   using value_type = T;
@@ -78,7 +81,16 @@ constexpr bool operator!=(const allocator<T>&, const allocator<U>&) noexcept {
 template <typename T>
 using vector = std::vector<T, allocator<T>>;
 
-// Reinterpret cast std::complex* to fftw_complex*.
+// Clean up internal fftw3 things.
+void CleanUp() {
+  fftwf_cleanup();
+  fftw_cleanup();
+  fftwl_cleanup();
+}
+
+//-----------------------------------------------------//
+//       Cast from std::complex to fftw_complex        //
+//-----------------------------------------------------//
 template <std::floating_point Real>
 auto ComplexCast(std::complex<Real>* z) {
   if constexpr (IsSingle<Real>) {
@@ -92,90 +104,361 @@ auto ComplexCast(std::complex<Real>* z) {
   }
 }
 
-// Make C2C plans.
+//----------------------------------------------------------//
+//                         1D plans                         //
+//----------------------------------------------------------//
+
+// C2C.
+template <std::floating_point Real>
+auto MakePlan(int n, std::complex<Real>* in, std::complex<Real>* out, int sign,
+              unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_1d(n, ComplexCast(in), ComplexCast(out), sign, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_1d(n, ComplexCast(in), ComplexCast(out), sign, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_1d(n, ComplexCast(in), ComplexCast(out), sign, flags);
+  }
+}
+
+// R2C.
+template <std::floating_point Real>
+auto MakePlan(int n, Real* in, std::complex<Real>* out, unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_r2c_1d(n, in, ComplexCast(out), flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_r2c_1d(n, in, ComplexCast(out), flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_r2c_1d(n, in, ComplexCast(out), flags);
+  }
+}
+
+// C2R.
+template <std::floating_point Real>
+auto MakePlan(int n, std::complex<Real>* in, Real* out, unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_c2r_1d(n, ComplexCast(in), out, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_c2r_1d(n, ComplexCast(in), out, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_c2r_1d(n, ComplexCast(in), out, flags);
+  }
+}
+
+// R2R.
+template <std::floating_point Real>
+auto MakePlan(int n, Real* in, Real* out, fftw_r2r_kind kind, unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_r2r_1d(n, in, out, kind, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_r2r_1d(n, in, out, kind, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_r2r_1d(n, in, out, kind, flags);
+  }
+}
+
+//----------------------------------------------------------//
+//                         2D plans                         //
+//----------------------------------------------------------//
+
+// C2C.
+template <std::floating_point Real>
+auto MakePlan(int n0, int n1, std::complex<Real>* in, std::complex<Real>* out,
+              int sign, unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_2d(n0, n1, ComplexCast(in), ComplexCast(out), sign,
+                             flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_2d(n0, n1, ComplexCast(in), ComplexCast(out), sign,
+                            flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_2d(n0, n1, ComplexCast(in), ComplexCast(out), sign,
+                             flags);
+  }
+}
+
+// R2C.
+template <std::floating_point Real>
+auto MakePlan(int n0, int n1, Real* in, std::complex<Real>* out,
+              unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_r2c_2d(n0, n1, in, ComplexCast(out), flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_r2c_2d(n0, n1, in, ComplexCast(out), flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_r2c_2d(n0, n1, in, ComplexCast(out), flags);
+  }
+}
+
+// C2R.
+template <std::floating_point Real>
+auto MakePlan(int n0, int n1, std::complex<Real>* in, Real* out,
+              unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_c2r_2d(n0, n1, ComplexCast(in), out, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_c2r_2d(n0, n1, ComplexCast(in), out, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_c2r_2d(n0, n1, ComplexCast(in), out, flags);
+  }
+}
+
+// R2R.
+template <std::floating_point Real>
+auto MakePlan(int n0, int n1, Real* in, Real* out, fftw_r2r_kind kind0,
+              fftw_r2r_kind kind1, unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_r2r_2d(n0, n1, in, out, kind0, kind1, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_r2r_2d(n0, n1, in, out, kind0, kind1, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_r2r_2d(n0, n1, in, out, kind0, kind1, flags);
+  }
+}
+
+//----------------------------------------------------------//
+//                         3D plans                         //
+//----------------------------------------------------------//
+
+// C2C.
+template <std::floating_point Real>
+auto MakePlan(int n0, int n1, int n2, std::complex<Real>* in,
+              std::complex<Real>* out, int sign, unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_3d(n0, n1, n2, ComplexCast(in), ComplexCast(out),
+                             sign, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_3d(n0, n1, n2, ComplexCast(in), ComplexCast(out), sign,
+                            flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_3d(n0, n1, n2, ComplexCast(in), ComplexCast(out),
+                             sign, flags);
+  }
+}
+
+// R2C.
+template <std::floating_point Real>
+auto MakePlan(int n0, int n1, int n2, Real* in, std::complex<Real>* out,
+              unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_r2c_3d(n0, n1, n2, in, ComplexCast(out), flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_r2c_3d(n0, n1, n2, in, ComplexCast(out), flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_r2c_3d(n0, n1, n2, in, ComplexCast(out), flags);
+  }
+}
+
+// C2R.
+template <std::floating_point Real>
+auto MakePlan(int n0, int n1, int n2, std::complex<Real>* in, Real* out,
+              unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_c2r_3d(n0, n1, n2, ComplexCast(in), out, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_c2r_3d(n0, n1, n2, ComplexCast(in), out, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_c2r_3d(n0, n1, n2, ComplexCast(in), out, flags);
+  }
+}
+
+// R2R.
+template <std::floating_point Real>
+auto MakePlan(int n0, int n1, int n2, Real* in, Real* out, fftw_r2r_kind kind0,
+              fftw_r2r_kind kind1, fftw_r2r_kind kind2, unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_r2r_3d(n0, n1, n2, in, out, kind0, kind1, kind2, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_r2r_3d(n0, n1, n2, in, out, kind0, kind1, kind2, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_r2r_3d(n0, n1, n2, in, out, kind0, kind1, kind2, flags);
+  }
+}
+
+//----------------------------------------------------------//
+//                   Multi-dimensional plans                //
+//----------------------------------------------------------//
+
+// C2C.
+template <std::floating_point Real>
+auto MakePlan(int rank, int* n, std::complex<Real>* in, std::complex<Real>* out,
+              int sign, unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft(rank, n, ComplexCast(in), ComplexCast(out), sign,
+                          flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft(rank, n, ComplexCast(in), ComplexCast(out), sign,
+                         flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft(rank, n, ComplexCast(in), ComplexCast(out), sign,
+                          flags);
+  }
+}
+
+// R2C.
+template <std::floating_point Real>
+auto MakePlan(int rank, int* n, Real* in, std::complex<Real>* out,
+              unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_r2c(rank, n, in, ComplexCast(out), flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_r2c(rank, n, in, ComplexCast(out), flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_r2c(rank, n, in, ComplexCast(out), flags);
+  }
+}
+
+// C2R.
+template <std::floating_point Real>
+auto MakePlan(int rank, int* n, std::complex<Real>* in, Real* out,
+              unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_dft_c2r(rank, n, ComplexCast(in), out, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_dft_c2r(rank, n, ComplexCast(in), out, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_dft_c2r(rank, n, ComplexCast(in), out, flags);
+  }
+}
+
+// R2R.
+template <std::floating_point Real>
+auto MakePlan(int rank, int* n, Real* in, Real* out, fftw_r2r_kind* kind,
+              unsigned flags) {
+  if constexpr (IsSingle<Real>) {
+    return fftwf_plan_r2r(rank, n, in, out, kind, flags);
+  }
+  if constexpr (IsDouble<Real>) {
+    return fftw_plan_r2r(rank, in, out, kind, flags);
+  }
+  if constexpr (IsLongDouble<Real>) {
+    return fftwl_plan_r2r(rank, n, in, out, kind, flags);
+  }
+}
+
+//-------------------------------------------------------------//
+//                      Advanced interface                     //
+//-------------------------------------------------------------//
+
+// C2C.
 template <std::floating_point Real>
 auto MakePlan(int rank, int* n, int howMany, std::complex<Real>* in,
               int* inEmbed, int inStride, int inDist, std::complex<Real>* out,
               int* outEmbed, int outStride, int outDist, int sign,
               unsigned flags) {
   if constexpr (IsSingle<Real>) {
-    fftwf_plan_many_dft(rank, n, howMany, ComplexCast(in), inEmbed, inStride,
-                        inDist, ComplexCast(out), outEmbed, outStride, outDist,
-                        sign, flags);
+    return fftwf_plan_many_dft(rank, n, howMany, ComplexCast(in), inEmbed,
+                               inStride, inDist, ComplexCast(out), outEmbed,
+                               outStride, outDist, sign, flags);
   }
   if constexpr (IsDouble<Real>) {
-    fftw_plan_many_dft(rank, n, howMany, ComplexCast(in), inEmbed, inStride,
-                       inDist, ComplexCast(out), outEmbed, outStride, outDist,
-                       sign, flags);
+    return fftw_plan_many_dft(rank, n, howMany, ComplexCast(in), inEmbed,
+                              inStride, inDist, ComplexCast(out), outEmbed,
+                              outStride, outDist, sign, flags);
   }
   if constexpr (IsLongDouble<Real>) {
-    fftwl_plan_many_dft(rank, n, howMany, ComplexCast(in), inEmbed, inStride,
-                        inDist, ComplexCast(out), outEmbed, outStride, outDist,
-                        sign, flags);
+    return fftwl_plan_many_dft(rank, n, howMany, ComplexCast(in), inEmbed,
+                               inStride, inDist, ComplexCast(out), outEmbed,
+                               outStride, outDist, sign, flags);
   }
 }
 
-// Make C2R plans.
+// C2R.
 template <std::floating_point Real>
 auto MakePlan(int rank, int* n, int howMany, std::complex<Real>* in,
               int* inEmbed, int inStride, int inDist, Real* out, int* outEmbed,
               int outStride, int outDist, unsigned flags) {
   if constexpr (IsSingle<Real>) {
-    fftwf_plan_many_dft_c2r(rank, n, howMany, ComplexCast(in), inEmbed,
-                            inStride, inDist, out, outEmbed, outStride, outDist,
-                            flags);
+    return fftwf_plan_many_dft_c2r(rank, n, howMany, ComplexCast(in), inEmbed,
+                                   inStride, inDist, out, outEmbed, outStride,
+                                   outDist, flags);
   }
   if constexpr (IsDouble<Real>) {
-    fftw_plan_many_dft_c2r(rank, n, howMany, ComplexCast(in), inEmbed, inStride,
-                           inDist, out, outEmbed, outStride, outDist, flags);
+    return fftw_plan_many_dft_c2r(rank, n, howMany, ComplexCast(in), inEmbed,
+                                  inStride, inDist, out, outEmbed, outStride,
+                                  outDist, flags);
   }
   if constexpr (IsLongDouble<Real>) {
-    fftwl_plan_many_dft_c2r(rank, n, howMany, ComplexCast(in), inEmbed,
-                            inStride, inDist, out, outEmbed, outStride, outDist,
-                            flags);
+    return fftwl_plan_many_dft_c2r(rank, n, howMany, ComplexCast(in), inEmbed,
+                                   inStride, inDist, out, outEmbed, outStride,
+                                   outDist, flags);
   }
 }
 
-// Make R2C plans.
+// R2C.
 template <std::floating_point Real>
 auto MakePlan(int rank, int* n, int howMany, Real* in, int* inEmbed,
               int inStride, int inDist, std::complex<Real>* out, int* outEmbed,
               int outStride, int outDist, unsigned flags) {
   if constexpr (IsSingle<Real>) {
-    fftwf_plan_many_dft_r2c(rank, n, howMany, in, inEmbed, inStride, inDist,
-                            ComplexCast(out), outEmbed, outStride, outDist,
-                            flags);
+    return fftwf_plan_many_dft_r2c(rank, n, howMany, in, inEmbed, inStride,
+                                   inDist, ComplexCast(out), outEmbed,
+                                   outStride, outDist, flags);
   }
   if constexpr (IsDouble<Real>) {
-    fftw_plan_many_dft_r2c(rank, n, howMany, in, inEmbed, inStride, inDist,
-                           ComplexCast(out), outEmbed, outStride, outDist,
-                           flags);
+    return fftw_plan_many_dft_r2c(rank, n, howMany, in, inEmbed, inStride,
+                                  inDist, ComplexCast(out), outEmbed, outStride,
+                                  outDist, flags);
   }
   if constexpr (IsLongDouble<Real>) {
-    fftwl_plan_many_dft_r2c(rank, n, howMany, in, inEmbed, inStride, inDist,
-                            ComplexCast(out), outEmbed, outStride, outDist,
-                            flags);
+    return fftwl_plan_many_dft_r2c(rank, n, howMany, in, inEmbed, inStride,
+                                   inDist, ComplexCast(out), outEmbed,
+                                   outStride, outDist, flags);
   }
 }
 
-// Make R2R plans.
+// R2R.
 template <std::floating_point Real>
 auto MakePlan(int rank, int* n, int howMany, Real* in, int* inEmbed,
               int inStride, int inDist, Real* out, int* outEmbed, int outStride,
               int outDist, fftw_r2r_kind* kind, unsigned flags) {
   if constexpr (IsSingle<Real>) {
-    fftwf_plan_many_r2c(rank, n, howMany, in, inEmbed, inStride, inDist, out,
-                        outEmbed, outStride, outDist, kind, flags);
+    return fftwf_plan_many_r2c(rank, n, howMany, in, inEmbed, inStride, inDist,
+                               out, outEmbed, outStride, outDist, kind, flags);
   }
   if constexpr (IsDouble<Real>) {
-    fftw_plan_many_r2c(rank, n, howMany, in, inEmbed, inStride, inDist, out,
-                       outEmbed, outStride, outDist, kind, flags);
+    return fftw_plan_many_r2c(rank, n, howMany, in, inEmbed, inStride, inDist,
+                              out, outEmbed, outStride, outDist, kind, flags);
   }
   if constexpr (IsLongDouble<Real>) {
-    fftwl_plan_many_r2r(rank, n, howMany, in, inEmbed, inStride, inDist, out,
-                        outEmbed, outStride, outDist, kind, flags);
+    return fftwl_plan_many_r2r(rank, n, howMany, in, inEmbed, inStride, inDist,
+                               out, outEmbed, outStride, outDist, kind, flags);
   }
 }
+
+//----------------------------------------------------------//
+//                  Plan execution functions                //
+//----------------------------------------------------------//
 
 // Execute a plan.
 template <typename PlanType>
@@ -260,14 +543,6 @@ void Execute(PlanType plan, Real* in, Real* out) {
   if constexpr (std::same_as<PlanType, fftwl_plan>) {
     fftwl_execute_r2r(plan, in, out);
   }
-}
-
-// Clear up remaining memory. To be, optionally, called only when
-// all plans have gone out of scope.
-void CleanUp() {
-  fftwf_cleanup();
-  fftw_cleanup();
-  fftwl_cleanup();
 }
 
 }  // namespace FFTWpp

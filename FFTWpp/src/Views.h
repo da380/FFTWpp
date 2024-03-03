@@ -24,6 +24,15 @@ class Layout {
  public:
   Layout() = default;
 
+  // Constructor for multi-dimensional transforms.
+  template <typename... Dimensions>
+  requires(sizeof...(Dimensions) > 0) and
+          (std::convertible_to<Dimensions, int> && ...)
+  Layout(Dimensions... dimensions)
+      : Layout(sizeof...(Dimensions), std::vector{dimensions...}, 1,
+               std::vector{dimensions...}, 1, 0) {}
+
+  // Constructor for the advanced interface.
   template <std::ranges::range R1, std::ranges::range R2>
   requires requires() {
     requires std::integral<std::ranges::range_value_t<R1>>;
@@ -78,20 +87,32 @@ class DataView : public std::ranges::view_interface<DataView<View>>,
   using std::ranges::view_interface<DataView<View>>::size;
 
  public:
-  // Constructor given layout information.
+  // Constructor given view which assumes a 1D transformation.
+  DataView(View view) : DataView(view, Layout(view.size())) {}
+
+  // Constructor given view and a layout.
+  DataView(View view, Layout& layout) : Layout(layout), _view{view} {
+    assert(CheckSize());
+  }
+
+  // Constructor given view and multi-dimensional transform parameters.
+  template <typename... Dimensions>
+  requires(sizeof...(Dimensions) > 0) and
+          (std::convertible_to<Dimensions, int> && ...)
+  DataView(View view, Dimensions... dimensions)
+      : DataView(view, Layout(dimensions...)) {
+    assert(CheckSize());
+  }
+
+  // Constructor given view and advanced interface parameters.
   template <std::ranges::range R1, std::ranges::range R2>
   requires requires() {
     requires std::integral<std::ranges::range_value_t<R1>>;
     requires std::integral<std::ranges::range_value_t<R2>>;
   }
-  DataView(int rank, R1&& n, int howMany, R2&& embed, int stride, int dist,
-           View view)
-      : Layout(rank, n, howMany, embed, stride, dist), _view{view} {
-    assert(CheckSize());
-  }
-
-  // Constructor given a layout.
-  DataView(Layout& layout, View view) : Layout(layout), _view{view} {
+  DataView(View view, int rank, R1&& n, int howMany, R2&& embed, int stride,
+           int dist)
+      : DataView(view, Layout(rank, n, howMany, embed, stride, dist)) {
     assert(CheckSize());
   }
 
