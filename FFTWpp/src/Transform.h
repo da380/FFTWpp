@@ -10,7 +10,7 @@
 
 #include "Concepts.h"
 #include "Core.h"
-#include "Flags.h"
+#include "Options.h"
 #include "Plan.h"
 #include "Wisdom.h"
 #include "fftw3.h"

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <complex>
+#include <initializer_list>
 #include <iostream>
 #include <numeric>
 #include <ranges>
@@ -11,7 +12,7 @@
 
 #include "Concepts.h"
 #include "Core.h"
-#include "Flags.h"
+#include "Options.h"
 #include "Views.h"
 #include "Wisdom.h"
 #include "fftw3.h"
@@ -43,21 +44,45 @@ class Plan {
   // Remove default constructor;
   Plan() = delete;
 
-  // Constructor for C2C, C2R, R2C.
-
-  /*
-  Plan(DataView<InView> in, DataView<InView> out, PlanFlag flag,
-       Direction direction = Forward)
-  requires IsComplex<InType> || IsComplex<OutType>
-      : _in{in},
-        _out{out},
-        _flag{flag},
-        _direction{direction},
-        _plan{MakePlan()} {
+  // Constructor for C2C.
+  Plan(DataView<InView> in, DataView<OutView> out, Flag flag,
+       Direction direction)
+  requires IsComplex<InType> and IsComplex<OutType>
+      : _in{in}, _out{out}, _flag{flag}, _direction{direction} {
+    assert(CheckInputs());
+    _plan = MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(),
+                     _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
+                     _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
+                     _out.Dist(), std::get<Direction>(_direction), _flag);
     assert(!IsNull());
   }
-*/
-  void MakePlan() {}
+
+  // Constructor for R2C or C2R.
+  Plan(DataView<InView> in, DataView<OutView> out, Flag flag)
+  requires(IsComplex<InType> and IsReal<OutType>) or
+              (IsReal<InType> and IsComplex<OutType>)
+      : _in{in}, _out{out}, _flag{flag} {
+    assert(CheckInputs());
+    _plan =
+        MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(), _in.DataPointer(),
+                 _in.EmbedPointer(), _in.Stride(), _in.Dist(),
+                 _out.DataPointer(), _out.EmbedPointer(), _out.Dist(), _flag);
+    assert(!IsNull());
+  }
+
+  // Constructors for R2R.
+  Plan(DataView<InView> in, DataView<OutView> out,
+       std::initializer_list<RealKind> kinds, Flag flag)
+  requires(IsReal<InType> and IsReal<OutType>)
+      : _in{in}, _out{out}, _kinds{std::vector<RealKind>(kinds)}, _flag{flag} {
+    assert(CheckInputs());
+    _plan =
+        MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(), _in.DataPointer(),
+                 _in.EmbedPointer(), _in.Stride(), _in.Dist(),
+                 _out.DataPointer(), _out.EmbedPointer(), _out.Dist(),
+                 std::get<std::vector<RealKind>>(_kinds).data(), _flag);
+    assert(!IsNull());
+  }
 
   // return pointer to the fftw3 plan.
   auto Pointer() const {
@@ -89,15 +114,19 @@ class Plan {
  private:
   DataView<InView> _in;
   DataView<OutView> _out;
-  PlanFlag _flag;
+  Flag _flag;
+  std::variant<std::monostate, Direction> _direction;
+  std::variant<std::monostate, std::vector<RealKind>> _kinds;
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> _plan;
+
+  auto CheckInputs() const { return true; }
 };
 
 }  // namespace Testing
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//                        Definition of the Plan class //
+//                        Definition of the Plan class                       //
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 

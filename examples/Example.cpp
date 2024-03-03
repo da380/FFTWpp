@@ -11,7 +11,7 @@
 int main() {
   using namespace FFTWpp::Testing;
 
-  auto type = Transformation<HC2R>(Forward);
+  std::cout << Forward() << std::endl;
 
-  std::cout << type() << std::endl;
+  auto flag = Estimate | WisdomOnly;
 }

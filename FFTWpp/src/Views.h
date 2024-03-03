@@ -100,16 +100,7 @@ class DataView : public std::ranges::view_interface<DataView<View>>,
   auto end() { return _view.end(); }
 
   // Return appropriate fftw3 pointer to the start of the data.
-  auto DataPointer()
-  requires IsComplex<std::ranges::range_value_t<View>>
-  {
-    return ComplexCast(_view.data());
-  }
-  auto DataPointer()
-  requires IsReal<std::ranges::range_value_t<View>>
-  {
-    return _view.data();
-  }
+  auto DataPointer() { return _view.data(); }
 
  private:
   // Store view to the data.

@@ -2,15 +2,54 @@
 #define FFTWPP_CORE_GUARD_H
 
 #include <cassert>
+#include <complex>
 #include <concepts>
 #include <memory>
 #include <variant>
 #include <vector>
 
-#include "Concepts.h"
+// #include "Concepts.h"
 #include "fftw3.h"
 
 namespace FFTWpp {
+
+// Concepts for real and complex floating point types.
+template <typename T>
+concept IsReal = std::floating_point<T>;
+
+template <typename Float>
+concept IsSingle = std::same_as<Float, float>;
+
+template <typename Float>
+concept IsDouble = std::same_as<Float, double>;
+
+template <typename Float>
+concept IsLongDouble = std::same_as<Float, long double>;
+
+template <typename T>
+struct IsComplexHelper : std::false_type {};
+
+template <typename T>
+struct IsComplexHelper<std::complex<T>> : std::true_type {};
+
+template <typename T>
+concept IsComplex = IsComplexHelper<T>::value;
+
+template <typename T>
+struct RemoveComplexHelper {
+  using value_type = T;
+};
+
+template <typename T>
+struct RemoveComplexHelper<std::complex<T>> {
+  using value_type = T;
+};
+
+template <typename T>
+using RemoveComplex = typename RemoveComplexHelper<T>::value_type;
+
+template <typename T>
+concept IsScalar = IsReal<T> or IsComplex<T>;
 
 // Define a custom allocator using the fftw3 versions of malloc and free.
 template <typename T>

@@ -5,7 +5,7 @@
 #include "fftw3.h"
 #include "src/Concepts.h"
 #include "src/Core.h"
-#include "src/Flags.h"
+#include "src/Options.h"
 #include "src/Plan.h"
 #include "src/Transform.h"
 #include "src/Views.h"
