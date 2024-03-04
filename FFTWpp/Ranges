@@ -2,12 +2,8 @@
 #define FFTWPP_ALL_MODULE_H
 
 // Header files to be included to use the FFTWpp library.
-#include "fftw3.h"
-#include "src/Concepts.h"
-#include "src/Core.h"
 #include "src/Options.h"
 #include "src/Plan.h"
-#include "src/Transform.h"
 #include "src/Views.h"
 #include "src/Wisdom.h"
 

@@ -18,7 +18,7 @@
 
 namespace FFTWpp {
 
-namespace Testing {
+namespace Ranges {
 
 class Layout {
  public:
@@ -134,7 +134,7 @@ class View : public std::ranges::view_interface<View<_View>>, public Layout {
 template <std::ranges::range R, typename... Args>
 View(R&&, Args...) -> View<std::ranges::views::all_t<R>>;
 
-}  // namespace Testing
+}  // namespace Ranges
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////

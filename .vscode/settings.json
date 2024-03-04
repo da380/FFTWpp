@@ -72,5 +72,6 @@
         "variant": "cpp",
         "format": "cpp",
         "future": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

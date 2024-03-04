@@ -10,13 +10,13 @@
 
 namespace FFTWpp {
 
-namespace Testing {
-
 // Direction class.
 class Direction {
  public:
   constexpr Direction(int direction) : _direction{direction} {}
   constexpr auto operator()() const { return _direction; }
+
+  bool operator==(const Direction&) const = default;
 
  private:
   int _direction;
@@ -31,6 +31,8 @@ class Flag {
   constexpr Flag(unsigned flag) : _flag{flag} {}
 
   constexpr auto operator()() const { return _flag; }
+
+  bool operator==(const Flag&) const = default;
 
  private:
   unsigned _flag;
@@ -128,7 +130,7 @@ constexpr auto RODFT10 = RealKind{FFTW_RODFT10};
 constexpr auto RODFT01 = RealKind{FFTW_RODFT01};
 constexpr auto RODFT11 = RealKind{FFTW_RODFT11};
 
-}  // namespace Testing
+/*
 
 //////////////////////////////
 //      Direction flags     //
@@ -364,6 +366,8 @@ const auto WisdomOnly = PlanFlag(FFTW_WISDOM_ONLY);
 const auto DestroyInput = PlanFlag(FFTW_DESTROY_INPUT);
 const auto PreserveInput = PlanFlag(FFTW_PRESERVE_INPUT);
 const auto Unaligned = PlanFlag(FFTW_UNALIGNED);
+
+  */
 
 }  // namespace FFTWpp
 

@@ -110,8 +110,8 @@ auto ComplexCast(std::complex<Real>* z) {
 
 // C2C.
 template <std::floating_point Real>
-auto MakePlan(int n, std::complex<Real>* in, std::complex<Real>* out, int sign,
-              unsigned flags) {
+auto Plan(int n, std::complex<Real>* in, std::complex<Real>* out, int sign,
+          unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_1d(n, ComplexCast(in), ComplexCast(out), sign, flags);
   }
@@ -125,7 +125,7 @@ auto MakePlan(int n, std::complex<Real>* in, std::complex<Real>* out, int sign,
 
 // R2C.
 template <std::floating_point Real>
-auto MakePlan(int n, Real* in, std::complex<Real>* out, unsigned flags) {
+auto Plan(int n, Real* in, std::complex<Real>* out, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_r2c_1d(n, in, ComplexCast(out), flags);
   }
@@ -139,7 +139,7 @@ auto MakePlan(int n, Real* in, std::complex<Real>* out, unsigned flags) {
 
 // C2R.
 template <std::floating_point Real>
-auto MakePlan(int n, std::complex<Real>* in, Real* out, unsigned flags) {
+auto Plan(int n, std::complex<Real>* in, Real* out, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_c2r_1d(n, ComplexCast(in), out, flags);
   }
@@ -153,7 +153,7 @@ auto MakePlan(int n, std::complex<Real>* in, Real* out, unsigned flags) {
 
 // R2R.
 template <std::floating_point Real>
-auto MakePlan(int n, Real* in, Real* out, fftw_r2r_kind kind, unsigned flags) {
+auto Plan(int n, Real* in, Real* out, fftw_r2r_kind kind, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_r2r_1d(n, in, out, kind, flags);
   }
@@ -171,8 +171,8 @@ auto MakePlan(int n, Real* in, Real* out, fftw_r2r_kind kind, unsigned flags) {
 
 // C2C.
 template <std::floating_point Real>
-auto MakePlan(int n0, int n1, std::complex<Real>* in, std::complex<Real>* out,
-              int sign, unsigned flags) {
+auto Plan(int n0, int n1, std::complex<Real>* in, std::complex<Real>* out,
+          int sign, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_2d(n0, n1, ComplexCast(in), ComplexCast(out), sign,
                              flags);
@@ -189,8 +189,7 @@ auto MakePlan(int n0, int n1, std::complex<Real>* in, std::complex<Real>* out,
 
 // R2C.
 template <std::floating_point Real>
-auto MakePlan(int n0, int n1, Real* in, std::complex<Real>* out,
-              unsigned flags) {
+auto Plan(int n0, int n1, Real* in, std::complex<Real>* out, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_r2c_2d(n0, n1, in, ComplexCast(out), flags);
   }
@@ -204,8 +203,7 @@ auto MakePlan(int n0, int n1, Real* in, std::complex<Real>* out,
 
 // C2R.
 template <std::floating_point Real>
-auto MakePlan(int n0, int n1, std::complex<Real>* in, Real* out,
-              unsigned flags) {
+auto Plan(int n0, int n1, std::complex<Real>* in, Real* out, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_c2r_2d(n0, n1, ComplexCast(in), out, flags);
   }
@@ -219,8 +217,8 @@ auto MakePlan(int n0, int n1, std::complex<Real>* in, Real* out,
 
 // R2R.
 template <std::floating_point Real>
-auto MakePlan(int n0, int n1, Real* in, Real* out, fftw_r2r_kind kind0,
-              fftw_r2r_kind kind1, unsigned flags) {
+auto Plan(int n0, int n1, Real* in, Real* out, fftw_r2r_kind kind0,
+          fftw_r2r_kind kind1, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_r2r_2d(n0, n1, in, out, kind0, kind1, flags);
   }
@@ -238,8 +236,8 @@ auto MakePlan(int n0, int n1, Real* in, Real* out, fftw_r2r_kind kind0,
 
 // C2C.
 template <std::floating_point Real>
-auto MakePlan(int n0, int n1, int n2, std::complex<Real>* in,
-              std::complex<Real>* out, int sign, unsigned flags) {
+auto Plan(int n0, int n1, int n2, std::complex<Real>* in,
+          std::complex<Real>* out, int sign, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_3d(n0, n1, n2, ComplexCast(in), ComplexCast(out),
                              sign, flags);
@@ -256,8 +254,8 @@ auto MakePlan(int n0, int n1, int n2, std::complex<Real>* in,
 
 // R2C.
 template <std::floating_point Real>
-auto MakePlan(int n0, int n1, int n2, Real* in, std::complex<Real>* out,
-              unsigned flags) {
+auto Plan(int n0, int n1, int n2, Real* in, std::complex<Real>* out,
+          unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_r2c_3d(n0, n1, n2, in, ComplexCast(out), flags);
   }
@@ -271,8 +269,8 @@ auto MakePlan(int n0, int n1, int n2, Real* in, std::complex<Real>* out,
 
 // C2R.
 template <std::floating_point Real>
-auto MakePlan(int n0, int n1, int n2, std::complex<Real>* in, Real* out,
-              unsigned flags) {
+auto Plan(int n0, int n1, int n2, std::complex<Real>* in, Real* out,
+          unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_c2r_3d(n0, n1, n2, ComplexCast(in), out, flags);
   }
@@ -286,8 +284,8 @@ auto MakePlan(int n0, int n1, int n2, std::complex<Real>* in, Real* out,
 
 // R2R.
 template <std::floating_point Real>
-auto MakePlan(int n0, int n1, int n2, Real* in, Real* out, fftw_r2r_kind kind0,
-              fftw_r2r_kind kind1, fftw_r2r_kind kind2, unsigned flags) {
+auto Plan(int n0, int n1, int n2, Real* in, Real* out, fftw_r2r_kind kind0,
+          fftw_r2r_kind kind1, fftw_r2r_kind kind2, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_r2r_3d(n0, n1, n2, in, out, kind0, kind1, kind2, flags);
   }
@@ -305,8 +303,8 @@ auto MakePlan(int n0, int n1, int n2, Real* in, Real* out, fftw_r2r_kind kind0,
 
 // C2C.
 template <std::floating_point Real>
-auto MakePlan(int rank, int* n, std::complex<Real>* in, std::complex<Real>* out,
-              int sign, unsigned flags) {
+auto Plan(int rank, int* n, std::complex<Real>* in, std::complex<Real>* out,
+          int sign, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft(rank, n, ComplexCast(in), ComplexCast(out), sign,
                           flags);
@@ -323,8 +321,7 @@ auto MakePlan(int rank, int* n, std::complex<Real>* in, std::complex<Real>* out,
 
 // R2C.
 template <std::floating_point Real>
-auto MakePlan(int rank, int* n, Real* in, std::complex<Real>* out,
-              unsigned flags) {
+auto Plan(int rank, int* n, Real* in, std::complex<Real>* out, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_r2c(rank, n, in, ComplexCast(out), flags);
   }
@@ -338,8 +335,7 @@ auto MakePlan(int rank, int* n, Real* in, std::complex<Real>* out,
 
 // C2R.
 template <std::floating_point Real>
-auto MakePlan(int rank, int* n, std::complex<Real>* in, Real* out,
-              unsigned flags) {
+auto Plan(int rank, int* n, std::complex<Real>* in, Real* out, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_dft_c2r(rank, n, ComplexCast(in), out, flags);
   }
@@ -353,8 +349,8 @@ auto MakePlan(int rank, int* n, std::complex<Real>* in, Real* out,
 
 // R2R.
 template <std::floating_point Real>
-auto MakePlan(int rank, int* n, Real* in, Real* out, fftw_r2r_kind* kind,
-              unsigned flags) {
+auto Plan(int rank, int* n, Real* in, Real* out, fftw_r2r_kind* kind,
+          unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_r2r(rank, n, in, out, kind, flags);
   }
@@ -372,10 +368,9 @@ auto MakePlan(int rank, int* n, Real* in, Real* out, fftw_r2r_kind* kind,
 
 // C2C.
 template <std::floating_point Real>
-auto MakePlan(int rank, int* n, int howMany, std::complex<Real>* in,
-              int* inEmbed, int inStride, int inDist, std::complex<Real>* out,
-              int* outEmbed, int outStride, int outDist, int sign,
-              unsigned flags) {
+auto Plan(int rank, int* n, int howMany, std::complex<Real>* in, int* inEmbed,
+          int inStride, int inDist, std::complex<Real>* out, int* outEmbed,
+          int outStride, int outDist, int sign, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_many_dft(rank, n, howMany, ComplexCast(in), inEmbed,
                                inStride, inDist, ComplexCast(out), outEmbed,
@@ -395,9 +390,9 @@ auto MakePlan(int rank, int* n, int howMany, std::complex<Real>* in,
 
 // C2R.
 template <std::floating_point Real>
-auto MakePlan(int rank, int* n, int howMany, std::complex<Real>* in,
-              int* inEmbed, int inStride, int inDist, Real* out, int* outEmbed,
-              int outStride, int outDist, unsigned flags) {
+auto Plan(int rank, int* n, int howMany, std::complex<Real>* in, int* inEmbed,
+          int inStride, int inDist, Real* out, int* outEmbed, int outStride,
+          int outDist, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_many_dft_c2r(rank, n, howMany, ComplexCast(in), inEmbed,
                                    inStride, inDist, out, outEmbed, outStride,
@@ -417,9 +412,9 @@ auto MakePlan(int rank, int* n, int howMany, std::complex<Real>* in,
 
 // R2C.
 template <std::floating_point Real>
-auto MakePlan(int rank, int* n, int howMany, Real* in, int* inEmbed,
-              int inStride, int inDist, std::complex<Real>* out, int* outEmbed,
-              int outStride, int outDist, unsigned flags) {
+auto Plan(int rank, int* n, int howMany, Real* in, int* inEmbed, int inStride,
+          int inDist, std::complex<Real>* out, int* outEmbed, int outStride,
+          int outDist, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_many_dft_r2c(rank, n, howMany, in, inEmbed, inStride,
                                    inDist, ComplexCast(out), outEmbed,
@@ -439,9 +434,9 @@ auto MakePlan(int rank, int* n, int howMany, Real* in, int* inEmbed,
 
 // R2R.
 template <std::floating_point Real>
-auto MakePlan(int rank, int* n, int howMany, Real* in, int* inEmbed,
-              int inStride, int inDist, Real* out, int* outEmbed, int outStride,
-              int outDist, fftw_r2r_kind* kind, unsigned flags) {
+auto Plan(int rank, int* n, int howMany, Real* in, int* inEmbed, int inStride,
+          int inDist, Real* out, int* outEmbed, int outStride, int outDist,
+          fftw_r2r_kind* kind, unsigned flags) {
   if constexpr (IsSingle<Real>) {
     return fftwf_plan_many_r2c(rank, n, howMany, in, inEmbed, inStride, inDist,
                                out, outEmbed, outStride, outDist, kind, flags);
