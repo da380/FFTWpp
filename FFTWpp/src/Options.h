@@ -1,7 +1,6 @@
 #ifndef FFTWPP_FLAGS_GUARD_H
 #define FFTWPP_FLAGS_GUARD_H
 
-#include <initializer_list>
 #include <iostream>
 #include <tuple>
 #include <utility>

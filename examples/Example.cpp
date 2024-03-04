@@ -14,8 +14,7 @@ int main() {
   auto in = std::vector<Real>(n, 1);
   auto out = std::vector<Complex>(n / 2 + 1);
 
-  // Raw fftw3. Note that if Real is changed from double, then
-  // various terms in this block need to be modified.
+  // Raw fftw3.
   {
     // Form pointers to the data.
     auto inPointer = in.data();
@@ -30,16 +29,17 @@ int main() {
     fftw_execute(plan);
   }
 
-  // Minimal usage of FFTWpp. If real is changed from double, nothing needs
-  // be done in this case.
+  // Minimal usage of FFTWpp.
   {
-    auto plan = FFTWpp::MakePlan(n, in.data(), out.data(), FFTW_ESTIMATE);
-    FFTWpp::Execute(plan);
+    using namespace FFTWpp;
+    auto plan = MakePlan(n, in.data(), out.data(), FFTW_ESTIMATE);
+    Execute(plan);
   }
 
-  auto layout = FFTWpp::Testing::Layout(10, 20);
-
-  std::cout << layout.Rank() << std::endl;
-  for (auto val : layout.N()) std::cout << val << " ";
-  std::cout << std::endl;
+  // Full usage of FFTWpp.
+  {
+    using namespace FFTWpp::Testing;
+    auto plan = Plan(View(in), View(out), Estimate);
+    plan.Execute();
+  }
 }

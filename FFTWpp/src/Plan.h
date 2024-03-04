@@ -37,62 +37,61 @@ requires requires() {
 class Plan {
   using InType = std::ranges::range_value_t<InView>;
   using OutType = std::ranges::range_value_t<OutView>;
-  using Precision = RemoveComplex<InView>;
-  // using kind_value_type = decltype(FFTW_HC2R);
+  using Real = RemoveComplex<InType>;
 
  public:
   // Remove default constructor;
   Plan() = delete;
 
   // Constructor for C2C.
-  Plan(DataView<InView> in, DataView<OutView> out, Flag flag,
-       Direction direction)
+  Plan(View<InView> in, View<OutView> out, Flag flag, Direction direction)
   requires IsComplex<InType> and IsComplex<OutType>
       : _in{in}, _out{out}, _flag{flag}, _direction{direction} {
     assert(CheckInputs());
-    _plan = MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(),
-                     _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
-                     _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
-                     _out.Dist(), std::get<Direction>(_direction), _flag);
+    _plan =
+        MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(), _in.DataPointer(),
+                 _in.EmbedPointer(), _in.Stride(), _in.Dist(),
+                 _out.DataPointer(), _out.EmbedPointer(), _out.stride(),
+                 _out.Dist(), std::get<Direction>(_direction), _flag());
     assert(!IsNull());
   }
 
   // Constructor for R2C or C2R.
-  Plan(DataView<InView> in, DataView<OutView> out, Flag flag)
+  Plan(View<InView> in, View<OutView> out, Flag flag)
   requires(IsComplex<InType> and IsReal<OutType>) or
               (IsReal<InType> and IsComplex<OutType>)
       : _in{in}, _out{out}, _flag{flag} {
     assert(CheckInputs());
-    _plan =
-        MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(), _in.DataPointer(),
-                 _in.EmbedPointer(), _in.Stride(), _in.Dist(),
-                 _out.DataPointer(), _out.EmbedPointer(), _out.Dist(), _flag);
+    _plan = MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(),
+                     _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
+                     _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
+                     _out.Stride(), _out.Dist(), _flag());
     assert(!IsNull());
   }
 
   // Constructors for R2R.
-  Plan(DataView<InView> in, DataView<OutView> out,
+  Plan(View<InView> in, View<OutView> out,
        std::initializer_list<RealKind> kinds, Flag flag)
   requires(IsReal<InType> and IsReal<OutType>)
       : _in{in}, _out{out}, _kinds{std::vector<RealKind>(kinds)}, _flag{flag} {
     assert(CheckInputs());
-    _plan =
-        MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(), _in.DataPointer(),
-                 _in.EmbedPointer(), _in.Stride(), _in.Dist(),
-                 _out.DataPointer(), _out.EmbedPointer(), _out.Dist(),
-                 std::get<std::vector<RealKind>>(_kinds).data(), _flag);
+    _plan = MakePlan(_in.Rank(), _in.NPointer(), _in.HowMany(),
+                     _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
+                     _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
+                     _out.Stride(), _out.Dist(),
+                     std::get<std::vector<RealKind>>(_kinds).data(), _flag());
     assert(!IsNull());
   }
 
   // return pointer to the fftw3 plan.
   auto Pointer() const {
-    if constexpr (IsSingle<Precision>) {
+    if constexpr (IsSingle<Real>) {
       return std::get<fftwf_plan>(_plan);
     }
-    if constexpr (IsDouble<Precision>) {
+    if constexpr (IsDouble<Real>) {
       return std::get<fftw_plan>(_plan);
     }
-    if constexpr (IsLongDouble<Precision>) {
+    if constexpr (IsLongDouble<Real>) {
       return std::get<fftwl_plan>(_plan);
     }
   }
@@ -109,17 +108,44 @@ class Plan {
   }
 
   // Execute the plan.
-  void Execute() { Execute(Pointer()); }
+  void Execute() { FFTWpp::Execute(Pointer()); }
 
  private:
-  DataView<InView> _in;
-  DataView<OutView> _out;
+  View<InView> _in;
+  View<OutView> _out;
   Flag _flag;
   std::variant<std::monostate, Direction> _direction;
   std::variant<std::monostate, std::vector<RealKind>> _kinds;
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> _plan;
 
-  auto CheckInputs() const { return true; }
+  auto CheckInputs() const {
+    // Check ranks are equal.
+    if (_in.Rank() != _out.Rank()) return false;
+    // Check number of transforms are equal.
+    if (_in.HowMany() != _out.HowMany()) return false;
+    // Check dimensions are equal for the different cases.
+    if constexpr (IsComplex<InType> && IsComplex<OutType>) {
+      return std::ranges::equal(_in.N(), _out.N());
+    } else if constexpr (IsComplex<InType> && IsReal<OutType>) {
+      return std::ranges::equal(
+                 _in.N() | std::views::reverse | std::views::take(1),
+                 _out.N() | std::views::reverse | std::views::take(1),
+                 [](auto x, auto y) { return x == y / 2 + 1; }) &&
+             std::ranges::equal(
+                 _in.N() | std::views::reverse | std::views::drop(1),
+                 _out.N() | std::views::reverse | std::views::drop(1));
+    } else if constexpr (IsReal<InType> && IsComplex<OutType>) {
+      return std::ranges::equal(
+                 _in.N() | std::views::reverse | std::views::take(1),
+                 _out.N() | std::views::reverse | std::views::take(1),
+                 [](auto x, auto y) { return x / 2 + 1 == y; }) &&
+             std::ranges::equal(
+                 _in.N() | std::views::reverse | std::views::drop(1),
+                 _out.N() | std::views::reverse | std::views::drop(1));
+    } else if constexpr (IsReal<InType> && IsReal<OutType>) {
+      return true;
+    }
+  }
 };
 
 }  // namespace Testing

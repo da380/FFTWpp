@@ -76,31 +76,30 @@ class Layout {
   int _dist;                // Offset between the start of each transformation.
 };
 
-template <std::ranges::view View>
+template <std::ranges::view _View>
 requires requires() {
-  requires std::ranges::output_range<View, std::ranges::range_value_t<View>>;
-  requires std::contiguous_iterator<std::ranges::iterator_t<View>>;
-  requires IsScalar<std::ranges::range_value_t<View>>;
+  requires std::ranges::output_range<_View, std::ranges::range_value_t<_View>>;
+  requires std::contiguous_iterator<std::ranges::iterator_t<_View>>;
+  requires IsScalar<std::ranges::range_value_t<_View>>;
 }
-class DataView : public std::ranges::view_interface<DataView<View>>,
-                 public Layout {
-  using std::ranges::view_interface<DataView<View>>::size;
+class View : public std::ranges::view_interface<View<_View>>, public Layout {
+  using std::ranges::view_interface<View<_View>>::size;
 
  public:
-  // Constructor given view which assumes a 1D transformation.
-  DataView(View view) : DataView(view, Layout(view.size())) {}
-
   // Constructor given view and a layout.
-  DataView(View view, Layout& layout) : Layout(layout), _view{view} {
+  View(_View view, Layout layout) : Layout(layout), _view{view} {
     assert(CheckSize());
   }
+
+  // Constructor given view which assumes a 1D transformation.
+  View(_View view) : View(view, Layout(view.size())) {}
 
   // Constructor given view and multi-dimensional transform parameters.
   template <typename... Dimensions>
   requires(sizeof...(Dimensions) > 0) and
           (std::convertible_to<Dimensions, int> && ...)
-  DataView(View view, Dimensions... dimensions)
-      : DataView(view, Layout(dimensions...)) {
+  View(_View view, Dimensions... dimensions)
+      : View(view, Layout(dimensions...)) {
     assert(CheckSize());
   }
 
@@ -110,9 +109,9 @@ class DataView : public std::ranges::view_interface<DataView<View>>,
     requires std::integral<std::ranges::range_value_t<R1>>;
     requires std::integral<std::ranges::range_value_t<R2>>;
   }
-  DataView(View view, int rank, R1&& n, int howMany, R2&& embed, int stride,
-           int dist)
-      : DataView(view, Layout(rank, n, howMany, embed, stride, dist)) {
+  View(_View view, int rank, R1&& n, int howMany, R2&& embed, int stride,
+       int dist)
+      : View(view, Layout(rank, n, howMany, embed, stride, dist)) {
     assert(CheckSize());
   }
 
@@ -125,19 +124,15 @@ class DataView : public std::ranges::view_interface<DataView<View>>,
 
  private:
   // Store view to the data.
-  View _view;
+  _View _view;
 
   // Check the dimensions are consistent.
-  auto CheckSize() const { return size() == Layout::size(); }
+  auto CheckSize() const { return _view.size() == Layout::size(); }
 };
 
-// Deduction guides to construct from a range.
-template <std::ranges::range R1, std::ranges::range R2, std::ranges::range R3>
-DataView(int, R1&&, int, R2&&, int, int, R3&&)
-    -> DataView<std::ranges::views::all_t<R3>>;
-
-template <std::ranges::range R>
-DataView(Layout&, R&&) -> DataView<std::ranges::views::all_t<R>>;
+// Deduction guide to allow range arguments.
+template <std::ranges::range R, typename... Args>
+View(R&&, Args...) -> View<std::ranges::views::all_t<R>>;
 
 }  // namespace Testing
 
