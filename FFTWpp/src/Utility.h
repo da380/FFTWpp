@@ -38,6 +38,24 @@ auto DataSize(Dimensions... dimensions) {
   }
 }
 
+template <IsScalar InType, IsScalar OutType, typename... Dimensions>
+requires(sizeof...(Dimensions) > 0) and
+        (std::convertible_to<Dimensions, int> && ...)
+auto DataDimensions(Dimensions... dimensions) {
+  auto dimensions0 = std::vector<int>{{dimensions...}};
+  if constexpr (std::same_as<InType, OutType>) {
+    return std::pair(dimensions0, dimensions0);
+  } else {
+    auto dimensions1 = dimensions0;
+    dimensions1.back() = dimensions1.back() / 2 + 1;
+    if constexpr (IsReal<InType> && IsComplex<OutType>) {
+      return std::pair(dimensions0, dimensions1);
+    } else {
+      return std::pair(dimensions1, dimensions0);
+    }
+  }
+}
+
 template <std::ranges::range Range>
 requires requires() {
   requires std::ranges::output_range<Range, std::ranges::range_value_t<Range>>;

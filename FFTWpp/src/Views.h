@@ -20,13 +20,18 @@ class Layout {
  public:
   Layout() = default;
 
-  // Constructor for multi-dimensional transforms.
+  // Constructors for multi-dimensional transforms.
   template <typename... Dimensions>
   requires(sizeof...(Dimensions) > 0) and
           (std::convertible_to<Dimensions, int> && ...)
   Layout(Dimensions... dimensions)
       : Layout(sizeof...(Dimensions), std::vector{dimensions...}, 1,
                std::vector{dimensions...}, 1, 0) {}
+
+  template <std::ranges::range R>
+  requires std::integral<std::ranges::range_value_t<R>>
+  Layout(R&& dimensions)
+      : Layout(dimensions.size(), dimensions, 1, dimensions, 1, 0) {}
 
   // Constructor for the advanced interface.
   template <std::ranges::range R1, std::ranges::range R2>
