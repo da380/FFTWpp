@@ -1,5 +1,5 @@
-add_executable(Example Example.cpp)
-target_link_libraries(Example FFTWpp)
+add_executable(Example1 Example1.cpp)
+target_link_libraries(Example1 FFTWpp)
 
 
 

@@ -5,7 +5,6 @@
 #include <tuple>
 #include <utility>
 
-#include "Concepts.h"
 #include "fftw3.h"
 
 namespace FFTWpp {

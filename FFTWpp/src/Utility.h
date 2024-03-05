@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <complex>
-#include <iostream>
 #include <random>
 #include <ranges>
 
@@ -44,7 +43,7 @@ requires requires() {
   requires std::ranges::output_range<Range, std::ranges::range_value_t<Range>>;
   requires IsScalar<std::ranges::range_value_t<Range>>;
 }
-void RandomizeValues(Range& range) {
+void RandomiseValues(Range& range) {
   using Scalar = std::ranges::range_value_t<Range>;
   using Real = RemoveComplex<Scalar>;
   std::random_device rd{};

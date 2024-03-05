@@ -5,8 +5,6 @@
 #include <cassert>
 #include <complex>
 #include <initializer_list>
-#include <iostream>
-#include <numeric>
 #include <ranges>
 #include <variant>
 
@@ -132,6 +130,18 @@ class Plan {
     }
   }
 
+  auto& Pointer() {
+    if constexpr (IsSingle<Real>) {
+      return std::get<fftwf_plan>(_plan);
+    }
+    if constexpr (IsDouble<Real>) {
+      return std::get<fftw_plan>(_plan);
+    }
+    if constexpr (IsLongDouble<Real>) {
+      return std::get<fftwl_plan>(_plan);
+    }
+  }
+
   // Returns true is plan is not set up.
   auto IsNull() { return Pointer() == nullptr; }
 
@@ -226,21 +236,8 @@ class Plan {
   // Destroy the stored plan.
   void Destroy() {
     if (IsNull()) return;
-    if constexpr (IsSingle<Real>) {
-      auto& plan = std::get<fftwf_plan>(_plan);
-      fftwf_destroy_plan(plan);
-      plan = nullptr;
-    }
-    if constexpr (IsDouble<Real>) {
-      auto& plan = std::get<fftw_plan>(_plan);
-      fftw_destroy_plan(plan);
-      plan = nullptr;
-    }
-    if constexpr (IsLongDouble<Real>) {
-      auto& plan = std::get<fftwl_plan>(_plan);
-      fftwl_destroy_plan(plan);
-      plan = nullptr;
-    }
+    FFTWpp::Destroy(Pointer());
+    Pointer() = nullptr;
   }
 };
 

@@ -3,7 +3,6 @@
 
 // Header files to be included to use the FFTWpp library.
 #include "fftw3.h"
-#include "src/Concepts.h"
 #include "src/Core.h"
 #include "src/Utility.h"
 
