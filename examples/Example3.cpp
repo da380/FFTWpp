@@ -31,14 +31,12 @@ as additional arguments.
 For real-to-real transformations, it is also necessary to pass
 in the transformation kind along each direction.
 
-As is shown in these examples, the necessary information
-can be passed to the constructor in two mains ways:
-
-(1) using variadic templated functions;
-(2) using suitable ranges.
-
-Either case can be useful, and we illustrate some helper
-functions that simplify the steps.
+These additional arguments are including using variadic
+templates. With the dimensions the number of arguments provides
+the rank. With the real kinds, if fewer arguments are provided,
+it is assumed that all remaining values are equal to the final
+one provided. In particular, if you want all real kinds to be
+the same, then only one value need be given.
 
 //----------------------------------------------------------*/
 
@@ -94,7 +92,7 @@ int main() {
   //       3D real-complex transformation pair      //
   //------------------------------------------------//
   {
-    // Set dimension.
+    // Set dimension2.
     auto n0 = 10;
     auto n1 = 40;
     auto n2 = 5;
@@ -107,16 +105,13 @@ int main() {
     auto out = FFTWpp::vector<Complex>(outSize);
     auto copy = FFTWpp::vector<Real>(inSize);
 
-    // Get data dimensions as integer-valued ranges.
-    auto [inDimensions, outDimensions] =
-        FFTWpp::DataDimensions<Real, Complex>(n0, n1, n2);
-
-    // Form the plans. Here we pass the constructor the data dimensions
-    // as an integer range.
-    auto planForward = Ranges::Plan(Ranges::View(in, inDimensions),
-                                    Ranges::View(out, outDimensions), Measure);
-    auto planBackward = Ranges::Plan(Ranges::View(out, outDimensions),
-                                     Ranges::View(copy, inDimensions), Measure);
+    // Form the plans. Note that for out the final dimension is n2/2+1
+    // due to in being real-valued.
+    auto planForward =
+        Ranges::Plan(Ranges::View(in, n0, n1, n2),
+                     Ranges::View(out, n0, n1, n2 / 2 + 1), Measure);
+    auto planBackward = Ranges::Plan(Ranges::View(out, n0, n1, n2 / 2 + 1),
+                                     Ranges::View(copy, n0, n1, n2), Measure);
 
     // Set values for in.
     FFTWpp::RandomiseValues(in);
@@ -135,49 +130,50 @@ int main() {
               << std::endl;
   }
 
-  /*
+  //------------------------------------------------//
+  //         4D real-real transformation pair       //
+  //------------------------------------------------//
+  {
+    // Set dimension.
+    auto n0 = 10;
+    auto n1 = 40;
+    auto n2 = 5;
+    auto n3 = 5;
 
-    //------------------------------------------------//
-    //         1D real-real transformation pair       //
-    //------------------------------------------------//
-    {
-      // Set dimension.
-      auto n = 200;
+    //  Get data sizes.
+    auto [inSize, outSize] = FFTWpp::DataSize<Real, Real>(n0, n1, n2, n3);
 
-      //  Get data sizes.
-      auto [inSize, outSize] = FFTWpp::DataSize<Real, Real>(n);
+    // Allocate in, out, and copy arrays.
+    auto in = FFTWpp::vector<Real>(inSize);
+    auto out = FFTWpp::vector<Real>(outSize);
+    auto copy = FFTWpp::vector<Real>(inSize);
 
-      // Allocate in, out, and copy arrays.
-      auto in = FFTWpp::vector<Real>(inSize);
-      auto out = FFTWpp::vector<Real>(outSize);
-      auto copy = FFTWpp::vector<Real>(inSize);
+    // Set the transform kind.
+    auto kind = R2HC;
 
-      // Set the transform kind.
-      auto kind = REDFT01;
+    // Form the plans. For the inverse transform we only need provide two
+    // real kinds because from the second onward all the kinds are equal.
+    auto planForward = Ranges::Plan(Ranges::View(in, n0, n1, n2, n3),
+                                    Ranges::View(out, n0, n1, n2, n3), Measure,
+                                    R2HC, DHT, DHT, DHT);
+    auto planBackward = Ranges::Plan(Ranges::View(out, n0, n1, n2, n3),
+                                     Ranges::View(copy, n0, n1, n2, n3),
+                                     Measure, R2HC.Inverse(), DHT.Inverse());
 
-      // Form the plans. Note the for the inverse transformation we
-      // deduce the kind from that of the forward via the "Inverse"
-      // method within the RealKind class.
-      auto planForward =
-          Ranges::Plan(Ranges::View(in), Ranges::View(out), kind, Measure);
-      auto planBackward = Ranges::Plan(Ranges::View(out), Ranges::View(copy),
-                                       kind.Inverse(), Measure);
+    // Set values for in.
+    FFTWpp::RandomiseValues(in);
 
-      // Set values for in.
-      FFTWpp::RandomiseValues(in);
+    // Execute the plans.
+    planForward.Execute();
+    planBackward.Execute();
 
-      // Execute the plans.
-      planForward.Execute();
-      planBackward.Execute();
-
-      // Print the error on the transform pair.
-      std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                       [&planBackward](auto x, auto y) {
-                         return std::abs(x - y * planBackward.Normalisation());
-                       },
-                       std::ranges::views::all(in),
-                       std::ranges::views::all(copy)))
-                << std::endl;
-    }
-    */
+    // Print the error on the transform pair.
+    std::cout << std::ranges::max(std::ranges::views::zip_transform(
+                     [&planBackward](auto x, auto y) {
+                       return std::abs(x - y * planBackward.Normalisation());
+                     },
+                     std::ranges::views::all(in),
+                     std::ranges::views::all(copy)))
+              << std::endl;
+  }
 }

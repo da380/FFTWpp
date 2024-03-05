@@ -57,18 +57,23 @@ class Plan {
     MakePlan(_flag);
   }
 
-  // Constructors for R2R.
-  Plan(View<InView> in, View<OutView> out,
-       std::initializer_list<RealKind>&& kinds, Flag flag)
-  requires(IsReal<InType> and IsReal<OutType>)
-      : _in{in}, _out{out}, _flag{flag}, _kinds{kinds} {
-    assert(CheckInputs());
-    MakePlan(_flag);
-  }
-
-  Plan(View<InView> in, View<OutView> out, RealKind kind, Flag flag)
-  requires(IsReal<InType> and IsReal<OutType>)
-      : _in{in}, _out{out}, _flag{flag}, _kinds{std::vector(_in.Rank(), kind)} {
+  // Constructor for R2R.
+  template <typename... RealKinds>
+  requires(sizeof...(RealKinds) > 0) and
+              (std::same_as<RealKinds, RealKind> && ...)
+  Plan(View<InView> in, View<OutView> out, Flag flag, RealKinds... kinds)
+      : _in{in},
+        _out{out},
+        _flag{flag},
+        _kinds{std::vector<RealKind>{kinds...}} {
+    assert(Kinds().size() <= _in.Rank());
+    if (Kinds().size() < _in.Rank()) {
+      auto tmp = std::get<std::vector<RealKind>>(_kinds);
+      while (tmp.size() < _in.Rank()) {
+        tmp.push_back(tmp.back());
+      }
+      _kinds = tmp;
+    }
     assert(CheckInputs());
     MakePlan(_flag);
   }

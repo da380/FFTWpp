@@ -138,9 +138,9 @@ int main() {
     // deduce the kind from that of the forward via the "Inverse"
     // method within the RealKind class.
     auto planForward =
-        Ranges::Plan(Ranges::View(in), Ranges::View(out), kind, Measure);
+        Ranges::Plan(Ranges::View(in), Ranges::View(out), Measure, kind);
     auto planBackward = Ranges::Plan(Ranges::View(out), Ranges::View(copy),
-                                     kind.Inverse(), Measure);
+                                     Measure, kind.Inverse());
 
     // Set values for in.
     FFTWpp::RandomiseValues(in);
