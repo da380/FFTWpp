@@ -59,9 +59,16 @@ class Plan {
 
   // Constructors for R2R.
   Plan(View<InView> in, View<OutView> out,
-       std::initializer_list<RealKind> kinds, Flag flag)
+       std::initializer_list<RealKind>&& kinds, Flag flag)
   requires(IsReal<InType> and IsReal<OutType>)
-      : _in{in}, _out{out}, _kinds{std::vector<RealKind>(kinds)}, _flag{flag} {
+      : _in{in}, _out{out}, _flag{flag}, _kinds{kinds} {
+    assert(CheckInputs());
+    MakePlan(_flag);
+  }
+
+  Plan(View<InView> in, View<OutView> out, RealKind kind, Flag flag)
+  requires(IsReal<InType> and IsReal<OutType>)
+      : _in{in}, _out{out}, _flag{flag}, _kinds{std::vector(_in.Rank(), kind)} {
     assert(CheckInputs());
     MakePlan(_flag);
   }
@@ -145,25 +152,18 @@ class Plan {
   // Returns true is plan is not set up.
   auto IsNull() { return Pointer() == nullptr; }
 
-  auto Kinds() const
-  requires(!IsReal<InType> || !IsReal<OutType>)
-  {
-    return std::ranges::views::all(std::get<std::vector<RealKind>>(_kinds));
-  }
-
   // Normalisation factor for inverse transformations.
   auto Normalisation() const {
     int dim;
-    if constexpr (!IsReal<InType> || !IsReal<OutType>) {
+    if constexpr (IsComplex<InType> || IsComplex<OutType>) {
       dim = std::ranges::fold_left_first(_out.N(), std::multiplies<>()).value();
     } else {
-      auto dim =
-          std::ranges::fold_left_first(
-              std::ranges::views::zip_transform(
-                  [](auto n, auto kind) { return kind.LogicalDimension(n); },
-                  _in.N(), Kinds()),
-              std::multiplies<>())
-              .value();
+      dim = std::ranges::fold_left_first(
+                std::ranges::views::zip_transform(
+                    [](auto n, auto kind) { return kind.LogicalDimension(n); },
+                    _out.N(), Kinds()),
+                std::multiplies<>())
+                .value();
     }
     return static_cast<OutType>(1) / static_cast<OutType>(dim);
   }
@@ -213,24 +213,32 @@ class Plan {
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
                            _out.Stride(), _out.Dist(),
                            std::get<Direction>(_direction)(), flag());
-    } else if constexpr ((IsComplex<InType> and IsReal<OutType>)) {
+    } else if constexpr ((IsComplex<InType> && IsReal<OutType>)) {
       _plan = FFTWpp::Plan(_out.Rank(), _out.NPointer(), _out.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
                            _out.Stride(), _out.Dist(), flag());
-    } else if constexpr ((IsReal<InType> and IsComplex<OutType>)) {
+    } else if constexpr ((IsReal<InType> && IsComplex<OutType>)) {
       _plan = FFTWpp::Plan(_in.Rank(), _in.NPointer(), _in.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
                            _out.Stride(), _out.Dist(), flag());
-    } else if constexpr (IsReal<InType> and IsReal<OutType>) {
-      _plan = FFTWpp::Plan(
-          _in.Rank(), _in.NPointer(), _in.HowMany(), _in.DataPointer(),
-          _in.EmbedPointer(), _in.Stride(), _in.Dist(), _out.DataPointer(),
-          _out.EmbedPointer(), _out.Stride(), _out.Dist(),
-          std::get<std::vector<RealKind>>(_kinds).data(), flag());
+    } else if constexpr (IsReal<InType> && IsReal<OutType>) {
+      auto kinds = std::vector<fftw_r2r_kind>();
+      std::transform(Kinds().begin(), Kinds().end(), std::back_inserter(kinds),
+                     [](auto kind) { return kind(); });
+      _plan = FFTWpp::Plan(_in.Rank(), _in.NPointer(), _in.HowMany(),
+                           _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
+                           _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
+                           _out.Stride(), _out.Dist(), kinds.data(), flag());
     }
     assert(!IsNull());
+  }
+
+  auto Kinds() const
+  requires(IsReal<InType> && IsReal<OutType>)
+  {
+    return std::ranges::views::all(std::get<std::vector<RealKind>>(_kinds));
   }
 
   // Destroy the stored plan.

@@ -438,11 +438,11 @@ auto Plan(int rank, int* n, int howMany, Real* in, int* inEmbed, int inStride,
           int inDist, Real* out, int* outEmbed, int outStride, int outDist,
           fftw_r2r_kind* kind, unsigned flags) {
   if constexpr (IsSingle<Real>) {
-    return fftwf_plan_many_r2c(rank, n, howMany, in, inEmbed, inStride, inDist,
+    return fftwf_plan_many_r2r(rank, n, howMany, in, inEmbed, inStride, inDist,
                                out, outEmbed, outStride, outDist, kind, flags);
   }
   if constexpr (IsDouble<Real>) {
-    return fftw_plan_many_r2c(rank, n, howMany, in, inEmbed, inStride, inDist,
+    return fftw_plan_many_r2r(rank, n, howMany, in, inEmbed, inStride, inDist,
                               out, outEmbed, outStride, outDist, kind, flags);
   }
   if constexpr (IsLongDouble<Real>) {

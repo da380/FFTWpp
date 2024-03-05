@@ -42,7 +42,8 @@ on the dimensions of input arrays via assert statements.
 int main() {
   using namespace FFTWpp;
 
-  // Set the data types.
+  // Set the data types. The choice of Real cannot be changed
+  // without appropriate modification to the direct fftw code.
   using Real = double;
   using InType = Real;
   using OutType = std::complex<Real>;
@@ -57,8 +58,9 @@ int main() {
   auto out = FFTWpp::vector<OutType>(outSize);
   auto copy = FFTWpp::vector<InType>(inSize);
 
-  // Direct fftw3 section. Note that is Real != double this
-  // code block will not work.
+  //----------------------------------------------------------------//
+  //                      Direct fftw3 section                      //
+  //----------------------------------------------------------------//
   {
     // Make the plans.
     auto planForward = fftw_plan_dft_r2c_1d(
@@ -67,20 +69,23 @@ int main() {
     auto planBackward =
         fftw_plan_dft_c2r_1d(n, reinterpret_cast<fftw_complex*>(out.data()),
                              copy.data(), FFTW_MEASURE);
+
     // Set in values.
     FFTWpp::RandomiseValues(in);
+
     // Execute plans.
     fftw_execute(planForward);
     fftw_execute(planBackward);
+
     // Print the error on the transform pair.
-    std::cout << "Raw fftw3 section:\n Error = "
-              << std::ranges::max(std::ranges::views::zip_transform(
+    std::cout << std::ranges::max(std::ranges::views::zip_transform(
                      [n](auto x, auto y) {
                        return std::abs(x - y / static_cast<double>(n));
                      },
                      std::ranges::views::all(in),
                      std::ranges::views::all(copy)))
               << std::endl;
+
     // Delete the plans to free memory.
     fftw_destroy_plan(planForward);
     fftw_destroy_plan(planBackward);
@@ -91,20 +96,23 @@ int main() {
     // Make the plans.
     auto planForward = Plan(n, in.data(), out.data(), FFTW_MEASURE);
     auto planBackward = Plan(n, out.data(), copy.data(), FFTW_MEASURE);
+
     // Set in values.
     FFTWpp::RandomiseValues(in);
+
     // Execute the plans.
     Execute(planForward);
     Execute(planBackward);
+
     // Print the error on the transform pair.
-    std::cout << "Minimal FFTWpp section:\n Error = "
-              << std::ranges::max(std::ranges::views::zip_transform(
+    std::cout << std::ranges::max(std::ranges::views::zip_transform(
                      [n](auto x, auto y) {
                        return std::abs(x - y / static_cast<double>(n));
                      },
                      std::ranges::views::all(in),
                      std::ranges::views::all(copy)))
               << std::endl;
+
     // Delete the plans to free memory.
     Destroy(planForward);
     Destroy(planBackward);
@@ -123,8 +131,7 @@ int main() {
     planForward.Execute();
     planBackward.Execute();
     // Print the error on the transform pair.
-    std::cout << "Full FFTWpp section:\n Error = "
-              << std::ranges::max(std::ranges::views::zip_transform(
+    std::cout << std::ranges::max(std::ranges::views::zip_transform(
                      [&planBackward](auto x, auto y) {
                        return std::abs(x - y * planBackward.Normalisation());
                      },

@@ -80,7 +80,7 @@ class RealKind {
       case FFTW_RODFT11:
         return RealKind{FFTW_RODFT11};
       default:
-        std::unreachable;
+        return RealKind{FFTW_HC2R};
     }
   }
 
@@ -109,7 +109,7 @@ class RealKind {
       case FFTW_RODFT11:
         return 2 * n;
       default:
-        std::unreachable;
+        return n;
     }
   }
 
