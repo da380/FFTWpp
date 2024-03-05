@@ -452,6 +452,26 @@ auto Plan(int rank, int* n, int howMany, Real* in, int* inEmbed, int inStride,
 }
 
 //----------------------------------------------------------//
+//                 Plan distruction functions               //
+//----------------------------------------------------------//
+
+template <typename PlanType>
+requires std::same_as<PlanType, fftwf_plan> or
+         std::same_as<PlanType, fftw_plan> or std::same_as<PlanType, fftwl_plan>
+void Destroy(PlanType plan) {
+  assert(plan != nullptr);
+  if constexpr (std::same_as<PlanType, fftwf_plan>) {
+    fftwf_destroy_plan(plan);
+  }
+  if constexpr (std::same_as<PlanType, fftw_plan>) {
+    fftw_destroy_plan(plan);
+  }
+  if constexpr (std::same_as<PlanType, fftwl_plan>) {
+    fftwl_destroy_plan(plan);
+  }
+}
+
+//----------------------------------------------------------//
 //                  Plan execution functions                //
 //----------------------------------------------------------//
 

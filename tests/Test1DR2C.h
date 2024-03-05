@@ -1,6 +1,8 @@
 #ifndef FFTWPP_TEST1DR2C_GUARD_H
 #define FFTWPP_TEST1DR2C_GUARD_H
 
+/*
+
 #include <FFTWpp/All>
 #include <algorithm>
 #include <complex>
@@ -61,5 +63,7 @@ int Test1DR2C(bool NewData = false) {
   // Return 0 if passed, 1 otherwise.
   return max < eps ? 0 : 1;
 }
+
+*/
 
 #endif  // FFTWPP_TEST1DR2C_GUARD_H

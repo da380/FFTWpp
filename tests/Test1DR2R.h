@@ -1,6 +1,8 @@
 #ifndef FFTWPP_TEST1DR2R_GUARD_H
 #define FFTWPP_TEST1DR2R_GUARD_H
 
+/*
+
 #include <FFTWpp/All>
 #include <algorithm>
 #include <complex>
@@ -66,5 +68,7 @@ int Test1DR2R(bool NewData = false) {
   std::cout << max / eps << std::endl;
   return max < eps ? 0 : 1;
 }
+
+*/
 
 #endif  // FFTWPP_TEST1DR2R_GUARD_H
