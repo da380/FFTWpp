@@ -203,8 +203,12 @@ class Plan {
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
                            _out.Stride(), _out.Dist(),
                            std::get<Direction>(_direction)(), flag());
-    } else if constexpr ((IsComplex<InType> and IsReal<OutType>) or
-                         (IsReal<InType> and IsComplex<OutType>)) {
+    } else if constexpr ((IsComplex<InType> and IsReal<OutType>)) {
+      _plan = FFTWpp::Plan(_out.Rank(), _out.NPointer(), _out.HowMany(),
+                           _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
+                           _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
+                           _out.Stride(), _out.Dist(), flag());
+    } else if constexpr ((IsReal<InType> and IsComplex<OutType>)) {
       _plan = FFTWpp::Plan(_in.Rank(), _in.NPointer(), _in.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),

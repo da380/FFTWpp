@@ -9,13 +9,9 @@
 int main() {
   using namespace FFTWpp;
 
-  // Set the precision.
-  using Real = double;
-  using Complex = std::complex<Real>;
-
   // Set the data types.
-  using InType = Real;
-  using OutType = Complex;
+  using InType = double;
+  using OutType = std::complex<double>;
 
   // Generate allocate input and output arrays.
   auto n = 64;
@@ -38,13 +34,12 @@ int main() {
     // Execute plans.
     fftw_execute(planForward);
     fftw_execute(planBackward);
-    // Normalise the inverse transformation.
-    std::transform(copy.begin(), copy.end(), copy.begin(),
-                   [n](auto x) { return x / static_cast<double>(n); });
     // Print the error on the transform pair.
     std::cout << "Raw fftw3 section:\n Error = "
               << std::ranges::max(std::ranges::views::zip_transform(
-                     [](auto x, auto y) { return std::abs(x - y); },
+                     [n](auto x, auto y) {
+                       return std::abs(x - y / static_cast<double>(n));
+                     },
                      std::ranges::views::all(in),
                      std::ranges::views::all(copy)))
               << std::endl;
@@ -63,13 +58,12 @@ int main() {
     // Execute the plans.
     Execute(planForward);
     Execute(planBackward);
-    // Normalise the inverse transformation.
-    std::transform(copy.begin(), copy.end(), copy.begin(),
-                   [n](auto x) { return x / static_cast<double>(n); });
     // Print the error on the transform pair.
     std::cout << "Minimal FFTWpp section:\n Error = "
               << std::ranges::max(std::ranges::views::zip_transform(
-                     [](auto x, auto y) { return std::abs(x - y); },
+                     [n](auto x, auto y) {
+                       return std::abs(x - y / static_cast<double>(n));
+                     },
                      std::ranges::views::all(in),
                      std::ranges::views::all(copy)))
               << std::endl;
@@ -80,35 +74,27 @@ int main() {
 
   // Full usage of FFTWpp
   {
-    auto inLayout =
-        Ranges::Layout(1, std::vector{inSize}, 1, std::vector{inSize}, 1, 1);
-    auto outLayout =
-        Ranges::Layout(1, std::vector{outSize}, 1, std::vector{outSize}, 1, 1);
     // Make the plans.
-    auto planForward = Ranges::Plan(Ranges::View(in, inLayout),
-                                    Ranges::View(out, outLayout), Measure);
-    // auto planBackward = Ranges::Plan(Ranges::View(out, outLayout),
-    // Ranges::View(copy, inLayout), Measure);
+    auto planForward =
+        Ranges::Plan(Ranges::View(in), Ranges::View(out), Measure);
+    auto planBackward =
+        Ranges::Plan(Ranges::View(out), Ranges::View(copy), Measure);
     // Set in values.
-    // FFTWpp::RandomizeValues(in);
-    in = FFTWpp::vector<InType>(inSize, 1);
+    FFTWpp::RandomizeValues(in);
     // Execute the plans.
     planForward.Execute();
-    // planBackward.Execute();
-
-    for (auto val : out) std::cout << val << std::endl;
-
-    /*
-      // Normalise the inverse transformation.
-      std::transform(copy.begin(), copy.end(), copy.begin(),
-                     [&](auto x) { return x / static_cast<Real>(n); });
-      // Print the error on the transform pair.
-      std::cout << "Full FFTWpp section:\n Error = "
-                << std::ranges::max(std::ranges::views::zip_transform(
-                       [](auto x, auto y) { return std::abs(x - y); },
-                       std::ranges::views::all(in),
-                       std::ranges::views::all(copy)))
-                << std::endl;
-                */
+    planBackward.Execute();
+    // Print the error on the transform pair.
+    std::cout << "Full FFTWpp section:\n Error = "
+              << std::ranges::max(std::ranges::views::zip_transform(
+                     [&planBackward](auto x, auto y) {
+                       return std::abs(x - y * planBackward.Normalisation());
+                     },
+                     std::ranges::views::all(in),
+                     std::ranges::views::all(copy)))
+              << std::endl;
   }
+
+  // Optionally free harmless remaining memory.
+  FFTWpp::CleanUp();
 }
