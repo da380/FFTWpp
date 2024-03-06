@@ -22,8 +22,7 @@ auto DataSize(Dimensions... dimensions) {
     return std::pair(size0, size0);
   } else {
     auto rank = dims.size();
-    auto last = dims[rank - 1];
-
+    auto last = dims.back();
     auto size1 =
         std::ranges::fold_left_first(
             std::ranges::views::all(dims) | std::ranges::views::take(rank - 1),

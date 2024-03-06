@@ -68,11 +68,11 @@ class Plan {
         _kinds{std::vector<RealKind>{kinds...}} {
     assert(Kinds().size() <= _in.Rank());
     if (Kinds().size() < _in.Rank()) {
-      auto tmp = std::get<std::vector<RealKind>>(_kinds);
-      while (tmp.size() < _in.Rank()) {
-        tmp.push_back(tmp.back());
+      auto kinds = std::get<std::vector<RealKind>>(_kinds);
+      while (kinds.size() < _in.Rank()) {
+        kinds.push_back(kinds.back());
       }
-      _kinds = tmp;
+      _kinds = kinds;
     }
     assert(CheckInputs());
     MakePlan(_flag);

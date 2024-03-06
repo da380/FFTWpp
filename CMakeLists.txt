@@ -42,6 +42,18 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 endif()
 
 
+find_package(Doxygen)
+  if(DOXYGEN_FOUND)
+  set(DOXYGEN_HIDE_UNDOC_MEMBERS YES)
+  set(DOXYGEN_HIDE_UNDOC_CLASSES YES)
+    doxygen_add_docs(doxygen 
+    FFTWpp/src
+    COMMENT "Generate HTML documentation"
+   )
+  endif()
+
+
+
 
 
 
