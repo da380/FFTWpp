@@ -31,8 +31,7 @@ class Layout {
 
   // Constructor for multi-dimensional transforms.
   template <typename... Dimensions>
-  requires(sizeof...(Dimensions) > 0) and
-          (std::convertible_to<Dimensions, int> && ...)
+  requires(sizeof...(Dimensions) > 0) and (std::integral<Dimensions> && ...)
   Layout(Dimensions... dimensions)
       : Layout(sizeof...(Dimensions), std::vector{dimensions...}, 1,
                std::vector{dimensions...}, 1, 0) {}

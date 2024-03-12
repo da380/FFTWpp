@@ -13,8 +13,7 @@ namespace FFTWpp {
 // Returns the size of in and out arrays for transforms with
 // given dimensions.
 template <IsScalar InType, IsScalar OutType, typename... Dimensions>
-requires(sizeof...(Dimensions) > 0) and
-        (std::convertible_to<Dimensions, int> && ...)
+requires(sizeof...(Dimensions) > 0) and (std::integral<Dimensions> && ...)
 auto DataSize(Dimensions... dimensions) {
   auto dims = std::vector<int>{{dimensions...}};
   auto size0 = std::ranges::fold_left_first(std::ranges::views::all(dims),
