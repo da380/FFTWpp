@@ -1,60 +1,63 @@
 #include <gtest/gtest.h>
 
-#include "MakeData.h"
-#include "Test1DC2C.h"
-#include "Test1DR2C.h"
-#include "Test1DR2R.h"
+#include "Test1D.h"
 
-TEST(Test1, Part1) { EXPECT_EQ(0, 0); }
-
-/*
-
-// Tests for 1D complex transformations
-
-TEST(Test1DC2C, Float) { EXPECT_EQ(0, Test1DC2C<float>()); }
-
-TEST(Test1DC2C, FloatNewData) { EXPECT_EQ(0, Test1DC2C<float>(true)); }
-
-TEST(Test1DC2C, Double) { EXPECT_EQ(0, Test1DC2C<double>()); }
-
-TEST(Test1DC2C, DoubleNewData) { EXPECT_EQ(0, Test1DC2C<double>(true)); }
-
-TEST(Test1DC2C, LongDouble) { EXPECT_EQ(0, Test1DC2C<long double>()); }
-
-TEST(Test1DC2C, LongDoubleNewData) {
-  EXPECT_EQ(0, Test1DC2C<long double>(true));
+// 1D C2C tests
+TEST(Test1DC2C, FLOAT) {
+  using Complex = std::complex<float>;
+  auto result = Test1D<Complex, Complex>();
+  EXPECT_TRUE(result);
 }
 
-// Tests for 1D real-to-complex transformations.
-
-TEST(Test1DR2C, Float) { EXPECT_EQ(0, Test1DR2C<float>()); }
-
-TEST(Test1DR2C, FloatNewData) { EXPECT_EQ(0, Test1DR2C<float>(true)); }
-
-TEST(Test1DR2C, Double) { EXPECT_EQ(0, Test1DR2C<double>()); }
-
-TEST(Test1DR2C, DoubleNewData) { EXPECT_EQ(0, Test1DR2C<double>(true)); }
-
-TEST(Test1DR2C, LongDouble) { EXPECT_EQ(0, Test1DR2C<long double>()); }
-
-TEST(Test1DR2C, LongDoubleNewData) {
-  EXPECT_EQ(0, Test1DR2C<long double>(true));
+TEST(Test1DC2C, DOUBLE) {
+  using Complex = std::complex<double>;
+  auto result = Test1D<Complex, Complex>();
+  EXPECT_TRUE(result);
 }
 
-// Tests for 1D real-to-real transformations.
-
-TEST(Test1DR2R, Float) { EXPECT_EQ(0, Test1DR2R<float>()); }
-
-TEST(Test1DR2R, FloatNewData) { EXPECT_EQ(0, Test1DR2R<float>(true)); }
-
-TEST(Test1DR2R, Double) { EXPECT_EQ(0, Test1DR2R<double>()); }
-
-TEST(Test1DR2R, DoubleNewData) { EXPECT_EQ(0, Test1DR2R<double>(true)); }
-
-TEST(Test1DR2R, LongDouble) { EXPECT_EQ(0, Test1DR2R<long double>()); }
-
-TEST(Test1DR2R, LongDoubleNewData) {
-  EXPECT_EQ(0, Test1DR2R<long double>(true));
+TEST(Test1DC2C, LONGDOUBLE) {
+  using Complex = std::complex<long double>;
+  auto result = Test1D<Complex, Complex>();
+  EXPECT_TRUE(result);
 }
 
-*/
+// 1D R2C tests
+TEST(Test1DR2C, FLOAT) {
+  using Real = float;
+  using Complex = std::complex<Real>;
+  auto result = Test1D<Real, Complex>();
+  EXPECT_TRUE(result);
+}
+
+TEST(Test1DR2C, DOUBLE) {
+  using Real = double;
+  using Complex = std::complex<Real>;
+  auto result = Test1D<Real, Complex>();
+  EXPECT_TRUE(result);
+}
+
+TEST(Test1DR2C, LONGDOUBLE) {
+  using Real = long double;
+  using Complex = std::complex<Real>;
+  auto result = Test1D<Real, Complex>();
+  EXPECT_TRUE(result);
+}
+
+// 1D R2R tests
+TEST(Test1DR2R, FLOAT) {
+  using Real = float;
+  auto result = Test1D<Real, Real>();
+  EXPECT_TRUE(result);
+}
+
+TEST(Test1DR2R, DOUBLE) {
+  using Real = double;
+  auto result = Test1D<Real, Real>();
+  EXPECT_TRUE(result);
+}
+
+TEST(Test1DR2R, LONGDOUBLE) {
+  using Real = long double;
+  auto result = Test1D<Real, Real>();
+  EXPECT_TRUE(result);
+}

@@ -16,8 +16,17 @@ namespace FFTWpp {
 
 namespace Ranges {
 
+/**
+ * @brief Class to store data storage information following the
+ * `fftw3` advanced interface.
+ *
+ */
 class Layout {
  public:
+  /**
+   * @brief Default constructor.
+   *
+   */
   Layout() = default;
 
   // Constructor for multi-dimensional transforms.
@@ -28,11 +37,10 @@ class Layout {
       : Layout(sizeof...(Dimensions), std::vector{dimensions...}, 1,
                std::vector{dimensions...}, 1, 0) {}
 
-  // Constructor for the advanced interface.
   template <std::ranges::range R1, std::ranges::range R2>
   requires requires() {
-    requires std::integral<std::ranges::range_value_t<R1>>;
-    requires std::integral<std::ranges::range_value_t<R2>>;
+    requires std::convertible_to<std::ranges::range_value_t<R1>, int>;
+    requires std::convertible_to<std::ranges::range_value_t<R2>, int>;
   }
   Layout(int rank, R1&& n, int howMany, R2&& embed, int stride, int dist)
       : _rank{rank},
@@ -72,6 +80,13 @@ class Layout {
   int _dist;                // Offset between the start of each transformation.
 };
 
+/**
+ * @brief Provides a view of data along with storage information
+ * required for constructing FFTWpp plans.
+ *
+ * @tparam _View
+ * @return requires
+ */
 template <std::ranges::view _View>
 requires requires() {
   requires std::ranges::output_range<_View, std::ranges::range_value_t<_View>>;
@@ -96,18 +111,6 @@ class View : public std::ranges::view_interface<View<_View>>, public Layout {
           (std::convertible_to<Dimensions, int> && ...)
   View(_View view, Dimensions... dimensions)
       : View(view, Layout(dimensions...)) {
-    assert(CheckSize());
-  }
-
-  // Constructor given view and advanced interface parameters.
-  template <std::ranges::range R1, std::ranges::range R2>
-  requires requires() {
-    requires std::integral<std::ranges::range_value_t<R1>>;
-    requires std::integral<std::ranges::range_value_t<R2>>;
-  }
-  View(_View view, int rank, R1&& n, int howMany, R2&& embed, int stride,
-       int dist)
-      : View(view, Layout(rank, n, howMany, embed, stride, dist)) {
     assert(CheckSize());
   }
 

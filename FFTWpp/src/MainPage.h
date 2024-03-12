@@ -6,12 +6,6 @@
 @brief c++ interface to the fftw3 library.
 
 
-    auto planForward =
-        Ranges::Plan(Ranges::View(in), Ranges::View(out), Measure);
-    auto planBackward =
-        Ranges::Plan(Ranges::View(out), Ranges::View(copy), Measure);
-
-
 */
 
 /** @namespace FFTWpp

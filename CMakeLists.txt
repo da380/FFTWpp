@@ -46,6 +46,7 @@ find_package(Doxygen)
   if(DOXYGEN_FOUND)
   set(DOXYGEN_HIDE_UNDOC_MEMBERS YES)
   set(DOXYGEN_HIDE_UNDOC_CLASSES YES)
+  set(DOXYGEN_INLINE_INHERITED_MEMB YES)
     doxygen_add_docs(doxygen 
     FFTWpp/src
     COMMENT "Generate HTML documentation"

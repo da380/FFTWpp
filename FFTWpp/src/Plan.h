@@ -18,6 +18,13 @@ namespace FFTWpp {
 
 namespace Ranges {
 
+/**
+ * @brief FFTWpp plan class.
+ *
+ * @tparam InView
+ * @tparam OutView
+ * @return requires
+ */
 template <std::ranges::view InView, std::ranges::view OutView>
 requires requires() {
   requires std::ranges::output_range<InView,

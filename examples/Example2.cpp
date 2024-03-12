@@ -51,9 +51,9 @@ int main() {
     auto n = 200;
 
     // Allocate in, out, and copy arrays.
-    auto in = FFTWpp::vector<Complex>(n);
-    auto out = FFTWpp::vector<Complex>(n);
-    auto copy = FFTWpp::vector<Complex>(n);
+    auto in = vector<Complex>(n);
+    auto out = vector<Complex>(n);
+    auto copy = vector<Complex>(n);
 
     // Form the plans
     auto planForward =
@@ -62,20 +62,16 @@ int main() {
         Ranges::Plan(Ranges::View(out), Ranges::View(copy), Measure, Backward);
 
     // Set values for in.
-    FFTWpp::RandomiseValues(in);
+    RandomiseValues(in);
 
     // Execute the plans.
     planForward.Execute();
     planBackward.Execute();
 
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [&planBackward](auto x, auto y) {
-                       return std::abs(x - y * planBackward.Normalisation());
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+    // Check the transforms worked.
+    if (!CheckValues(in, copy, planBackward.Normalisation())) {
+      std::cout << "Transform not okay\n";
+    }
   }
 
   //------------------------------------------------//
@@ -106,14 +102,10 @@ int main() {
     planForward.Execute();
     planBackward.Execute();
 
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [&planBackward](auto x, auto y) {
-                       return std::abs(x - y * planBackward.Normalisation());
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+    // Check the transforms worked.
+    if (!CheckValues(in, copy, planBackward.Normalisation())) {
+      std::cout << "Transform not okay\n";
+    }
   }
 
   //------------------------------------------------//
@@ -149,13 +141,9 @@ int main() {
     planForward.Execute();
     planBackward.Execute();
 
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [&planBackward](auto x, auto y) {
-                       return std::abs(x - y * planBackward.Normalisation());
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+    // Check the transforms worked.
+    if (!CheckValues(in, copy, planBackward.Normalisation())) {
+      std::cout << "Transform not okay\n";
+    }
   }
 }

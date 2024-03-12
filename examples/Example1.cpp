@@ -77,14 +77,11 @@ int main() {
     fftw_execute(planForward);
     fftw_execute(planBackward);
 
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [n](auto x, auto y) {
-                       return std::abs(x - y / static_cast<double>(n));
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+    // Check the transforms worked,
+    auto norm = static_cast<double>(1) / static_cast<double>(n);
+    if (!CheckValues(in, copy, norm)) {
+      std::cout << "Transforms not okay\n";
+    }
 
     // Delete the plans to free memory.
     fftw_destroy_plan(planForward);
@@ -104,14 +101,11 @@ int main() {
     Execute(planForward);
     Execute(planBackward);
 
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [n](auto x, auto y) {
-                       return std::abs(x - y / static_cast<double>(n));
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+    // Check the transforms worked.
+    auto norm = static_cast<double>(1) / static_cast<double>(n);
+    if (!CheckValues(in, copy, norm)) {
+      std::cout << "Transforms not okay\n";
+    }
 
     // Delete the plans to free memory.
     Destroy(planForward);
@@ -125,19 +119,19 @@ int main() {
         Ranges::Plan(Ranges::View(in), Ranges::View(out), Measure);
     auto planBackward =
         Ranges::Plan(Ranges::View(out), Ranges::View(copy), Measure);
+
     // Set in values.
     FFTWpp::RandomiseValues(in);
+
     // Execute the plans.
     planForward.Execute();
     planBackward.Execute();
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [&planBackward](auto x, auto y) {
-                       return std::abs(x - y * planBackward.Normalisation());
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+
+    // Check the transforms worked.
+    auto norm = planBackward.Normalisation();
+    if (!CheckValues(in, copy, norm)) {
+      std::cout << "Transform not okay\n";
+    }
   }
 
   // Optionally clean up "still reachably" memory.

@@ -33,10 +33,10 @@ in the transformation kind along each direction.
 
 These additional arguments are including using variadic
 templates. With the dimensions the number of arguments provides
-the rank. With the real kinds, if fewer arguments are provided,
+the rank. With the real kinds, if fewer arguments are given then
 it is assumed that all remaining values are equal to the final
 one provided. In particular, if you want all real kinds to be
-the same, then only one value need be given.
+the same, then it only need listed once.
 
 //----------------------------------------------------------*/
 
@@ -78,14 +78,10 @@ int main() {
     planForward.Execute();
     planBackward.Execute();
 
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [&planBackward](auto x, auto y) {
-                       return std::abs(x - y * planBackward.Normalisation());
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+    // Check the transforms worked.
+    if (!CheckValues(in, copy, planBackward.Normalisation())) {
+      std::cout << "Transform not okay\n";
+    }
   }
 
   //------------------------------------------------//
@@ -120,14 +116,10 @@ int main() {
     planForward.Execute();
     planBackward.Execute();
 
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [&planBackward](auto x, auto y) {
-                       return std::abs(x - y * planBackward.Normalisation());
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+    // Check the transforms worked.
+    if (!CheckValues(in, copy, planBackward.Normalisation())) {
+      std::cout << "Transform not okay\n";
+    }
   }
 
   //------------------------------------------------//
@@ -167,13 +159,9 @@ int main() {
     planForward.Execute();
     planBackward.Execute();
 
-    // Print the error on the transform pair.
-    std::cout << std::ranges::max(std::ranges::views::zip_transform(
-                     [&planBackward](auto x, auto y) {
-                       return std::abs(x - y * planBackward.Normalisation());
-                     },
-                     std::ranges::views::all(in),
-                     std::ranges::views::all(copy)))
-              << std::endl;
+    // Check the transforms worked.
+    if (!CheckValues(in, copy, planBackward.Normalisation())) {
+      std::cout << "Transform not okay\n";
+    }
   }
 }
