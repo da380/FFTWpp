@@ -183,6 +183,26 @@ class Plan {
   // Execute the plan.
   void Execute() { FFTWpp::Execute(Pointer()); }
 
+  // Execute using new data.
+  template <std::ranges::view NewInView, std::ranges::view NewOutView>
+  requires requires() {
+    requires std::ranges::output_range<NewInView,
+                                       std::ranges::range_value_t<NewInView>>;
+    requires std::contiguous_iterator<std::ranges::iterator_t<NewInView>>;
+    requires IsScalar<std::ranges::range_value_t<NewInView>>;
+    requires std::ranges::output_range<NewOutView,
+                                       std::ranges::range_value_t<NewOutView>>;
+    requires std::contiguous_iterator<std::ranges::iterator_t<NewOutView>>;
+    requires IsScalar<std::ranges::range_value_t<NewOutView>>;
+    requires std::same_as<std::ranges::range_value_t<InView>,
+                          std::ranges::range_value_t<NewInView>>;
+    requires std::same_as<std::ranges::range_value_t<OutView>,
+                          std::ranges::range_value_t<NewOutView>>;
+  }
+  void Execute(NewInView in, NewOutView out) {
+    FFTWpp::Execute(Pointer(), in.data(), out.data());
+  }
+
  private:
   View<InView> _in;
   View<OutView> _out;
