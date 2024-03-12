@@ -15,7 +15,7 @@ namespace FFTWpp {
 template <IsScalar InType, IsScalar OutType, typename... Dimensions>
 requires(sizeof...(Dimensions) > 0) and (std::integral<Dimensions> && ...)
 auto DataSize(Dimensions... dimensions) {
-  auto dims = std::vector<int>{{dimensions...}};
+  auto dims = std::vector{{dimensions...}};
   auto size0 = std::ranges::fold_left_first(std::ranges::views::all(dims),
                                             std::multiplies<>())
                    .value();
