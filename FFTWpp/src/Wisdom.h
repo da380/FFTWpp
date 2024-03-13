@@ -30,22 +30,20 @@ requires requires() {
   requires std::same_as<RemoveComplex<InType>, RemoveComplex<OutType>>;
 }
 void GenerateWisdom(Ranges::Layout inLayout, Ranges::Layout outLayout,
-                    Flag flag, bool forward, bool backward = false) {
+                    Flag flag) {
   if (flag == Estimate) return;
   auto in = vector<InType>(inLayout.size());
   auto inView = Ranges::View(in, inLayout);
   auto out = vector<OutType>(outLayout.size());
   auto outView = Ranges::View(out, outLayout);
-
   if constexpr (IsComplex<InType> && IsComplex<OutType>) {
-    if (forward) auto plan = Ranges::Plan(inView, outView, flag, Forward);
-    if (backward) auto plan = Ranges::Plan(outView, inView, flag, Backward);
+    auto plan = Ranges::Plan(inView, outView, flag, Forward);
+    plan = Ranges::Plan(outView, inView, flag, Backward);
   }
-
   if constexpr ((IsReal<InType> && IsComplex<OutType>) ||
                 (IsComplex<InType> && IsReal<OutType>)) {
-    if (forward) auto plan = Ranges::Plan(inView, outView, flag);
-    if (backward) auto plan = Ranges::Plan(outView, inView, flag);
+    auto plan = Ranges::Plan(inView, outView, flag);
+    plan = Ranges::Plan(outView, inView, flag);
   }
 }
 
@@ -55,21 +53,17 @@ requires requires() {
   requires std::same_as<InType, OutType>;
 }
 void GenerateWisdom(Ranges::Layout inLayout, Ranges::Layout outLayout,
-                    std::initializer_list<RealKind> kinds, Flag flag,
-                    bool forward, bool backward = false) {
+                    std::initializer_list<RealKind> kinds, Flag flag) {
   if (flag == Estimate) return;
   auto in = vector<InType>(inLayout.size());
   auto inView = Ranges::View(in, inLayout);
   auto out = vector<OutType>(outLayout.size());
   auto outView = Ranges::View(out, outLayout);
-
-  if (forward) auto plan = Ranges::Plan(inView, outView, kinds, flag);
-  if (backward) {
-    auto kindsBackward = kinds;
-    std::ranges::views::all(kindsBackward) |
-        std::ranges::views::transform([](auto kind) { return kind.Inverse(); });
-    auto plan = Ranges::Plan(outView, inView, kindsBackward, flag);
-  }
+  auto plan = Ranges::Plan(inView, outView, kinds, flag);
+  auto kindsBackward = kinds;
+  std::ranges::views::all(kindsBackward) |
+      std::ranges::views::transform([](auto kind) { return kind.Inverse(); });
+  plan = Ranges::Plan(outView, inView, kindsBackward, flag);
 }
 
 }  // namespace FFTWpp

@@ -40,20 +40,25 @@ int main() {
     auto layout = Ranges::Layout(rank, sizes, howMany, embed, stride, dist);
     auto size = layout.size();
 
+    // In this case, we use the layout to generate wisdom for the
+    // transformations (both forwards and backwards). In this instance
+    GenerateWisdom<Complex, Complex>(layout, layout, Measure);
+
     // Allocate the data.
     auto in = vector<Complex>(size);
     auto out = vector<Complex>(size);
     auto copy = vector<Complex>(size);
 
-    // Form the plans.
-    auto planForward = Ranges::Plan(
-        Ranges::View(in, layout), Ranges::View(out, layout), Measure, Forward);
+    // Form the plans using the generated wisdom.
+    auto planForward =
+        Ranges::Plan(Ranges::View(in, layout), Ranges::View(out, layout),
+                     WisdomOnly, Forward);
     auto planBackward =
         Ranges::Plan(Ranges::View(out, layout), Ranges::View(copy, layout),
-                     Measure, Backward);
+                     WisdomOnly, Backward);
 
     // Set values for in.
-    FFTWpp::RandomiseValues(in);
+    RandomiseValues(in);
 
     // Execute the plans.
     planForward.Execute();
