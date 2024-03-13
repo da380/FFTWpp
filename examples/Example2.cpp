@@ -48,7 +48,7 @@ int main() {
   //------------------------------------------------//
   {
     // Set dimension.
-    auto n = 200;
+    auto n = 128;
 
     // Allocate in, out, and copy arrays.
     auto in = vector<Complex>(n);
@@ -79,7 +79,7 @@ int main() {
   //------------------------------------------------//
   {
     // Set dimension.
-    auto n = 200;
+    auto n = 128;
 
     //  Get data sizes.
     auto [inSize, outSize] = FFTWpp::DataSize<Real, Complex>(n);
@@ -113,7 +113,7 @@ int main() {
   //------------------------------------------------//
   {
     // Set dimension.
-    auto n = 200;
+    auto n = 128;
 
     //  Get data sizes.
     auto [inSize, outSize] = FFTWpp::DataSize<Real, Real>(n);

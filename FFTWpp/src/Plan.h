@@ -244,25 +244,26 @@ class Plan {
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
                            _out.Stride(), _out.Dist(),
-                           std::get<Direction>(_direction)(), flag());
+                           std::get<Direction>(_direction), flag);
     } else if constexpr ((IsComplex<InType> && IsReal<OutType>)) {
       _plan = FFTWpp::Plan(_out.Rank(), _out.NPointer(), _out.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
-                           _out.Stride(), _out.Dist(), flag());
+                           _out.Stride(), _out.Dist(), flag);
     } else if constexpr ((IsReal<InType> && IsComplex<OutType>)) {
       _plan = FFTWpp::Plan(_in.Rank(), _in.NPointer(), _in.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
-                           _out.Stride(), _out.Dist(), flag());
+                           _out.Stride(), _out.Dist(), flag);
     } else if constexpr (IsReal<InType> && IsReal<OutType>) {
       auto kinds = std::vector<fftw_r2r_kind>();
-      std::transform(Kinds().begin(), Kinds().end(), std::back_inserter(kinds),
-                     [](auto kind) { return kind(); });
+      std::transform(
+          Kinds().begin(), Kinds().end(), std::back_inserter(kinds),
+          [](auto kind) { return static_cast<fftw_r2r_kind>(kind); });
       _plan = FFTWpp::Plan(_in.Rank(), _in.NPointer(), _in.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
-                           _out.Stride(), _out.Dist(), kinds.data(), flag());
+                           _out.Stride(), _out.Dist(), kinds.data(), flag);
     }
     assert(!IsNull());
   }

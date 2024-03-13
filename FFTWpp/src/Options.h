@@ -24,10 +24,10 @@ class Direction {
   }
 
   /**
-   * @brief Returns the stored `fftw3` direction
+   * @brief Cast Direction to int.
    *
    */
-  constexpr auto operator()() const { return _direction; }
+  constexpr operator int() const { return _direction; }
 
   /**
    * @brief Equality operator.
@@ -63,9 +63,10 @@ class Flag {
   constexpr Flag(unsigned flag) : _flag{flag} {}
 
   /**
-   * @brief Returns the stored `fftw3` flag.
+   * @brief Cast Flag to unsigned.
+   *
    */
-  constexpr auto operator()() const { return _flag; }
+  constexpr operator unsigned() const { return _flag; }
 
   /**
    * @brief Equality operator.
@@ -85,7 +86,9 @@ class Flag {
  *
 
  */
-constexpr auto operator|(Flag&& lhs, Flag&& rhs) { return Flag{lhs() | rhs()}; }
+constexpr auto operator|(Flag&& lhs, Flag&& rhs) {
+  return Flag{static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs)};
+}
 
 /**
  * \var Estimate
@@ -204,10 +207,11 @@ class RealKind {
   constexpr RealKind(fftw_r2r_kind kind) : _kind{kind} {}
 
   /**
-   * @brief Returns the stored `fftw3` real kind.
+   * @brief Cast RealKind to fftw2_r2r_kind.
    *
+   * @return fftw_r2r_kind
    */
-  constexpr auto operator()() const { return _kind; }
+  constexpr operator fftw_r2r_kind() const { return _kind; }
 
   /**
    * @brief Equality operator.
