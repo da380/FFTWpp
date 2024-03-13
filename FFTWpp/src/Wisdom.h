@@ -42,8 +42,8 @@ void GenerateWisdom(Ranges::Layout inLayout, Ranges::Layout outLayout,
   }
   if constexpr ((IsReal<InType> && IsComplex<OutType>) ||
                 (IsComplex<InType> && IsReal<OutType>)) {
-    auto plan = Ranges::Plan(inView, outView, flag);
-    plan = Ranges::Plan(outView, inView, flag);
+    auto planForward = Ranges::Plan(inView, outView, flag);
+    auto planBackward = Ranges::Plan(outView, inView, flag);
   }
 }
 
@@ -59,11 +59,11 @@ void GenerateWisdom(Ranges::Layout inLayout, Ranges::Layout outLayout,
   auto inView = Ranges::View(in, inLayout);
   auto out = vector<OutType>(outLayout.size());
   auto outView = Ranges::View(out, outLayout);
-  auto plan = Ranges::Plan(inView, outView, kinds, flag);
+  auto planForward = Ranges::Plan(inView, outView, kinds, flag);
   auto kindsBackward = kinds;
   std::ranges::views::all(kindsBackward) |
       std::ranges::views::transform([](auto kind) { return kind.Inverse(); });
-  plan = Ranges::Plan(outView, inView, kindsBackward, flag);
+  auto planBackward = Ranges::Plan(outView, inView, kindsBackward, flag);
 }
 
 }  // namespace FFTWpp
