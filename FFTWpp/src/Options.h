@@ -9,10 +9,12 @@ namespace FFTWpp {
  transformations.
 
  This class provides a type-safe wrapper for working with the
- `int`  constants `FFTW_FORWARD` and `FFTW_BACKWARD`.
+ `int` constants `FFTW_FORWARD` and `FFTW_BACKWARD`.
  */
 class Direction {
  public:
+  constexpr Direction() = default;
+
   /**
    *
    * @param direction Must be equal to either `FFTW_FORWARD` or
@@ -56,6 +58,8 @@ constexpr auto Backward = Direction{FFTW_BACKWARD};
  */
 class Flag {
  public:
+  constexpr Flag() = default;
+
   /**
    * @param flag `fftw3` planner flag or combination thereof using bitwise or.
    *
@@ -199,6 +203,8 @@ constexpr auto Unaligned = Flag{FFTW_UNALIGNED};
  */
 class RealKind {
  public:
+  constexpr RealKind() = default;
+
   /**
    *
    * @param kind `fftw3` real kind option.

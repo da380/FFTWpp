@@ -91,8 +91,8 @@ int main() {
   // Transforms done using FFTWpp/Core.
   {
     // Make the plans.
-    auto planForward = Plan(n, in.data(), out.data(), FFTW_MEASURE);
-    auto planBackward = Plan(n, out.data(), copy.data(), FFTW_MEASURE);
+    auto planForward = Plan(n, in.data(), out.data(), Measure);
+    auto planBackward = Plan(n, out.data(), copy.data(), Measure);
 
     // Set in values.
     FFTWpp::RandomiseValues(in);
