@@ -4,6 +4,8 @@
 #include <cassert>
 #include <string>
 
+#include "NumericConcepts/Numeric.hpp"
+#include "NumericConcepts/Ranges.hpp"
 #include "Options.h"
 #include "Plan.h"
 #include "Views.h"
@@ -23,12 +25,9 @@ void ImportWisdom(const std::string& filename) {
 
 void ForgetWisdom() { fftw_forget_wisdom(); }
 
-template <typename InType, typename OutType>
-requires requires() {
-  requires IsReal<InType> or IsComplex<InType>;
-  requires IsReal<OutType> or IsComplex<OutType>;
-  requires std::same_as<RemoveComplex<InType>, RemoveComplex<OutType>>;
-}
+template <NumericConcepts::RealOrComplex InType,
+          NumericConcepts::RealOrComplex OutType>
+requires NumericConcepts::SamePrecision<InType, OutType>
 void GenerateWisdom(Ranges::Layout inLayout, Ranges::Layout outLayout,
                     Flag flag) {
   if (flag == Estimate) return;
@@ -36,22 +35,22 @@ void GenerateWisdom(Ranges::Layout inLayout, Ranges::Layout outLayout,
   auto inView = Ranges::View(in, inLayout);
   auto out = vector<OutType>(outLayout.size());
   auto outView = Ranges::View(out, outLayout);
-  if constexpr (IsComplex<InType> && IsComplex<OutType>) {
+  if constexpr (NumericConcepts::Complex<InType> &&
+                NumericConcepts::Complex<OutType>) {
     auto plan = Ranges::Plan(inView, outView, flag, Forward);
     plan = Ranges::Plan(outView, inView, flag, Backward);
   }
-  if constexpr ((IsReal<InType> && IsComplex<OutType>) ||
-                (IsComplex<InType> && IsReal<OutType>)) {
+  if constexpr ((NumericConcepts::Real<InType> &&
+                 NumericConcepts::Complex<OutType>) ||
+                (NumericConcepts::Complex<InType> &&
+                 NumericConcepts::Real<OutType>)) {
     auto planForward = Ranges::Plan(inView, outView, flag);
     auto planBackward = Ranges::Plan(outView, inView, flag);
   }
 }
 
-template <typename InType, typename OutType>
-requires requires() {
-  requires IsReal<InType> and IsReal<OutType>;
-  requires std::same_as<InType, OutType>;
-}
+template <NumericConcepts::Real InType, NumericConcepts::Real OutType>
+requires NumericConcepts::SamePrecision<InType, OutType>
 void GenerateWisdom(Ranges::Layout inLayout, Ranges::Layout outLayout,
                     std::initializer_list<RealKind> kinds, Flag flag) {
   if (flag == Estimate) return;

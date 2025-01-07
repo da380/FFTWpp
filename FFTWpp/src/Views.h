@@ -10,23 +10,16 @@
 #include <vector>
 
 #include "Core.h"
+#include "NumericConcepts/Numeric.hpp"
+#include "NumericConcepts/Ranges.hpp"
 #include "fftw3.h"
 
 namespace FFTWpp {
 
 namespace Ranges {
 
-/**
- * @brief Class to store data storage information following the
- * `fftw3` advanced interface.
- *
- */
 class Layout {
  public:
-  /**
-   * @brief Default constructor.
-   *
-   */
   Layout() = default;
 
   // Constructor for multi-dimensional transforms.
@@ -79,19 +72,7 @@ class Layout {
   int _dist;                // Offset between the start of each transformation.
 };
 
-/**
- * @brief Provides a view of data along with storage information
- * required for constructing FFTWpp plans.
- *
- * @tparam _View
- * @return requires
- */
-template <std::ranges::view _View>
-requires requires() {
-  requires std::ranges::output_range<_View, std::ranges::range_value_t<_View>>;
-  requires std::contiguous_iterator<std::ranges::iterator_t<_View>>;
-  requires IsScalar<std::ranges::range_value_t<_View>>;
-}
+template <NumericConcepts::RealOrComplexWritableView _View>
 class View : public std::ranges::view_interface<View<_View>>, public Layout {
   using std::ranges::view_interface<View<_View>>::size;
 

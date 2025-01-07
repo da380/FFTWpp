@@ -6,7 +6,8 @@
 #include <random>
 #include <ranges>
 
-template <FFTWpp::IsScalar InType, FFTWpp::IsScalar OutType>
+template <NumericConcepts::RealOrComplex InType,
+          NumericConcepts::RealOrComplex OutType>
 auto Test1D(FFTWpp::RealKind kind = FFTWpp::R2HC) {
   using namespace FFTWpp;
   std::random_device rd;
@@ -17,7 +18,8 @@ auto Test1D(FFTWpp::RealKind kind = FFTWpp::R2HC) {
   auto in = vector<InType>(inSize);
   auto out = vector<OutType>(outSize);
   auto copy = in;
-  if constexpr (IsComplex<InType> && IsComplex<OutType>) {
+  if constexpr (NumericConcepts::Complex<InType> &&
+                NumericConcepts::Complex<OutType>) {
     auto planForward =
         Ranges::Plan(Ranges::View(in), Ranges::View(out), Measure, Forward);
     auto planBackward =
@@ -26,7 +28,8 @@ auto Test1D(FFTWpp::RealKind kind = FFTWpp::R2HC) {
     planForward.Execute();
     planBackward.Execute();
     return CheckValues(in, copy, planBackward.Normalisation());
-  } else if constexpr (IsReal<InType> && IsComplex<OutType>) {
+  } else if constexpr (NumericConcepts::Real<InType> &&
+                       NumericConcepts::Complex<OutType>) {
     auto planForward =
         Ranges::Plan(Ranges::View(in), Ranges::View(out), Measure);
     auto planBackward =
@@ -35,7 +38,8 @@ auto Test1D(FFTWpp::RealKind kind = FFTWpp::R2HC) {
     planForward.Execute();
     planBackward.Execute();
     return CheckValues(in, copy, planBackward.Normalisation());
-  } else if constexpr (IsReal<InType> && IsReal<OutType>) {
+  } else if constexpr (NumericConcepts::Real<InType> &&
+                       NumericConcepts::Real<OutType>) {
     auto planForward =
         Ranges::Plan(Ranges::View(in), Ranges::View(out), Measure, kind);
     auto planBackward = Ranges::Plan(Ranges::View(out), Ranges::View(copy),

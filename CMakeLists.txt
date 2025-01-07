@@ -18,9 +18,19 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Locate  FFTW3
 find_package(FFTW)
 
+
+include(FetchContent)
+FetchContent_Declare(
+  NumericConcepts
+  GIT_REPOSITORY https://github.com/da380/NumericConcepts.git
+  GIT_TAG main  
+)
+FetchContent_MakeAvailable(NumericConcepts)
+
+
 # Set up the library
 add_library (FFTWpp INTERFACE ${FFTW_INCLUDES})
-target_link_libraries(FFTWpp INTERFACE ${FFTW_LIBRARIES})
+target_link_libraries(FFTWpp INTERFACE NumericConcepts ${FFTW_LIBRARIES})
 target_include_directories (FFTWpp INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>)

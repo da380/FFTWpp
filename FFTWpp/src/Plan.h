@@ -8,8 +8,9 @@
 #include <ranges>
 #include <variant>
 
-// #include "Concepts.h"
 #include "Core.h"
+#include "NumericConcepts/Numeric.hpp"
+#include "NumericConcepts/Ranges.hpp"
 #include "Options.h"
 #include "Views.h"
 #include "fftw3.h"
@@ -18,30 +19,14 @@ namespace FFTWpp {
 
 namespace Ranges {
 
-/**
- * @brief FFTWpp plan class.
- *
- * @tparam InView
- * @tparam OutView
- * @return requires
- */
-template <std::ranges::view InView, std::ranges::view OutView>
-requires requires() {
-  requires std::ranges::output_range<InView,
-                                     std::ranges::range_value_t<InView>>;
-  requires std::contiguous_iterator<std::ranges::iterator_t<InView>>;
-  requires IsScalar<std::ranges::range_value_t<InView>>;
-  requires std::ranges::output_range<OutView,
-                                     std::ranges::range_value_t<OutView>>;
-  requires std::contiguous_iterator<std::ranges::iterator_t<OutView>>;
-  requires IsScalar<std::ranges::range_value_t<OutView>>;
-  requires std::same_as<RemoveComplex<std::ranges::range_value_t<InView>>,
-                        RemoveComplex<std::ranges::range_value_t<OutView>>>;
-}
+template <NumericConcepts::RealOrComplexWritableRange InView,
+          NumericConcepts::RealOrComplexWritableRange OutView>
+requires NumericConcepts::SameRangePrecision<InView, OutView>
+
 class Plan {
   using InType = std::ranges::range_value_t<InView>;
   using OutType = std::ranges::range_value_t<OutView>;
-  using Real = RemoveComplex<InType>;
+  using Real = NumericConcepts::RemoveComplex<InType>;
 
  public:
   // Remove default constructor;
@@ -49,7 +34,8 @@ class Plan {
 
   // Constructor for C2C.
   Plan(View<InView> in, View<OutView> out, Flag flag, Direction direction)
-  requires IsComplex<InType> and IsComplex<OutType>
+  requires NumericConcepts::Complex<InType> and
+               NumericConcepts::Complex<OutType>
       : _in{in}, _out{out}, _flag{flag}, _direction{direction} {
     assert(CheckInputs());
     MakePlan(_flag);
@@ -57,8 +43,10 @@ class Plan {
 
   // Constructor for R2C or C2R.
   Plan(View<InView> in, View<OutView> out, Flag flag)
-  requires(IsComplex<InType> and IsReal<OutType>) or
-              (IsReal<InType> and IsComplex<OutType>)
+  requires(NumericConcepts::Complex<InType> and
+           NumericConcepts::Real<OutType>) or
+              (NumericConcepts::Real<InType> and
+               NumericConcepts::Complex<OutType>)
       : _in{in}, _out{out}, _flag{flag} {
     assert(CheckInputs());
     MakePlan(_flag);
@@ -138,25 +126,25 @@ class Plan {
 
   // return pointer to the fftw3 plan.
   auto Pointer() const {
-    if constexpr (IsSingle<Real>) {
+    if constexpr (NumericConcepts::Float<Real>) {
       return std::get<fftwf_plan>(_plan);
     }
-    if constexpr (IsDouble<Real>) {
+    if constexpr (NumericConcepts::Double<Real>) {
       return std::get<fftw_plan>(_plan);
     }
-    if constexpr (IsLongDouble<Real>) {
+    if constexpr (NumericConcepts::LongDouble<Real>) {
       return std::get<fftwl_plan>(_plan);
     }
   }
 
   auto& Pointer() {
-    if constexpr (IsSingle<Real>) {
+    if constexpr (NumericConcepts::Float<Real>) {
       return std::get<fftwf_plan>(_plan);
     }
-    if constexpr (IsDouble<Real>) {
+    if constexpr (NumericConcepts::Double<Real>) {
       return std::get<fftw_plan>(_plan);
     }
-    if constexpr (IsLongDouble<Real>) {
+    if constexpr (NumericConcepts::LongDouble<Real>) {
       return std::get<fftwl_plan>(_plan);
     }
   }
@@ -167,7 +155,8 @@ class Plan {
   // Normalisation factor for inverse transformations.
   auto Normalisation() const {
     int dim;
-    if constexpr (IsComplex<InType> || IsComplex<OutType>) {
+    if constexpr (NumericConcepts::Complex<InType> ||
+                  NumericConcepts::Complex<OutType>) {
       dim = std::ranges::fold_left_first(_out.N(), std::multiplies<>()).value();
     } else {
       dim = std::ranges::fold_left_first(
@@ -184,21 +173,10 @@ class Plan {
   void Execute() { FFTWpp::Execute(Pointer()); }
 
   // Execute using new data.
-  template <std::ranges::view NewInView, std::ranges::view NewOutView>
-  requires requires() {
-    requires std::ranges::output_range<NewInView,
-                                       std::ranges::range_value_t<NewInView>>;
-    requires std::contiguous_iterator<std::ranges::iterator_t<NewInView>>;
-    requires IsScalar<std::ranges::range_value_t<NewInView>>;
-    requires std::ranges::output_range<NewOutView,
-                                       std::ranges::range_value_t<NewOutView>>;
-    requires std::contiguous_iterator<std::ranges::iterator_t<NewOutView>>;
-    requires IsScalar<std::ranges::range_value_t<NewOutView>>;
-    requires std::same_as<std::ranges::range_value_t<InView>,
-                          std::ranges::range_value_t<NewInView>>;
-    requires std::same_as<std::ranges::range_value_t<OutView>,
-                          std::ranges::range_value_t<NewOutView>>;
-  }
+  template <NumericConcepts::RealOrComplexWritableRange NewInView,
+            NumericConcepts::RealOrComplexWritableRange NewOutView>
+  requires NumericConcepts::SameRangeValueType<InView, NewInView> &&
+           NumericConcepts::SameRangeValueType<OutView, NewOutView>
   void Execute(NewInView in, NewOutView out) {
     FFTWpp::Execute(Pointer(), in.data(), out.data());
   }
@@ -212,14 +190,12 @@ class Plan {
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> _plan;
 
   auto CheckInputs() const {
-    // Check ranks are equal.
     if (_in.Rank() != _out.Rank()) return false;
-    // Check number of transforms are equal.
     if (_in.HowMany() != _out.HowMany()) return false;
-    // Check dimensions are equal for the different cases.
     if constexpr (std::same_as<InType, OutType>) {
       return std::ranges::equal(_in.N(), _out.N());
-    } else if constexpr (IsComplex<InType> && IsReal<OutType>) {
+    } else if constexpr (NumericConcepts::Complex<InType> &&
+                         NumericConcepts::Real<OutType>) {
       return std::ranges::equal(
                  _in.N() | std::views::reverse | std::views::take(1),
                  _out.N() | std::views::reverse | std::views::take(1),
@@ -227,7 +203,8 @@ class Plan {
              std::ranges::equal(
                  _in.N() | std::views::reverse | std::views::drop(1),
                  _out.N() | std::views::reverse | std::views::drop(1));
-    } else if constexpr (IsReal<InType> && IsComplex<OutType>) {
+    } else if constexpr (NumericConcepts::Real<InType> &&
+                         NumericConcepts::Complex<OutType>) {
       return std::ranges::equal(
                  _in.N() | std::views::reverse | std::views::take(1),
                  _out.N() | std::views::reverse | std::views::take(1),
@@ -239,23 +216,27 @@ class Plan {
   }
 
   void MakePlan(Flag flag) {
-    if constexpr (IsComplex<InType> && IsComplex<OutType>) {
+    if constexpr (NumericConcepts::Complex<InType> &&
+                  NumericConcepts::Complex<OutType>) {
       _plan = FFTWpp::Plan(_in.Rank(), _in.NPointer(), _in.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
                            _out.Stride(), _out.Dist(),
                            std::get<Direction>(_direction), flag);
-    } else if constexpr ((IsComplex<InType> && IsReal<OutType>)) {
+    } else if constexpr ((NumericConcepts::Complex<InType> &&
+                          NumericConcepts::Real<OutType>)) {
       _plan = FFTWpp::Plan(_out.Rank(), _out.NPointer(), _out.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
                            _out.Stride(), _out.Dist(), flag);
-    } else if constexpr ((IsReal<InType> && IsComplex<OutType>)) {
+    } else if constexpr ((NumericConcepts::Real<InType> &&
+                          NumericConcepts::Complex<OutType>)) {
       _plan = FFTWpp::Plan(_in.Rank(), _in.NPointer(), _in.HowMany(),
                            _in.DataPointer(), _in.EmbedPointer(), _in.Stride(),
                            _in.Dist(), _out.DataPointer(), _out.EmbedPointer(),
                            _out.Stride(), _out.Dist(), flag);
-    } else if constexpr (IsReal<InType> && IsReal<OutType>) {
+    } else if constexpr (NumericConcepts::Real<InType> &&
+                         NumericConcepts::Real<OutType>) {
       auto kinds = std::vector<fftw_r2r_kind>();
       std::transform(
           Kinds().begin(), Kinds().end(), std::back_inserter(kinds),
@@ -269,7 +250,7 @@ class Plan {
   }
 
   auto Kinds() const
-  requires(IsReal<InType> && IsReal<OutType>)
+  requires(NumericConcepts::Real<InType> && NumericConcepts::Real<OutType>)
   {
     return std::ranges::views::all(std::get<std::vector<RealKind>>(_kinds));
   }
