@@ -2,9 +2,11 @@
 
 The `Tests` executable uses GoogleTest, and CTest discovers each typed
 precision case separately. Its custom `main` calls `FFTWpp::CleanUp()` only
-after all tests, and therefore all test-local plans, have finished. The five
-examples are registered as tests too, since each verifies its own behaviour
-and reports the result through its exit status.
+after all tests, and therefore all test-local plans, have finished — one of
+the few places that call is worth making, since the sanitizer workflow wants
+FFTW's still-reachable state released so that anything left over is this
+library's doing. The five examples are registered as tests too, since each
+verifies its own behaviour and reports the result through its exit status.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
@@ -99,6 +101,11 @@ dimensions.
   buffers.
 - `Allocator.*` — allocation failure throws `std::bad_alloc` rather than
   returning null, the storage is FFTW-aligned, and instances compare equal.
+- `LivePlanCount.*`, `CleanUp.RefusesToRunWhileAPlanIsAlive` — the count
+  follows construction, destruction, copy, move and assignment, a failed plan
+  is not counted, and `CleanUp` throws rather than leaving a live plan
+  undefined. None of these calls `CleanUp` successfully: doing so mid-suite
+  would discard the wisdom other tests rely on.
 - `FftwThreads.*` — with `FFTWPP_USE_FFTW_THREADS=ON`, a `ThreadSession` plans
   and executes a large transform and a non-positive thread count is rejected.
   Otherwise a single test asserts that `ThreadsEnabled` is false.

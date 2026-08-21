@@ -168,8 +168,6 @@ int main() {
     std::cout << "the inverse transform matches the original data\n";
   }
 
-  // Only once every plan has been destroyed.
-  FFTWpp::CleanUp();
 }
 ```
 
@@ -354,8 +352,33 @@ machine-wide wisdom an administrator may have generated, and reports whether
 it found any rather than throwing. `ForgetWisdom()` clears every precision;
 `ForgetWisdom<Real>()` clears one.
 
-`CleanUp()` releases FFTW's process-global planner state for all three
-precisions. Destroy every live plan first.
+### On `CleanUp()`
+
+**Most programs should not call `FFTWpp::CleanUp()`.** It exists, but it is not
+the way a program using FFTWpp is supposed to finish. Only `Example5` calls
+it, and only to demonstrate the third case below.
+
+FFTW keeps persistent state — accumulated wisdom and the list of algorithms
+available in this configuration — in its own globals, reachable for the life of
+the process. Leaving it there is not a leak, and no leak checker reports one.
+Calling `CleanUp()` is worth it in three situations:
+
+1. Under a leak checker configured to report *still reachable* blocks, when a
+   silent report is wanted. This is why the test suite calls it.
+2. In a plugin or extension module that may be unloaded from a long-lived host
+   process, where the state really would be orphaned.
+3. To reset FFTW deliberately, for instance to force re-measurement.
+
+Two costs come with it. It **discards accumulated wisdom**, so any
+`ExportWisdom` must happen first. And it leaves **every live plan undefined** —
+including plans owned by unrelated code in the same process, which is why a
+library should be reluctant to call it on its users' behalf.
+
+FFTWpp counts the plans it owns and `CleanUp()` throws `std::logic_error`
+rather than let that happen silently; `LivePlanCount()` reports the same
+number. The check cannot see raw handles obtained from `Core.h` and owned by
+the caller, so it is a necessary condition rather than a proof.
+`CleanUpThreads()` carries the same caveats and the same check.
 
 ---
 

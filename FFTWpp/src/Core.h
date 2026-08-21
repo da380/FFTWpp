@@ -15,6 +15,7 @@
 #ifndef FFTWPP_CORE_GUARD_H
 #define FFTWPP_CORE_GUARD_H
 
+#include <atomic>
 #include <cassert>
 #include <complex>
 #include <concepts>
@@ -24,6 +25,7 @@
 #include <mutex>
 #include <new>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -205,14 +207,70 @@ constexpr bool operator!=(const Allocator<T>&, const Allocator<U>&) noexcept {
 template <typename T>
 using vector = std::vector<T, Allocator<T>>;
 
+namespace Internal {
+
+/** @brief The count of live `Ranges::Plan` objects. @see LivePlanCount */
+inline std::atomic<int>& LivePlanCounter() {
+  static std::atomic<int> count{0};
+  return count;
+}
+
+}  // namespace Internal
+
 /**
- * @brief Cleans up FFTW's process-global state for all supported precisions.
- * @details This function calls `fftwf_cleanup`, `fftw_cleanup`, and
- * `fftwl_cleanup`. It releases wisdom and other serial FFTW planner state, but
- * it does not destroy plans or clean up the optional FFTW threads interfaces.
- * All plans must be destroyed before this function is called.
+ * @brief Returns the number of `Ranges::Plan` objects currently alive.
+ * @details `CleanUp` leaves every live plan undefined, so this is the quantity
+ * that must be zero before calling it.
+ *
+ * Only plans owned by a `Ranges::Plan` are counted. A raw handle obtained from
+ * the `Plan` factory functions in this header, and owned by the caller, is
+ * not: this is a necessary condition for `CleanUp` being safe, not a proof of
+ * it.
+ * @return The number of live `Ranges::Plan` objects.
+ */
+[[nodiscard]] inline int LivePlanCount() {
+  return Internal::LivePlanCounter().load(std::memory_order_relaxed);
+}
+
+/**
+ * @brief Discards FFTW's process-global planner state for all three
+ * precisions.
+ * @details **Most programs should not call this.** FFTW's persistent state --
+ * accumulated wisdom and the list of algorithms available in this
+ * configuration -- lives in FFTW's own globals and is reachable for the
+ * lifetime of the process, so leaving it alone is not a leak and no leak
+ * checker reports one. Calling this is worth it in three situations, and
+ * otherwise costs more than it saves:
+ *
+ * 1. Under a leak checker configured to report *still reachable* blocks,
+ *    where a silent report is wanted.
+ * 2. In a plugin or extension module that may be unloaded from a long-lived
+ *    host process, where the state really would be orphaned.
+ * 3. To reset FFTW deliberately, for instance to force re-measurement.
+ *
+ * Two costs come with it. Accumulated wisdom is discarded, so any
+ * `ExportWisdom` must happen first. And every live plan becomes undefined --
+ * including plans owned by unrelated code in the same process, which is why a
+ * library should be reluctant to call this on its users' behalf.
+ *
+ * This function does not destroy plans, and does not clean up the optional
+ * FFTW threads interfaces; see `CleanUpThreads` for the latter.
+ *
+ * @throws std::logic_error if any `Ranges::Plan` is still alive, since
+ * cleaning up would leave it undefined. The check is a best-effort diagnostic:
+ * it cannot see raw handles the caller owns, and in a threaded program another
+ * thread may create a plan immediately afterwards.
+ * @see LivePlanCount, CleanUpThreads
  */
 inline void CleanUp() {
+  const auto live = LivePlanCount();
+  if (live > 0) {
+    throw std::logic_error(
+        "FFTWpp::CleanUp: " + std::to_string(live) +
+        " plan(s) are still alive, and cleaning up would leave them "
+        "undefined. Destroy every Ranges::Plan first -- or simply do not "
+        "call CleanUp, which most programs have no reason to.");
+  }
   const auto lock = PlannerLock{};
   fftwf_cleanup();
   fftw_cleanup();
@@ -369,10 +427,20 @@ inline void PlanWithNumberOfThreads(int numberOfThreads) {
 /**
  * @brief Releases the resources allocated by `InitialiseThreads`.
  * @details Wraps `fftw*_cleanup_threads`, which also performs the work of
- * `fftw*_cleanup`. All plans must be destroyed first. Calling this makes
- * `CleanUp()` unnecessary.
+ * `fftw*_cleanup` and therefore carries the same caveats: wisdom is discarded
+ * and every live plan becomes undefined. Calling this makes `CleanUp()`
+ * unnecessary.
+ * @throws std::logic_error if any `Ranges::Plan` is still alive.
+ * @see CleanUp, LivePlanCount
  */
 inline void CleanUpThreads() {
+  const auto live = LivePlanCount();
+  if (live > 0) {
+    throw std::logic_error(
+        "FFTWpp::CleanUpThreads: " + std::to_string(live) +
+        " plan(s) are still alive, and cleaning up would leave them "
+        "undefined. Destroy every Ranges::Plan first.");
+  }
   const auto lock = PlannerLock{};
   fftwf_cleanup_threads();
   fftw_cleanup_threads();
@@ -416,8 +484,21 @@ class ThreadSession {
   ThreadSession& operator=(const ThreadSession&) = delete;
   ThreadSession& operator=(ThreadSession&&) = delete;
 
-  /** @brief Calls `CleanUpThreads`. All plans must already be destroyed. */
-  ~ThreadSession() { CleanUpThreads(); }
+  /**
+   * @brief Calls `CleanUpThreads`, unless plans are still alive.
+   * @details A destructor must not throw, so a violated contract is reported
+   * by assertion in a debug build and the cleanup is skipped. Skipping leaves
+   * FFTW's reachable state in place, which is harmless; proceeding would leave
+   * the surviving plans undefined, which is not.
+   */
+  ~ThreadSession() {
+    if (LivePlanCount() > 0) {
+      assert(false &&
+             "plans outlived the ThreadSession; skipping CleanUpThreads");
+      return;
+    }
+    CleanUpThreads();
+  }
 };
 
 //----------------------------------------------------------//

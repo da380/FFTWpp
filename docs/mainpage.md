@@ -57,8 +57,6 @@ int main() {
   if (FFTWpp::CheckValues(original, out, backward.Normalisation())) {
     std::cout << "the inverse transform matches the original data\n";
   }
-
-  FFTWpp::CleanUp();  // only once every plan has been destroyed
 }
 @endcode
 
@@ -102,6 +100,15 @@ in size and in FFTW's alignment class. FFTWpp::AlignmentOf exposes the class,
 FFTWpp::Ranges::Plan::CanExecuteOn asks whether a substitution is valid, and
 FFTWpp::Ranges::Plan::ExecuteChecked throws rather than invoking undefined
 behaviour.
+
+@subsection cleanup Finishing
+
+Most programs should not call FFTWpp::CleanUp. FFTW's persistent state is
+reachable for the life of the process, so leaving it is not a leak and no leak
+checker reports one; calling it discards accumulated wisdom and leaves every
+live plan undefined. FFTWpp::LivePlanCount reports how many plans would be
+affected, and CleanUp refuses rather than doing it silently. See the
+FFTWpp::CleanUp documentation for the three situations that do want it.
 
 @section more Further reading
 

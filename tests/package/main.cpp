@@ -32,6 +32,5 @@ int main() {
 
   std::cout << "FFTWpp package test passed"
             << (FFTWpp::ThreadsEnabled ? " (threads enabled)" : "") << '\n';
-  FFTWpp::CleanUp();
   return EXIT_SUCCESS;
 }

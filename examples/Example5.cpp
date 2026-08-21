@@ -136,9 +136,31 @@ int main() {
 
   std::filesystem::remove(wisdomFile);
 
-  std::cout << "Example5: the wisdom cycle completed\n";
+  //--------------------------------------------------------------------//
+  //                    Discarding it again, on purpose                 //
+  //--------------------------------------------------------------------//
+  {
+    // CleanUp is the one call that interacts badly with wisdom: among other
+    // things it discards it, so anything worth keeping must have been
+    // exported already -- as it was, above.
+    //
+    // Most programs should not call CleanUp at all. FFTW's persistent state
+    // is reachable for the life of the process, so leaving it is not a leak
+    // and no leak checker reports one. It earns its keep only under a leak
+    // checker that reports still-reachable blocks, in a plugin that may be
+    // unloaded from a long-lived host, or when resetting FFTW deliberately --
+    // which is what is being demonstrated here.
+    //
+    // Every plan must be destroyed first, since CleanUp leaves live ones
+    // undefined. FFTWpp counts its own plans and throws rather than let that
+    // happen silently.
+    CleanUp();
+    std::cout << "Example5: reset FFTW, discarding the wisdom in memory\n";
 
-  // Only once every plan has been destroyed.
-  CleanUp();
+    // The file survives, so the next run starts where this one finished.
+    ImportWisdomFromString<Real>(ExportWisdomToString<Real>());
+  }
+
+  std::cout << "Example5: the wisdom cycle completed\n";
   return EXIT_SUCCESS;
 }

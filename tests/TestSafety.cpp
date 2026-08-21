@@ -319,6 +319,108 @@ TEST(Allocator, InstancesOfAnyValueTypeCompareEqual) {
   EXPECT_FALSE(FFTWpp::Allocator<double>() != FFTWpp::Allocator<Complex>());
 }
 
+//---------------------------------------------------------------------//
+//                        Live plan accounting                         //
+//---------------------------------------------------------------------//
+
+// CleanUp leaves every live plan undefined, so the count of live plans is
+// what makes calling it safe or not. None of these tests calls CleanUp
+// successfully: doing so mid-suite would discard the wisdom other tests rely
+// on, which is itself one of the reasons most programs should leave it alone.
+
+TEST(LivePlanCount, TracksConstructionAndDestruction) {
+  const auto before = FFTWpp::LivePlanCount();
+  auto in = FFTWpp::vector<Complex>(8);
+  auto out = FFTWpp::vector<Complex>(8);
+  {
+    auto plan = FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in),
+                                     FFTWpp::Ranges::View(out),
+                                     FFTWpp::Estimate, FFTWpp::Forward);
+    EXPECT_EQ(FFTWpp::LivePlanCount(), before + 1);
+  }
+  EXPECT_EQ(FFTWpp::LivePlanCount(), before);
+}
+
+TEST(LivePlanCount, ACopyIsCountedSeparatelyAndAMoveIsNot) {
+  const auto before = FFTWpp::LivePlanCount();
+  auto in = FFTWpp::vector<Complex>(8);
+  auto out = FFTWpp::vector<Complex>(8);
+  auto inView = FFTWpp::Ranges::View(in);
+  auto outView = FFTWpp::Ranges::View(out);
+
+  auto source =
+      FFTWpp::Ranges::Plan(inView, outView, FFTWpp::Estimate, FFTWpp::Forward);
+  EXPECT_EQ(FFTWpp::LivePlanCount(), before + 1);
+
+  {
+    auto copy = source;  // a second, independent FFTW plan
+    EXPECT_EQ(FFTWpp::LivePlanCount(), before + 2);
+  }
+  EXPECT_EQ(FFTWpp::LivePlanCount(), before + 1);
+
+  {
+    auto moved = std::move(source);  // the same handle, moved
+    EXPECT_EQ(FFTWpp::LivePlanCount(), before + 1);
+  }
+  EXPECT_EQ(FFTWpp::LivePlanCount(), before);
+}
+
+TEST(LivePlanCount, AssignmentReplacesRatherThanAccumulates) {
+  const auto before = FFTWpp::LivePlanCount();
+  auto in = FFTWpp::vector<Complex>(8);
+  auto out = FFTWpp::vector<Complex>(8);
+  auto inView = FFTWpp::Ranges::View(in);
+  auto outView = FFTWpp::Ranges::View(out);
+
+  auto source =
+      FFTWpp::Ranges::Plan(inView, outView, FFTWpp::Estimate, FFTWpp::Forward);
+  auto destination =
+      FFTWpp::Ranges::Plan(inView, outView, FFTWpp::Estimate, FFTWpp::Backward);
+  ASSERT_EQ(FFTWpp::LivePlanCount(), before + 2);
+
+  for (int i = 0; i < 8; ++i) destination = source;
+  EXPECT_EQ(FFTWpp::LivePlanCount(), before + 2);
+
+  for (int i = 0; i < 8; ++i) {
+    auto temporary = FFTWpp::Ranges::Plan(inView, outView, FFTWpp::Estimate,
+                                          FFTWpp::Backward);
+    destination = std::move(temporary);
+  }
+  EXPECT_EQ(FFTWpp::LivePlanCount(), before + 2);
+}
+
+TEST(LivePlanCount, AFailedPlanIsNotCounted) {
+  const auto before = FFTWpp::LivePlanCount();
+  auto in = FFTWpp::vector<Complex>(8);
+  auto out = FFTWpp::vector<Complex>(8);
+  FFTWpp::ForgetWisdom();
+  EXPECT_THROW(
+      FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in), FFTWpp::Ranges::View(out),
+                           FFTWpp::WisdomOnly, FFTWpp::Forward),
+      std::runtime_error);
+  EXPECT_EQ(FFTWpp::LivePlanCount(), before);
+}
+
+TEST(CleanUp, RefusesToRunWhileAPlanIsAlive) {
+  auto in = FFTWpp::vector<Complex>(8);
+  auto out = FFTWpp::vector<Complex>(8);
+  auto plan =
+      FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in), FFTWpp::Ranges::View(out),
+                           FFTWpp::Estimate, FFTWpp::Forward);
+  ASSERT_GT(FFTWpp::LivePlanCount(), 0);
+
+  try {
+    FFTWpp::CleanUp();
+    FAIL() << "CleanUp should refuse to run while a plan is alive";
+  } catch (const std::logic_error& error) {
+    EXPECT_NE(std::string(error.what()).find("still alive"), std::string::npos);
+  }
+
+  // The plan is untouched: refusing means refusing, not half cleaning up.
+  EXPECT_FALSE(plan.IsNull());
+  EXPECT_NO_THROW(plan.Execute());
+}
+
 #ifdef FFTWPP_ENABLE_THREADS
 
 //---------------------------------------------------------------------//
@@ -350,6 +452,16 @@ TEST(FftwThreads, ASessionPlansAndExecutesALargeTransform) {
   // for the tests that follow.
   ASSERT_TRUE(FFTWpp::InitialiseThreads());
   FFTWpp::PlanWithNumberOfThreads(1);
+}
+
+TEST(FftwThreads, CleanUpThreadsRefusesToRunWhileAPlanIsAlive) {
+  auto in = FFTWpp::vector<Complex>(8);
+  auto out = FFTWpp::vector<Complex>(8);
+  auto plan =
+      FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in), FFTWpp::Ranges::View(out),
+                           FFTWpp::Estimate, FFTWpp::Forward);
+  EXPECT_THROW(FFTWpp::CleanUpThreads(), std::logic_error);
+  EXPECT_FALSE(plan.IsNull());
 }
 
 TEST(FftwThreads, RejectsANonPositiveThreadCount) {
