@@ -138,14 +138,7 @@ int main() {
     }
   }
 
-  // Optionally clean up "still reachably" memory.
-
   std::cout << "01-getting_started: every round trip matched\n";
 
-  // Note that FFTWpp::CleanUp() is deliberately not called. FFTW's
-  // persistent state is reachable for the life of the process, so leaving it
-  // is not a leak, and discarding it would throw away the wisdom this run
-  // accumulated. See the CleanUp documentation for the few cases that want
-  // it.
   return EXIT_SUCCESS;
 }

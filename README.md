@@ -81,7 +81,7 @@ only a genuinely absent dependency is downloaded.
 | `FFTWPP_INSTALL` | on at top level | Generate install and export rules |
 | `FFTWPP_WARNINGS_AS_ERRORS` | `OFF` | Treat warnings in FFTWpp's own targets as errors |
 | `FFTWPP_USE_FFTW_THREADS` | `OFF` | Link FFTW's threading libraries |
-| `FFTWPP_THREAD_BACKEND` | `Threads` | `Threads` (pthreads) or `OpenMP` |
+| `FFTWPP_THREAD_BACKEND` | `Threads` | Which FFTW threading library to link: `Threads` (pthreads) or `OpenMP` |
 
 ### Requirements
 
@@ -337,8 +337,7 @@ common case in this library's intended use — wants each plan single-threaded,
 and nesting the two is worse than either.
 
 Turn it on with `-DFFTWPP_USE_FFTW_THREADS=ON`, which links FFTW's threading
-libraries and defines `FFTWPP_ENABLE_THREADS`. Choose the backend with
-`-DFFTWPP_THREAD_BACKEND=Threads` (pthreads, the default) or `OpenMP`.
+libraries and defines `FFTWPP_ENABLE_THREADS`.
 
 ```cpp
 // Initialises FFTW threading, allows four threads per plan, and cleans up
@@ -354,7 +353,34 @@ plan.Execute();
 `InitialiseThreads()`, `PlanWithNumberOfThreads(n)` and `CleanUpThreads()` are
 available directly if the RAII form does not suit. `FFTWpp::ThreadsEnabled` is
 a compile-time constant reporting whether this build linked the threading
-libraries, so a portable consumer can branch on it rather than on the macro.
+libraries, so a portable consumer can branch on it — with `if constexpr`, in a
+plain function as well as a template — rather than on the macro.
+
+#### Choosing the backend
+
+FFTW ships two implementations of the same threading API, and
+`-DFFTWPP_THREAD_BACKEND=` picks which one is linked:
+
+* `Threads` (the default) uses `libfftw3_threads`, which is backed by
+  pthreads.
+* `OpenMP` uses `libfftw3_omp`, which is backed by OpenMP.
+
+The FFTWpp interface is identical either way; the choice is about which
+runtime does the work. Pick `OpenMP` when your program already uses OpenMP, so
+that FFTW draws on that runtime rather than starting a second thread pool
+beside it. FFTWpp's find module links the OpenMP runtime along with the
+library, so there is no `-fopenmp` bookkeeping to do by hand.
+
+With the OpenMP backend, FFTW's thread count is still set through
+`PlanWithNumberOfThreads`, independently of `omp_set_num_threads` and
+`OMP_NUM_THREADS`. To follow whatever your OpenMP configuration says, pass it
+along:
+
+```cpp
+#include <omp.h>
+
+auto threads = FFTWpp::ThreadSession(omp_get_max_threads());
+```
 
 ---
 

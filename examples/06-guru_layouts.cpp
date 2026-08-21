@@ -194,8 +194,5 @@ int main() {
 
   std::cout << "06-guru_layouts: every round trip matched\n";
 
-  // Note that FFTWpp::CleanUp() is deliberately not called. FFTW's persistent
-  // state is reachable for the life of the process, so leaving it is not a
-  // leak, and discarding it would throw away the wisdom this run accumulated.
   return EXIT_SUCCESS;
 }
