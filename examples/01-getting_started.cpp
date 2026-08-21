@@ -81,7 +81,7 @@ int main() {
     // Check the transforms worked,
     auto norm = static_cast<double>(1) / static_cast<double>(n);
     if (!CheckValues(in, copy, norm)) {
-      std::cerr << "Example1: the round trip did not match\n";
+      std::cerr << "01-getting_started: the round trip did not match\n";
       return EXIT_FAILURE;
     }
 
@@ -106,7 +106,7 @@ int main() {
     // Check the transforms worked.
     auto norm = static_cast<double>(1) / static_cast<double>(n);
     if (!CheckValues(in, copy, norm)) {
-      std::cerr << "Example1: the round trip did not match\n";
+      std::cerr << "01-getting_started: the round trip did not match\n";
       return EXIT_FAILURE;
     }
 
@@ -133,14 +133,14 @@ int main() {
     // Check the transforms worked.
     auto norm = planBackward.Normalisation();
     if (!CheckValues(in, copy, norm)) {
-      std::cerr << "Example1: the round trip did not match\n";
+      std::cerr << "01-getting_started: the round trip did not match\n";
       return EXIT_FAILURE;
     }
   }
 
   // Optionally clean up "still reachably" memory.
 
-  std::cout << "Example1: every round trip matched\n";
+  std::cout << "01-getting_started: every round trip matched\n";
 
   // Note that FFTWpp::CleanUp() is deliberately not called. FFTW's
   // persistent state is reachable for the life of the process, so leaving it

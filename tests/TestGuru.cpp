@@ -9,6 +9,7 @@
 #include <complex>
 #include <cstdint>
 #include <numeric>
+#include <span>
 #include <vector>
 
 namespace {
@@ -422,6 +423,22 @@ TEST(GuruPlan, TheSixtyFourBitEntryPointIsChosenByMagnitude) {
       .outStride = 1};
   EXPECT_FALSE(FFTWpp::Internal::FitsGuru32(&large, 1));
   EXPECT_TRUE(FFTWpp::Internal::FitsGuru32(&large, 0));
+}
+
+TEST(GuruPlan, AnUnalignedPlanAcceptsAnyCorrectlySizedBuffer) {
+  const auto layout = FFTWpp::Ranges::TransformAlong({4, 4}, {0});
+  auto in = FFTWpp::vector<double>(16);
+  auto out = FFTWpp::vector<double>(16);
+  auto plan = FFTWpp::Ranges::GuruPlan(
+      in, out, layout, FFTWpp::Estimate | FFTWpp::Unaligned, FFTWpp::DHT);
+
+  auto oversized = FFTWpp::vector<double>(17);
+  if (FFTWpp::SameAlignment(oversized.data(), oversized.data() + 1)) {
+    GTEST_SKIP() << "this FFTW build does not distinguish alignment classes";
+  }
+  auto shifted = std::span<double>(oversized.data() + 1, 16);
+  auto otherOut = FFTWpp::vector<double>(16);
+  EXPECT_TRUE(plan.CanExecuteOn(shifted, otherOut));
 }
 
 }  // namespace

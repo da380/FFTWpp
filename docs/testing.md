@@ -98,7 +98,8 @@ dimensions.
 - `NewArrayExecution.*` — `CanExecuteOn` and `ExecuteChecked` accept matching
   buffers and reject buffers of the wrong size or alignment class, and the
   new-array result matches the same transform run through the planning
-  buffers.
+  buffers. A plan created with `Unaligned` assumes nothing about alignment, so
+  only its size rule is enforced.
 - `Allocator.*` — allocation failure throws `std::bad_alloc` rather than
   returning null, the storage is FFTW-aligned, and instances compare equal.
 - `LivePlanCount.*`, `CleanUp.RefusesToRunWhileAPlanIsAlive` — the count
@@ -157,12 +158,23 @@ test link fails if a header-defined API function stops being inline.
 
 ### The examples
 
-`Example1` to `Example4` exercise the direct FFTW interface, the `Core.h`
-wrappers and the range interface across one, two, three and four dimensions
-and the batched layouts, each checking a round trip. `Example5` walks through
-the wisdom lifecycle -- loading at start-up, pre-generating shapes, what
-`WisdomOnly` does with a shape it has never seen, and saving at exit -- and
-checks each step. All five return a non-zero exit status if a check fails.
+The examples are numbered in the order they are meant to be read, and each
+returns a non-zero exit status if one of its own checks fails.
+
+| | |
+| --- | --- |
+| `01-getting_started` | The same 1D transform through the FFTW C API, `Core.h` and the range interface |
+| `02-transform_types` | Complex, real-to-complex and real-to-real |
+| `03-many_dimensions` | Two, three and four dimensions, and per-dimension r2r kinds |
+| `04-batched_transforms` | The advanced interface: contiguous and interleaved batches |
+| `05-wisdom` | Loading at start-up, pre-generating shapes, `WisdomOnly` against an unknown shape, saving at exit |
+| `06-guru_layouts` | Interior axes, several axes at once, halfcomplex, a hand-written descriptor, and the overlap check |
+| `07-plan_reuse` | New-array execution, alignment classes, `Unaligned`, and plan ownership |
+| `08-threads` | Concurrent planning, `PlannerLock` around the C API, and FFTW's own threading |
+
+`08-threads` reports that FFTW-internal threading is unavailable rather than
+skipping silently when the build did not link it; the branch is discarded by
+`if constexpr`, so it costs nothing and causes no link error.
 
 ## Packaging
 

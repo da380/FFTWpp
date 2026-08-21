@@ -67,12 +67,12 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cerr << "Example4: the round trip did not match\n";
+      std::cerr << "04-batched_transforms: the round trip did not match\n";
       return EXIT_FAILURE;
     }
   }
 
-  std::cout << "Example4: every round trip matched\n";
+  std::cout << "04-batched_transforms: every round trip matched\n";
 
   // Note that FFTWpp::CleanUp() is deliberately not called. FFTW's
   // persistent state is reachable for the life of the process, so leaving it

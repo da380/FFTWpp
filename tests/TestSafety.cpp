@@ -280,6 +280,32 @@ TEST(NewArrayExecution, RejectsBuffersOfTheWrongAlignmentClass) {
   EXPECT_THROW(plan.ExecuteChecked(shifted, otherOut), std::invalid_argument);
 }
 
+TEST(NewArrayExecution, AnUnalignedPlanAcceptsAnyCorrectlySizedBuffer) {
+  // Unaligned tells FFTW to make no assumption about alignment, so the
+  // alignment class of a substituted buffer stops mattering. Checking it
+  // anyway would reject buffers the plan can perfectly well run on.
+  constexpr int n = 32;
+  auto in = FFTWpp::vector<double>(n);
+  auto out = FFTWpp::vector<double>(n);
+  auto plan =
+      FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in), FFTWpp::Ranges::View(out),
+                           FFTWpp::Estimate | FFTWpp::Unaligned, FFTWpp::DHT);
+
+  auto oversized = FFTWpp::vector<double>(n + 1);
+  if (FFTWpp::SameAlignment(oversized.data(), oversized.data() + 1)) {
+    GTEST_SKIP() << "this FFTW build does not distinguish alignment classes";
+  }
+  auto shifted = std::span<double>(oversized.data() + 1, n);
+  auto otherOut = FFTWpp::vector<double>(n);
+
+  EXPECT_TRUE(plan.CanExecuteOn(shifted, otherOut));
+  EXPECT_NO_THROW(plan.ExecuteChecked(shifted, otherOut));
+
+  // The size rule still applies.
+  auto tooSmall = FFTWpp::vector<double>(n / 2);
+  EXPECT_FALSE(plan.CanExecuteOn(tooSmall, otherOut));
+}
+
 TEST(NewArrayExecution, ThePlanReportsThePlanningBuffersAlignment) {
   constexpr int n = 32;
   auto in = FFTWpp::vector<Complex>(n);

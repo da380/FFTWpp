@@ -39,16 +39,16 @@ int main() {
     // absence is handled rather than ignored.
     try {
       ImportWisdom<Real>(wisdomFile.string());
-      std::cout << "Example5: loaded wisdom from a previous run\n";
+      std::cout << "05-wisdom: loaded wisdom from a previous run\n";
     } catch (const std::runtime_error&) {
-      std::cout << "Example5: no wisdom file yet, so this run will measure\n";
+      std::cout << "05-wisdom: no wisdom file yet, so this run will measure\n";
     }
 
     // A machine may also have system-wide wisdom, generated once by an
     // administrator. This reports rather than throws, because not having any
     // is the normal case.
     if (ImportSystemWisdom<Real>()) {
-      std::cout << "Example5: system wisdom was available too\n";
+      std::cout << "05-wisdom: system wisdom was available too\n";
     }
   }
 
@@ -67,7 +67,7 @@ int main() {
     auto complexLayout = Ranges::Layout(256 / 2 + 1);
     GenerateWisdom<Real, Complex>(realLayout, complexLayout, Measure);
 
-    std::cout << "Example5: generated wisdom for the shapes this run uses\n";
+    std::cout << "05-wisdom: generated wisdom for the shapes this run uses\n";
   }
 
   //--------------------------------------------------------------------//
@@ -83,7 +83,7 @@ int main() {
     auto plan =
         Ranges::Plan(Ranges::View(in), Ranges::View(out), WisdomOnly, Forward);
     plan.Execute();
-    std::cout << "Example5: planned a pre-generated shape with WisdomOnly\n";
+    std::cout << "05-wisdom: planned a pre-generated shape with WisdomOnly\n";
 
     // A shape that was never generated is absent from the wisdom. With an
     // ordinary flag FFTW would simply plan it from scratch, and the result
@@ -94,10 +94,10 @@ int main() {
     try {
       [[maybe_unused]] auto missing = Ranges::Plan(
           Ranges::View(oddIn), Ranges::View(oddOut), WisdomOnly, Forward);
-      std::cerr << "Example5: WisdomOnly planned a shape it should not have\n";
+      std::cerr << "05-wisdom: WisdomOnly planned a shape it should not have\n";
       return EXIT_FAILURE;
     } catch (const std::runtime_error& error) {
-      std::cout << "Example5: as expected, WisdomOnly refused an unknown "
+      std::cout << "05-wisdom: as expected, WisdomOnly refused an unknown "
                    "shape -- "
                 << error.what() << '\n';
     }
@@ -107,7 +107,7 @@ int main() {
     auto planned = Ranges::Plan(Ranges::View(oddIn), Ranges::View(oddOut),
                                 Measure, Forward);
     planned.Execute();
-    std::cout << "Example5: the same shape planned normally and joined the "
+    std::cout << "05-wisdom: the same shape planned normally and joined the "
                  "wisdom\n";
   }
 
@@ -118,7 +118,7 @@ int main() {
     // At exit, write the wisdom out so that the next run starts where this
     // one finished.
     ExportWisdom<Real>(wisdomFile.string());
-    std::cout << "Example5: wrote wisdom to " << wisdomFile << '\n';
+    std::cout << "05-wisdom: wrote wisdom to " << wisdomFile << '\n';
 
     // Wisdom also serialises to a string, for storing somewhere that is not
     // a file. Round-tripping it through ForgetWisdom shows that the string
@@ -131,7 +131,7 @@ int main() {
     auto out = vector<Complex>(256);
     auto plan =
         Ranges::Plan(Ranges::View(in), Ranges::View(out), WisdomOnly, Forward);
-    std::cout << "Example5: the string round trip preserved the wisdom\n";
+    std::cout << "05-wisdom: the string round trip preserved the wisdom\n";
   }
 
   std::filesystem::remove(wisdomFile);
@@ -155,12 +155,12 @@ int main() {
     // undefined. FFTWpp counts its own plans and throws rather than let that
     // happen silently.
     CleanUp();
-    std::cout << "Example5: reset FFTW, discarding the wisdom in memory\n";
+    std::cout << "05-wisdom: reset FFTW, discarding the wisdom in memory\n";
 
     // The file survives, so the next run starts where this one finished.
     ImportWisdomFromString<Real>(ExportWisdomToString<Real>());
   }
 
-  std::cout << "Example5: the wisdom cycle completed\n";
+  std::cout << "05-wisdom: the wisdom cycle completed\n";
   return EXIT_SUCCESS;
 }

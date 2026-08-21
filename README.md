@@ -287,6 +287,10 @@ plan.ExecuteChecked(otherIn, otherOut);   // throws if it would be invalid
 if (plan.CanExecuteOn(otherIn, otherOut)) { /* ask in advance */ }
 ```
 
+Planning with `Unaligned` tells FFTW to assume nothing about alignment, and
+then only the size rule applies — at the cost of the SIMD kernels an aligned
+plan could have used.
+
 `FFTWpp::AlignmentOf(pointer)` and `FFTWpp::SameAlignment(first, second)`
 expose FFTW's own `fftw*_alignment_of`; `plan.InputAlignment()` and
 `plan.OutputAlignment()` report the classes the plan was created with. In a
@@ -393,7 +397,7 @@ A few things are worth knowing:
 * **`GenerateWisdom` with `Estimate` does nothing**, since `Estimate` performs
   no measurements to remember.
 
-`examples/Example5.cpp` walks through the whole cycle and is run as part of
+`examples/05-wisdom.cpp` walks through the whole cycle and is run as part of
 the test suite.
 
 `ExportWisdomToString<Real>()` and `ImportWisdomFromString<Real>(text)` serve
@@ -405,7 +409,7 @@ it found any rather than throwing. `ForgetWisdom()` clears every precision;
 ### On `CleanUp()`
 
 **Most programs should not call `FFTWpp::CleanUp()`.** It exists, but it is not
-the way a program using FFTWpp is supposed to finish. Only `Example5` calls
+the way a program using FFTWpp is supposed to finish. Only `05-wisdom` calls
 it, and only to demonstrate the third case below.
 
 FFTW keeps persistent state — accumulated wisdom and the list of algorithms
@@ -431,6 +435,22 @@ the caller, so it is a necessary condition rather than a proof.
 `CleanUpThreads()` carries the same caveats and the same check.
 
 ---
+
+## Examples
+
+`examples/` is numbered in the order the examples are meant to be read. Each
+checks its own results and is run as part of the test suite.
+
+| | |
+| --- | --- |
+| `01-getting_started` | The same 1D transform through the FFTW C API, `Core.h` and the range interface |
+| `02-transform_types` | Complex, real-to-complex and real-to-real |
+| `03-many_dimensions` | Two, three and four dimensions, and per-dimension r2r kinds |
+| `04-batched_transforms` | The advanced interface: contiguous and interleaved batches |
+| `05-wisdom` | The wisdom lifecycle, start to finish |
+| `06-guru_layouts` | Interior axes, halfcomplex, hand-written descriptors, and the overlap check |
+| `07-plan_reuse` | New-array execution, alignment classes and `Unaligned` |
+| `08-threads` | Concurrent planning, `PlannerLock`, and FFTW's own threading |
 
 ## Testing
 

@@ -81,7 +81,7 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cerr << "Example3: the round trip did not match\n";
+      std::cerr << "03-many_dimensions: the round trip did not match\n";
       return EXIT_FAILURE;
     }
   }
@@ -120,7 +120,7 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cerr << "Example3: the round trip did not match\n";
+      std::cerr << "03-many_dimensions: the round trip did not match\n";
       return EXIT_FAILURE;
     }
   }
@@ -161,12 +161,12 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cerr << "Example3: the round trip did not match\n";
+      std::cerr << "03-many_dimensions: the round trip did not match\n";
       return EXIT_FAILURE;
     }
   }
 
-  std::cout << "Example3: every round trip matched\n";
+  std::cout << "03-many_dimensions: every round trip matched\n";
 
   // Note that FFTWpp::CleanUp() is deliberately not called. FFTW's
   // persistent state is reachable for the life of the process, so leaving it

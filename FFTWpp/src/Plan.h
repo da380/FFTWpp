@@ -330,6 +330,8 @@ class Plan {
    * @param in The candidate input data range.
    * @param out The candidate output data range.
    * @return `true` if `Execute(in, out)` is well defined for these buffers.
+   * @note A plan created with `Unaligned` makes no assumption about
+   * alignment, so only the sizes are compared for one.
    */
   template <NumericConcepts::RealOrComplexWritableRange NewInView,
             NumericConcepts::RealOrComplexWritableRange NewOutView>
@@ -338,8 +340,19 @@ class Plan {
   [[nodiscard]] bool CanExecuteOn(NewInView&& in, NewOutView&& out) const {
     return std::cmp_equal(std::ranges::size(in), _in.Layout::size()) &&
            std::cmp_equal(std::ranges::size(out), _out.Layout::size()) &&
-           FFTWpp::AlignmentOf(std::ranges::data(in)) == _inAlignment &&
-           FFTWpp::AlignmentOf(std::ranges::data(out)) == _outAlignment;
+           (IgnoresAlignment() ||
+            (FFTWpp::AlignmentOf(std::ranges::data(in)) == _inAlignment &&
+             FFTWpp::AlignmentOf(std::ranges::data(out)) == _outAlignment));
+  }
+
+  /**
+   * @brief Whether this plan was created with `Unaligned`, and so makes no
+   * assumption about the alignment of the arrays it runs on.
+   * @details Such a plan may be executed on any correctly sized buffer, at the
+   * cost of the SIMD kernels an aligned plan could have used.
+   */
+  [[nodiscard]] bool IgnoresAlignment() const {
+    return (static_cast<unsigned>(_flag) & FFTW_UNALIGNED) != 0;
   }
 
   /**

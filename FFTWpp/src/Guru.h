@@ -685,8 +685,19 @@ class GuruPlan {
                                   _layout.Extent(Side::Input, InFormat)) &&
            std::cmp_greater_equal(std::ranges::size(out),
                                   _layout.Extent(Side::Output, OutFormat)) &&
-           FFTWpp::AlignmentOf(std::ranges::data(in)) == _inAlignment &&
-           FFTWpp::AlignmentOf(std::ranges::data(out)) == _outAlignment;
+           (IgnoresAlignment() ||
+            (FFTWpp::AlignmentOf(std::ranges::data(in)) == _inAlignment &&
+             FFTWpp::AlignmentOf(std::ranges::data(out)) == _outAlignment));
+  }
+
+  /**
+   * @brief Whether this plan was created with `Unaligned`, and so makes no
+   * assumption about the alignment of the arrays it runs on.
+   * @details Such a plan may be executed on any correctly sized buffer, at the
+   * cost of the SIMD kernels an aligned plan could have used.
+   */
+  [[nodiscard]] bool IgnoresAlignment() const {
+    return (static_cast<unsigned>(_flag) & FFTW_UNALIGNED) != 0;
   }
 
   /**
