@@ -17,6 +17,7 @@
 #include <initializer_list>
 #include <ranges>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -80,7 +81,7 @@ class Plan {
   requires NumericConcepts::Complex<InType> and
                NumericConcepts::Complex<OutType>
       : _in{in}, _out{out}, _flag{flag}, _direction{direction} {
-    assert(CheckInputs());
+    ValidateInputs();
     MakePlan(_flag);
   }
 
@@ -98,7 +99,7 @@ class Plan {
               (NumericConcepts::Real<InType> and
                NumericConcepts::Complex<OutType>)
       : _in{in}, _out{out}, _flag{flag} {
-    assert(CheckInputs());
+    ValidateInputs();
     MakePlan(_flag);
   }
 
@@ -123,7 +124,7 @@ class Plan {
         _flag{flag},
         _kinds{std::vector<RealKind>{kinds...}} {
     CompleteKinds();
-    assert(CheckInputs());
+    ValidateInputs();
     MakePlan(_flag);
   }
 
@@ -137,12 +138,9 @@ class Plan {
   Plan(View<InView> in, View<OutView> out, Flag flag,
        std::vector<RealKind> kinds)
   requires NumericConcepts::Real<InType> and NumericConcepts::Real<OutType>
-      : _in{in},
-        _out{out},
-        _flag{flag},
-        _kinds{std::move(kinds)} {
+      : _in{in}, _out{out}, _flag{flag}, _kinds{std::move(kinds)} {
     CompleteKinds();
-    assert(CheckInputs());
+    ValidateInputs();
     MakePlan(_flag);
   }
 
@@ -176,7 +174,9 @@ class Plan {
         _flag{std::move(other._flag)},
         _direction{std::move(other._direction)},
         _kinds{std::move(other._kinds)},
-        _plan{std::move(other._plan)} {
+        _plan{std::move(other._plan)},
+        _inAlignment{other._inAlignment},
+        _outAlignment{other._outAlignment} {
     other.Pointer() = nullptr;
   }
 
@@ -251,7 +251,7 @@ class Plan {
    * @return `true` if the plan has not been created or has been destroyed,
    * `false` otherwise.
    */
-  auto IsNull() { return Pointer() == nullptr; }
+  auto IsNull() const { return Pointer() == nullptr; }
 
   /**
    * @brief Calculates the normalization factor for an inverse transform.
@@ -262,8 +262,12 @@ class Plan {
    */
   auto Normalisation() const {
     int dim;
-    if constexpr (NumericConcepts::Complex<InType> ||
+    if constexpr (NumericConcepts::Real<InType> &&
                   NumericConcepts::Complex<OutType>) {
+      // R2C: the logical size is that of the real, not the halfcomplex, side.
+      dim = std::ranges::fold_left_first(_in.N(), std::multiplies<>()).value();
+    } else if constexpr (NumericConcepts::Complex<InType> ||
+                         NumericConcepts::Complex<OutType>) {
       dim = std::ranges::fold_left_first(_out.N(), std::multiplies<>()).value();
     } else {
       dim = std::ranges::fold_left_first(
@@ -284,21 +288,94 @@ class Plan {
   /**
    * @brief Executes the plan using new input and output data buffers.
    * @details This allows a plan to be reused with different data arrays,
-   * provided they have the same layout and alignment characteristics as the
-   * originals.
+   * provided they hold the same number of elements and have the same FFTW
+   * alignment class as the arrays the plan was created for. Neither FFTW nor
+   * this overload verifies that; violating it is undefined behaviour. Use
+   * `ExecuteChecked` while developing, or `CanExecuteOn` to ask in advance.
    * @tparam NewInView A range type for the new input data.
    * @tparam NewOutView A range type for the new output data.
    * @param in The new input data range.
    * @param out The new output data range.
    * @requires The value types of the new ranges must match the original ranges.
+   * @see ExecuteChecked, CanExecuteOn
    */
   template <NumericConcepts::RealOrComplexWritableRange NewInView,
             NumericConcepts::RealOrComplexWritableRange NewOutView>
   requires NumericConcepts::SameRangeValueType<InView, NewInView> &&
            NumericConcepts::SameRangeValueType<OutView, NewOutView>
-  void Execute(NewInView in, NewOutView out) {
-    FFTWpp::Execute(Pointer(), in.data(), out.data());
+  void Execute(NewInView&& in, NewOutView&& out) {
+    assert(CanExecuteOn(in, out) &&
+           "new-array execution requires matching sizes and alignment");
+    FFTWpp::Execute(Pointer(), std::ranges::data(in), std::ranges::data(out));
   }
+
+  /**
+   * @brief Reports whether the plan may be executed on the given buffers.
+   * @details New-array execution is valid only for buffers holding the same
+   * number of elements as, and sharing an FFTW alignment class with, the
+   * buffers the plan was created for.
+   * @tparam NewInView A range type for the candidate input data.
+   * @tparam NewOutView A range type for the candidate output data.
+   * @param in The candidate input data range.
+   * @param out The candidate output data range.
+   * @return `true` if `Execute(in, out)` is well defined for these buffers.
+   */
+  template <NumericConcepts::RealOrComplexWritableRange NewInView,
+            NumericConcepts::RealOrComplexWritableRange NewOutView>
+  requires NumericConcepts::SameRangeValueType<InView, NewInView> &&
+           NumericConcepts::SameRangeValueType<OutView, NewOutView>
+  [[nodiscard]] bool CanExecuteOn(NewInView&& in, NewOutView&& out) const {
+    return std::cmp_equal(std::ranges::size(in), _in.Layout::size()) &&
+           std::cmp_equal(std::ranges::size(out), _out.Layout::size()) &&
+           FFTWpp::AlignmentOf(std::ranges::data(in)) == _inAlignment &&
+           FFTWpp::AlignmentOf(std::ranges::data(out)) == _outAlignment;
+  }
+
+  /**
+   * @brief Executes the plan on new buffers, having first checked that doing
+   * so is valid.
+   * @details Identical to `Execute(in, out)` except that a mismatch in size or
+   * alignment class raises an exception instead of silently producing
+   * undefined behaviour. The check costs two calls to `fftw*_alignment_of`,
+   * which is negligible against any transform worth planning.
+   * @tparam NewInView A range type for the new input data.
+   * @tparam NewOutView A range type for the new output data.
+   * @param in The new input data range.
+   * @param out The new output data range.
+   * @throws std::invalid_argument if the buffers differ from the planning
+   * buffers in size or in alignment class.
+   * @see Execute, CanExecuteOn, FFTWpp::AlignmentOf
+   */
+  template <NumericConcepts::RealOrComplexWritableRange NewInView,
+            NumericConcepts::RealOrComplexWritableRange NewOutView>
+  requires NumericConcepts::SameRangeValueType<InView, NewInView> &&
+           NumericConcepts::SameRangeValueType<OutView, NewOutView>
+  void ExecuteChecked(NewInView&& in, NewOutView&& out) {
+    if (!CanExecuteOn(in, out)) {
+      throw std::invalid_argument(
+          "FFTWpp::Ranges::Plan::ExecuteChecked: the given buffers do not "
+          "match the size and alignment class of the buffers this plan was "
+          "created for, so new-array execution would be undefined");
+    }
+    FFTWpp::Execute(Pointer(), std::ranges::data(in), std::ranges::data(out));
+  }
+
+  /**
+   * @brief Returns FFTW's alignment class for the input buffer the plan was
+   * created for.
+   * @see FFTWpp::AlignmentOf
+   */
+  [[nodiscard]] auto InputAlignment() const { return _inAlignment; }
+
+  /**
+   * @brief Returns FFTW's alignment class for the output buffer the plan was
+   * created for.
+   * @see FFTWpp::AlignmentOf
+   */
+  [[nodiscard]] auto OutputAlignment() const { return _outAlignment; }
+
+  /** @brief Returns the planner flag the plan was created with. */
+  [[nodiscard]] auto PlannerFlag() const { return _flag; }
 
  private:
   /// @brief The input data view.
@@ -313,6 +390,10 @@ class Plan {
   std::variant<std::monostate, std::vector<RealKind>> _kinds;
   /// @brief A variant holding the precision-specific FFTW plan handle.
   std::variant<fftwf_plan, fftw_plan, fftwl_plan> _plan;
+  /// @brief FFTW's alignment class for the input buffer used when planning.
+  int _inAlignment = 0;
+  /// @brief FFTW's alignment class for the output buffer used when planning.
+  int _outAlignment = 0;
 
   /**
    * @brief Validates and expands an R2R kind list to the transform rank.
@@ -326,6 +407,41 @@ class Plan {
           "an R2R plan requires between one and rank transform kinds");
     }
     kinds.resize(_in.Rank(), kinds.back());
+  }
+
+  /**
+   * @brief Rejects input/output views whose dimensions cannot describe this
+   * transform.
+   * @details The check is made unconditionally rather than through `assert`,
+   * so that a release build reports the mismatch instead of handing it to
+   * FFTW, where it becomes a null plan at best and a wrong answer at worst.
+   * @throws std::invalid_argument describing the mismatch.
+   */
+  void ValidateInputs() const {
+    const auto fail = [](const std::string& reason) {
+      throw std::invalid_argument("FFTWpp::Ranges::Plan: " + reason);
+    };
+    if (_in.Rank() != _out.Rank()) {
+      fail("the input and output views must have the same rank, but have " +
+           std::to_string(_in.Rank()) + " and " + std::to_string(_out.Rank()));
+    }
+    if (_in.HowMany() != _out.HowMany()) {
+      fail(
+          "the input and output views must describe the same number of "
+          "transforms, but describe " +
+          std::to_string(_in.HowMany()) + " and " +
+          std::to_string(_out.HowMany()));
+    }
+    if (!CheckInputs()) {
+      if constexpr (std::same_as<InType, OutType>) {
+        fail("the input and output views must have the same dimensions");
+      } else {
+        fail(
+            "the halfcomplex view's last dimension must be n / 2 + 1, where n "
+            "is the real view's last dimension, and all other dimensions must "
+            "agree");
+      }
+    }
   }
 
   /**
@@ -399,8 +515,13 @@ class Plan {
                            _out.Stride(), _out.Dist(), kinds.data(), flag);
     }
     if (IsNull()) {
-      throw std::runtime_error("FFTW failed to create a plan");
+      throw std::runtime_error(
+          flag == WisdomOnly
+              ? "FFTW failed to create a plan: no wisdom is available for it"
+              : "FFTW failed to create a plan");
     }
+    _inAlignment = _in.Alignment();
+    _outAlignment = _out.Alignment();
   }
 
   /**
@@ -434,6 +555,8 @@ class Plan {
     swap(_direction, other._direction);
     swap(_kinds, other._kinds);
     swap(_plan, other._plan);
+    swap(_inAlignment, other._inAlignment);
+    swap(_outAlignment, other._outAlignment);
   }
 };
 

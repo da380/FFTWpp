@@ -18,7 +18,13 @@
 #include <cassert>
 #include <complex>
 #include <concepts>
+#include <cstddef>
+#include <limits>
 #include <memory>
+#include <mutex>
+#include <new>
+#include <stdexcept>
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -55,6 +61,67 @@ concept CheckPrecision =
     (std::same_as<PlanType, fftwl_plan> and NumericConcepts::LongDouble<Real>);
 
 //--------------------------------------------------------------//
+//                    Planner serialisation                     //
+//--------------------------------------------------------------//
+
+/**
+ * @brief Returns the process-wide mutex that serialises calls into the FFTW
+ * planner.
+ * @details FFTW's planner is documented as not re-entrant: with the sole
+ * exception of the execution routines, no two FFTW API calls may run
+ * concurrently. FFTWpp therefore takes this mutex around every planner call it
+ * makes -- plan creation, plan destruction, wisdom manipulation and
+ * `CleanUp()` -- so that consumers do not need a lock of their own.
+ *
+ * The mutex is exposed so that a consumer mixing FFTWpp with direct calls to
+ * the FFTW C API can serialise against the same lock. Prefer `PlannerLock`,
+ * which is the RAII form.
+ *
+ * Execution is deliberately *not* serialised: `Execute` is thread-safe in FFTW
+ * and is where the work happens.
+ *
+ * @return A reference to the single process-wide planner mutex.
+ */
+[[nodiscard]] inline std::mutex& PlannerMutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+
+/**
+ * @class PlannerLock
+ * @brief An RAII lock on the process-wide FFTW planner mutex.
+ * @details Construct one for the duration of any direct call into the FFTW C
+ * planner made alongside FFTWpp. All of FFTWpp's own planner calls take this
+ * lock already, so a consumer that only uses FFTWpp never needs to.
+ *
+ * @code
+ * {
+ *   auto lock = FFTWpp::PlannerLock{};
+ *   auto raw = fftw_plan_dft_1d(n, in, out, FFTW_FORWARD, FFTW_MEASURE);
+ * }
+ * @endcode
+ *
+ * The lock is not recursive; do not construct one around a call to an FFTWpp
+ * function that takes it internally.
+ */
+class PlannerLock {
+ public:
+  /** @brief Acquires the planner mutex. */
+  PlannerLock() : _lock{PlannerMutex()} {}
+
+  PlannerLock(const PlannerLock&) = delete;
+  PlannerLock(PlannerLock&&) = delete;
+  PlannerLock& operator=(const PlannerLock&) = delete;
+  PlannerLock& operator=(PlannerLock&&) = delete;
+
+  /** @brief Releases the planner mutex. */
+  ~PlannerLock() = default;
+
+ private:
+  std::scoped_lock<std::mutex> _lock;
+};
+
+//--------------------------------------------------------------//
 //                    Custom fftw3 allocator                    //
 //--------------------------------------------------------------//
 
@@ -62,32 +129,55 @@ concept CheckPrecision =
  * @brief A custom STL allocator that uses `fftw_malloc` and `fftw_free`.
  * @details This ensures that memory allocated for containers like std::vector
  * is correctly aligned for SIMD instructions, as required by FFTW for optimal
- * performance.
+ * performance. The allocator is stateless, so all instances compare equal and
+ * allocations made through one may be freed through any other.
  * @tparam T The type of the elements to be allocated.
  */
 template <typename T>
 class Allocator {
  public:
   using value_type = T;
+  using size_type = std::size_t;
+  using difference_type = std::ptrdiff_t;
+  using propagate_on_container_move_assignment = std::true_type;
+  using is_always_equal = std::true_type;
+
+  /** @brief Rebinds the allocator to another value type. */
+  template <typename U>
+  struct rebind {
+    using other = Allocator<U>;
+  };
+
   /** @brief Default constructor. */
-  Allocator() noexcept {}
+  constexpr Allocator() noexcept = default;
   /** @brief Copy constructor from an allocator of a different type. */
   template <class U>
-  Allocator(const Allocator<U>&) noexcept {}
+  constexpr Allocator(const Allocator<U>&) noexcept {}
+
   /**
    * @brief Allocates `n` elements of type `T`.
    * @param n The number of elements to allocate.
-   * @return A pointer to the allocated memory.
+   * @return A pointer to the allocated, FFTW-aligned memory.
+   * @throws std::bad_alloc if `n` elements cannot be allocated, either because
+   * the request overflows `std::size_t` or because `fftw_malloc` fails.
    */
-  T* allocate(std::size_t n) {
-    return static_cast<T*>(fftw_malloc(sizeof(T) * n));
+  [[nodiscard]] T* allocate(std::size_t n) {
+    if (n > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
+      throw std::bad_alloc();
+    }
+    auto p = static_cast<T*>(fftw_malloc(sizeof(T) * n));
+    if (p == nullptr && n > 0) throw std::bad_alloc();
+    return p;
   }
+
   /**
    * @brief Deallocates memory previously allocated with `allocate`.
    * @param p A pointer to the memory to deallocate.
    * @param n The number of elements that were allocated (unused).
    */
-  void deallocate(T* p, std::size_t n) { fftw_free(p); }
+  void deallocate(T* p, [[maybe_unused]] std::size_t n) noexcept {
+    fftw_free(p);
+  }
 };
 
 /**
@@ -123,6 +213,7 @@ using vector = std::vector<T, Allocator<T>>;
  * All plans must be destroyed before this function is called.
  */
 inline void CleanUp() {
+  const auto lock = PlannerLock{};
   fftwf_cleanup();
   fftw_cleanup();
   fftwl_cleanup();
@@ -149,6 +240,187 @@ auto ComplexCast(std::complex<Real>* z) {
 }
 
 //----------------------------------------------------------//
+//                     Alignment queries                    //
+//----------------------------------------------------------//
+
+/**
+ * @brief Returns FFTW's alignment class for a real data pointer.
+ * @details This wraps `fftw*_alignment_of`. FFTW guarantees that a plan may be
+ * executed on new arrays -- via the `Execute(plan, in, out)` overloads -- only
+ * when those arrays have the same alignment class as the arrays the plan was
+ * created for. The value itself is opaque; only equality between two values of
+ * the same precision is meaningful.
+ * @tparam Real The floating-point precision of the data.
+ * @param p A pointer to the data whose alignment class is wanted.
+ * @return The opaque alignment class of `p`.
+ */
+template <NumericConcepts::Real Real>
+[[nodiscard]] int AlignmentOf(Real* p) {
+  if constexpr (NumericConcepts::Float<Real>) {
+    return fftwf_alignment_of(p);
+  }
+  if constexpr (NumericConcepts::Double<Real>) {
+    return fftw_alignment_of(p);
+  }
+  if constexpr (NumericConcepts::LongDouble<Real>) {
+    return fftwl_alignment_of(p);
+  }
+}
+
+/**
+ * @brief Returns FFTW's alignment class for a complex data pointer.
+ * @details `std::complex<Real>` is required to have the same layout as an
+ * array of two `Real`, so the alignment class of the complex pointer is that
+ * of its first real component.
+ * @tparam Real The floating-point precision of the data.
+ * @param z A pointer to the data whose alignment class is wanted.
+ * @return The opaque alignment class of `z`.
+ * @see AlignmentOf(Real*)
+ */
+template <NumericConcepts::Real Real>
+[[nodiscard]] int AlignmentOf(std::complex<Real>* z) {
+  return AlignmentOf(reinterpret_cast<Real*>(z));
+}
+
+/**
+ * @brief Reports whether two pointers are interchangeable for new-array
+ * execution.
+ * @details Two pointers may be substituted for one another in a call to
+ * `Execute(plan, in, out)` only if they share an alignment class. This is the
+ * check that neither FFTW nor the raw `Execute` overloads perform.
+ * @tparam T The pointee type of the first pointer, real or complex.
+ * @tparam U The pointee type of the second pointer, real or complex.
+ * @param first The first pointer.
+ * @param second The second pointer.
+ * @return `true` if the two pointers have the same alignment class.
+ */
+template <typename T, typename U>
+[[nodiscard]] bool SameAlignment(T* first, U* second) {
+  return AlignmentOf(first) == AlignmentOf(second);
+}
+
+//----------------------------------------------------------//
+//                     FFTW-internal threads                //
+//----------------------------------------------------------//
+
+/**
+ * @brief Reports whether this build of FFTWpp was configured against FFTW's
+ * threads libraries.
+ * @details Set to `true` when the macro `FFTWPP_ENABLE_THREADS` is defined,
+ * which the CMake option `FFTWPP_USE_FFTW_THREADS` does alongside linking
+ * `libfftw3_threads` (or `libfftw3_omp`) for every precision.
+ *
+ * The threading wrappers below are declared unconditionally, so consumers can
+ * compile against them regardless; calling one without the corresponding FFTW
+ * threads library on the link line is a link error rather than a silent
+ * failure. Branch on this constant to keep such a call out of a build that
+ * cannot satisfy it.
+ */
+inline constexpr bool ThreadsEnabled =
+#ifdef FFTWPP_ENABLE_THREADS
+    true;
+#else
+    false;
+#endif
+
+/**
+ * @brief Initialises FFTW's own threading support for every precision.
+ * @details Wraps `fftwf_init_threads`, `fftw_init_threads` and
+ * `fftwl_init_threads`. It must be called once, before any plan is created,
+ * and requires the FFTW threads libraries on the link line. Use
+ * `PlanWithNumberOfThreads` afterwards to choose how many threads subsequently
+ * created plans may use, and `CleanUpThreads` at exit.
+ *
+ * FFTWpp does not call this for you: FFTW-internal threading is opt-in,
+ * because a consumer that already parallelises over many independent
+ * transforms wants each plan single-threaded. It is intended for the opposite
+ * case, of one transform large enough to be worth splitting.
+ *
+ * @return `true` if all three precisions initialised successfully.
+ * @see ThreadsEnabled, PlanWithNumberOfThreads, CleanUpThreads, ThreadSession
+ */
+[[nodiscard]] inline bool InitialiseThreads() {
+  const auto lock = PlannerLock{};
+  const auto f = fftwf_init_threads();
+  const auto d = fftw_init_threads();
+  const auto l = fftwl_init_threads();
+  return f != 0 && d != 0 && l != 0;
+}
+
+/**
+ * @brief Sets the number of threads that subsequently created plans may use.
+ * @details Wraps `fftw*_plan_with_nthreads` for every precision. It affects
+ * only plans created after the call; existing plans keep the thread count they
+ * were planned with. Requires a prior successful `InitialiseThreads()`.
+ * @param numberOfThreads The maximum number of threads per plan. Must be
+ * positive; a value of 1 restores single-threaded execution.
+ * @throws std::invalid_argument if `numberOfThreads` is not positive.
+ */
+inline void PlanWithNumberOfThreads(int numberOfThreads) {
+  if (numberOfThreads < 1) {
+    throw std::invalid_argument("the number of FFTW threads must be positive");
+  }
+  const auto lock = PlannerLock{};
+  fftwf_plan_with_nthreads(numberOfThreads);
+  fftw_plan_with_nthreads(numberOfThreads);
+  fftwl_plan_with_nthreads(numberOfThreads);
+}
+
+/**
+ * @brief Releases the resources allocated by `InitialiseThreads`.
+ * @details Wraps `fftw*_cleanup_threads`, which also performs the work of
+ * `fftw*_cleanup`. All plans must be destroyed first. Calling this makes
+ * `CleanUp()` unnecessary.
+ */
+inline void CleanUpThreads() {
+  const auto lock = PlannerLock{};
+  fftwf_cleanup_threads();
+  fftw_cleanup_threads();
+  fftwl_cleanup_threads();
+}
+
+/**
+ * @class ThreadSession
+ * @brief An RAII guard over FFTW's threading support.
+ * @details Constructing one initialises FFTW threading and sets the per-plan
+ * thread count; destroying one calls `CleanUpThreads`. Create it before any
+ * plan and let it outlive every plan, since `CleanUpThreads` requires that all
+ * plans have been destroyed.
+ *
+ * @code
+ * auto threads = FFTWpp::ThreadSession(4);   // plans may use four threads
+ * auto plan = FFTWpp::Ranges::Plan(inView, outView, FFTWpp::Measure,
+ *                                  FFTWpp::Forward);
+ * plan.Execute();
+ * @endcode
+ *
+ * @see ThreadsEnabled
+ */
+class ThreadSession {
+ public:
+  /**
+   * @brief Initialises FFTW threading and sets the per-plan thread count.
+   * @param numberOfThreads The maximum number of threads per plan.
+   * @throws std::runtime_error if FFTW threading fails to initialise.
+   * @throws std::invalid_argument if `numberOfThreads` is not positive.
+   */
+  explicit ThreadSession(int numberOfThreads) {
+    if (!InitialiseThreads()) {
+      throw std::runtime_error("FFTW failed to initialise threading support");
+    }
+    PlanWithNumberOfThreads(numberOfThreads);
+  }
+
+  ThreadSession(const ThreadSession&) = delete;
+  ThreadSession(ThreadSession&&) = delete;
+  ThreadSession& operator=(const ThreadSession&) = delete;
+  ThreadSession& operator=(ThreadSession&&) = delete;
+
+  /** @brief Calls `CleanUpThreads`. All plans must already be destroyed. */
+  ~ThreadSession() { CleanUpThreads(); }
+};
+
+//----------------------------------------------------------//
 //                         1D plans                         //
 //----------------------------------------------------------//
 
@@ -168,6 +440,7 @@ auto ComplexCast(std::complex<Real>* z) {
 template <NumericConcepts::Real Real>
 auto Plan(int n, std::complex<Real>* in, std::complex<Real>* out, int sign,
           unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_1d(n, ComplexCast(in), ComplexCast(out), sign, flag);
   }
@@ -190,6 +463,7 @@ auto Plan(int n, std::complex<Real>* in, std::complex<Real>* out, int sign,
  */
 template <NumericConcepts::Real Real>
 auto Plan(int n, Real* in, std::complex<Real>* out, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_r2c_1d(n, in, ComplexCast(out), flag);
   }
@@ -212,6 +486,7 @@ auto Plan(int n, Real* in, std::complex<Real>* out, unsigned flag) {
  */
 template <NumericConcepts::Real Real>
 auto Plan(int n, std::complex<Real>* in, Real* out, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_c2r_1d(n, ComplexCast(in), out, flag);
   }
@@ -235,6 +510,7 @@ auto Plan(int n, std::complex<Real>* in, Real* out, unsigned flag) {
  */
 template <NumericConcepts::Real Real>
 auto Plan(int n, Real* in, Real* out, fftw_r2r_kind kind, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_r2r_1d(n, in, out, kind, flag);
   }
@@ -265,6 +541,7 @@ auto Plan(int n, Real* in, Real* out, fftw_r2r_kind kind, unsigned flag) {
 template <NumericConcepts::Real Real>
 auto Plan(int n0, int n1, std::complex<Real>* in, std::complex<Real>* out,
           int sign, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_2d(n0, n1, ComplexCast(in), ComplexCast(out), sign,
                              flag);
@@ -291,6 +568,7 @@ auto Plan(int n0, int n1, std::complex<Real>* in, std::complex<Real>* out,
  */
 template <NumericConcepts::Real Real>
 auto Plan(int n0, int n1, Real* in, std::complex<Real>* out, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_r2c_2d(n0, n1, in, ComplexCast(out), flag);
   }
@@ -314,6 +592,7 @@ auto Plan(int n0, int n1, Real* in, std::complex<Real>* out, unsigned flag) {
  */
 template <NumericConcepts::Real Real>
 auto Plan(int n0, int n1, std::complex<Real>* in, Real* out, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_c2r_2d(n0, n1, ComplexCast(in), out, flag);
   }
@@ -340,6 +619,7 @@ auto Plan(int n0, int n1, std::complex<Real>* in, Real* out, unsigned flag) {
 template <NumericConcepts::Real Real>
 auto Plan(int n0, int n1, Real* in, Real* out, fftw_r2r_kind kind0,
           fftw_r2r_kind kind1, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_r2r_2d(n0, n1, in, out, kind0, kind1, flag);
   }
@@ -371,6 +651,7 @@ auto Plan(int n0, int n1, Real* in, Real* out, fftw_r2r_kind kind0,
 template <NumericConcepts::Real Real>
 auto Plan(int n0, int n1, int n2, std::complex<Real>* in,
           std::complex<Real>* out, int sign, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_3d(n0, n1, n2, ComplexCast(in), ComplexCast(out),
                              sign, flag);
@@ -399,6 +680,7 @@ auto Plan(int n0, int n1, int n2, std::complex<Real>* in,
 template <NumericConcepts::Real Real>
 auto Plan(int n0, int n1, int n2, Real* in, std::complex<Real>* out,
           unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_r2c_3d(n0, n1, n2, in, ComplexCast(out), flag);
   }
@@ -424,6 +706,7 @@ auto Plan(int n0, int n1, int n2, Real* in, std::complex<Real>* out,
 template <NumericConcepts::Real Real>
 auto Plan(int n0, int n1, int n2, std::complex<Real>* in, Real* out,
           unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_c2r_3d(n0, n1, n2, ComplexCast(in), out, flag);
   }
@@ -452,6 +735,7 @@ auto Plan(int n0, int n1, int n2, std::complex<Real>* in, Real* out,
 template <NumericConcepts::Real Real>
 auto Plan(int n0, int n1, int n2, Real* in, Real* out, fftw_r2r_kind kind0,
           fftw_r2r_kind kind1, fftw_r2r_kind kind2, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_r2r_3d(n0, n1, n2, in, out, kind0, kind1, kind2, flag);
   }
@@ -482,6 +766,7 @@ auto Plan(int n0, int n1, int n2, Real* in, Real* out, fftw_r2r_kind kind0,
 template <NumericConcepts::Real Real>
 auto Plan(int rank, int* n, std::complex<Real>* in, std::complex<Real>* out,
           int sign, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft(rank, n, ComplexCast(in), ComplexCast(out), sign,
                           flag);
@@ -508,6 +793,7 @@ auto Plan(int rank, int* n, std::complex<Real>* in, std::complex<Real>* out,
  */
 template <NumericConcepts::Real Real>
 auto Plan(int rank, int* n, Real* in, std::complex<Real>* out, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_r2c(rank, n, in, ComplexCast(out), flag);
   }
@@ -531,6 +817,7 @@ auto Plan(int rank, int* n, Real* in, std::complex<Real>* out, unsigned flag) {
  */
 template <NumericConcepts::Real Real>
 auto Plan(int rank, int* n, std::complex<Real>* in, Real* out, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_dft_c2r(rank, n, ComplexCast(in), out, flag);
   }
@@ -557,6 +844,7 @@ auto Plan(int rank, int* n, std::complex<Real>* in, Real* out, unsigned flag) {
 template <NumericConcepts::Real Real>
 auto Plan(int rank, int* n, Real* in, Real* out, fftw_r2r_kind* kind,
           unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_r2r(rank, n, in, out, kind, flag);
   }
@@ -600,6 +888,7 @@ template <NumericConcepts::Real Real>
 auto Plan(int rank, int* n, int howMany, std::complex<Real>* in, int* inEmbed,
           int inStride, int inDist, std::complex<Real>* out, int* outEmbed,
           int outStride, int outDist, int sign, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_many_dft(rank, n, howMany, ComplexCast(in), inEmbed,
                                inStride, inDist, ComplexCast(out), outEmbed,
@@ -642,6 +931,7 @@ template <NumericConcepts::Real Real>
 auto Plan(int rank, int* n, int howMany, Real* in, int* inEmbed, int inStride,
           int inDist, std::complex<Real>* out, int* outEmbed, int outStride,
           int outDist, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_many_dft_r2c(rank, n, howMany, in, inEmbed, inStride,
                                    inDist, ComplexCast(out), outEmbed,
@@ -684,6 +974,7 @@ template <NumericConcepts::Real Real>
 auto Plan(int rank, int* n, int howMany, std::complex<Real>* in, int* inEmbed,
           int inStride, int inDist, Real* out, int* outEmbed, int outStride,
           int outDist, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_many_dft_c2r(rank, n, howMany, ComplexCast(in), inEmbed,
                                    inStride, inDist, out, outEmbed, outStride,
@@ -727,6 +1018,7 @@ template <NumericConcepts::Real Real>
 auto Plan(int rank, int* n, int howMany, Real* in, int* inEmbed, int inStride,
           int inDist, Real* out, int* outEmbed, int outStride, int outDist,
           fftw_r2r_kind* kind, unsigned flag) {
+  const auto lock = PlannerLock{};
   if constexpr (NumericConcepts::Float<Real>) {
     return fftwf_plan_many_r2r(rank, n, howMany, in, inEmbed, inStride, inDist,
                                out, outEmbed, outStride, outDist, kind, flag);
@@ -753,6 +1045,7 @@ auto Plan(int rank, int* n, int howMany, Real* in, int* inEmbed, int inStride,
 template <IsPlan PlanType>
 void Destroy(PlanType plan) {
   assert(plan != nullptr);
+  const auto lock = PlannerLock{};
   if constexpr (std::same_as<PlanType, fftwf_plan>) {
     fftwf_destroy_plan(plan);
   }
