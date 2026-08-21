@@ -10,6 +10,8 @@
 #ifndef FFTWPP_FLAGS_GUARD_H
 #define FFTWPP_FLAGS_GUARD_H
 
+#include <cassert>
+
 #include "fftw3.h"
 
 namespace FFTWpp {
@@ -22,7 +24,7 @@ namespace FFTWpp {
  */
 class Direction {
  public:
-  /** @brief Default constructor. */
+  /** @brief Default constructor. Yields a forward transform. */
   constexpr Direction() = default;
 
   /**
@@ -41,10 +43,10 @@ class Direction {
   constexpr operator int() const { return _direction; }
 
   /** @brief Defaulted equality operator. */
-  bool operator==(const Direction&) const = default;
+  constexpr bool operator==(const Direction&) const = default;
 
  private:
-  int _direction;
+  int _direction = FFTW_FORWARD;
 };
 
 /** @brief Represents a forward transform (`-1`). */
@@ -78,10 +80,20 @@ class Flag {
   constexpr operator unsigned() const { return _flag; }
 
   /** @brief Defaulted equality operator. */
-  bool operator==(const Flag&) const = default;
+  constexpr bool operator==(const Flag&) const = default;
+
+  /**
+   * @brief Adds the bits of another flag to this one.
+   * @param other The flag whose bits are to be set.
+   * @return A reference to this flag.
+   */
+  constexpr Flag& operator|=(Flag other) {
+    _flag |= other._flag;
+    return *this;
+  }
 
  private:
-  unsigned _flag;
+  unsigned _flag = 0u;
 };
 
 /**
@@ -90,7 +102,7 @@ class Flag {
  * @param rhs The right-hand side flag.
  * @return A new Flag object representing the combined flags.
  */
-constexpr auto operator|(Flag&& lhs, Flag&& rhs) {
+constexpr Flag operator|(Flag lhs, Flag rhs) {
   return Flag{static_cast<unsigned>(lhs) | static_cast<unsigned>(rhs)};
 }
 
@@ -151,7 +163,7 @@ class RealKind {
   constexpr operator fftw_r2r_kind() const { return _kind; }
 
   /** @brief Defaulted equality operator. */
-  bool operator==(const RealKind&) const = default;
+  constexpr bool operator==(const RealKind&) const = default;
 
   /**
    * @brief Gets the inverse of the current transform kind.
@@ -184,7 +196,7 @@ class RealKind {
       case FFTW_RODFT11:
         return RealKind{FFTW_RODFT11};
       default:
-        return RealKind{FFTW_HC2R};
+        return RealKind{_kind};
     }
   }
 
@@ -226,7 +238,7 @@ class RealKind {
   }
 
  private:
-  fftw_r2r_kind _kind;
+  fftw_r2r_kind _kind = FFTW_R2HC;
 };
 
 /** @brief Real-to-halfcomplex transform. */

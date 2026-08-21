@@ -2,6 +2,7 @@
 #include <FFTWpp/Ranges>
 #include <algorithm>
 #include <complex>
+#include <cstdlib>
 #include <iostream>
 #include <ranges>
 #include <vector>
@@ -80,7 +81,8 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cout << "Transform not okay\n";
+      std::cerr << "03-many_dimensions: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
   }
 
@@ -118,7 +120,8 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cout << "Transform not okay\n";
+      std::cerr << "03-many_dimensions: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
   }
 
@@ -140,9 +143,6 @@ int main() {
     auto out = FFTWpp::vector<Real>(outSize);
     auto copy = FFTWpp::vector<Real>(inSize);
 
-    // Set the transform kind.
-    auto kind = R2HC;
-
     // Form the plans. For the inverse transform we only need provide two
     // real kinds because from the second onward all the kinds are equal.
     auto planForward = Ranges::Plan(Ranges::View(in, n0, n1, n2, n3),
@@ -161,7 +161,12 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cout << "Transform not okay\n";
+      std::cerr << "03-many_dimensions: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
   }
+
+  std::cout << "03-many_dimensions: every round trip matched\n";
+
+  return EXIT_SUCCESS;
 }

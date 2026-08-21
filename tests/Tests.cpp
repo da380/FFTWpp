@@ -68,10 +68,26 @@ TYPED_TEST(PlanOwnership, SelfAndRepeatedAssignmentRemainValid) {
       FFTWpp::Ranges::Plan(inView, outView, FFTWpp::Estimate, FFTWpp::Backward);
 
   auto pointer = destination.Pointer();
+
+  // Assigning and moving a plan to itself is what this test is for, so the
+  // warnings that normally flag it are silenced rather than avoided.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#pragma clang diagnostic ignored "-Wself-move"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wself-move"
+#endif
   destination = destination;
   EXPECT_EQ(destination.Pointer(), pointer);
   destination = std::move(destination);
   EXPECT_EQ(destination.Pointer(), pointer);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
   for (int i = 0; i < 32; ++i) destination = source;
   for (int i = 0; i < 32; ++i) {
@@ -121,9 +137,9 @@ TYPED_TEST(WisdomGeneration, ComplexForwardAndBackwardPlansAreReusable) {
   auto inView = FFTWpp::Ranges::View(in);
   auto outView = FFTWpp::Ranges::View(out);
   EXPECT_NO_THROW(FFTWpp::Ranges::Plan(inView, outView, FFTWpp::WisdomOnly,
-                                      FFTWpp::Forward));
+                                       FFTWpp::Forward));
   EXPECT_NO_THROW(FFTWpp::Ranges::Plan(outView, inView, FFTWpp::WisdomOnly,
-                                      FFTWpp::Backward));
+                                       FFTWpp::Backward));
 }
 
 TYPED_TEST(WisdomGeneration, RealComplexPlansAreReusableInBothDirections) {
@@ -152,9 +168,9 @@ TYPED_TEST(WisdomGeneration, RealBackwardPlanUsesInverseKinds) {
 
   auto in = FFTWpp::vector<TypeParam>(8);
   auto out = FFTWpp::vector<TypeParam>(8);
-  EXPECT_NO_THROW(FFTWpp::Ranges::Plan(
-      FFTWpp::Ranges::View(in), FFTWpp::Ranges::View(out),
-      FFTWpp::WisdomOnly, FFTWpp::REDFT01));
+  EXPECT_NO_THROW(FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in),
+                                       FFTWpp::Ranges::View(out),
+                                       FFTWpp::WisdomOnly, FFTWpp::REDFT01));
 }
 
 TEST(WisdomIO, DoublePrecisionExportAndImportReportSuccessCorrectly) {

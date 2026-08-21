@@ -1,0 +1,21 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# FFTW rarely ships a CMake config file, so the find module used to build this
+# package is installed alongside it. The consumer's module path is saved and
+# restored in full rather than trimmed by position, since a transitive
+# find_package may append to it in between.
+set(_FFTWpp_saved_module_path "${CMAKE_MODULE_PATH}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+
+set(FFTWpp_FFTW_COMPONENTS @FFTWPP_EXPORTED_FFTW_COMPONENTS@)
+find_dependency(FFTW COMPONENTS ${FFTWpp_FFTW_COMPONENTS})
+find_dependency(NumericConcepts)
+
+set(CMAKE_MODULE_PATH "${_FFTWpp_saved_module_path}")
+unset(_FFTWpp_saved_module_path)
+
+include("${CMAKE_CURRENT_LIST_DIR}/FFTWppTargets.cmake")
+
+check_required_components(FFTWpp)

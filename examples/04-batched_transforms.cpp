@@ -2,6 +2,7 @@
 #include <FFTWpp/Ranges>
 #include <algorithm>
 #include <complex>
+#include <cstdlib>
 #include <iostream>
 #include <ranges>
 #include <vector>
@@ -66,7 +67,12 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cout << "Transform not okay\n";
+      std::cerr << "04-batched_transforms: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
   }
+
+  std::cout << "04-batched_transforms: every round trip matched\n";
+
+  return EXIT_SUCCESS;
 }

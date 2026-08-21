@@ -15,8 +15,13 @@
 #include <cassert>
 #include <complex>
 #include <concepts>
+#include <functional>
 #include <memory>
+#include <numeric>
 #include <ranges>
+#include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "Core.h"
@@ -64,6 +69,9 @@ class Layout {
    * @param stride The distance between consecutive elements in a dimension.
    * @param dist The distance between the start of consecutive transform data
    * sets.
+   * @throws std::invalid_argument if the arguments cannot describe a transform.
+   * The checks are made unconditionally, not through `assert`, so that a
+   * release build reports a bad layout instead of passing it to FFTW.
    */
   template <std::ranges::range R1, std::ranges::range R2>
   requires requires() {
@@ -76,7 +84,9 @@ class Layout {
         _howMany{howMany},
         _embed{std::vector<int>(std::begin(embed), std::end(embed))},
         _stride{stride},
-        _dist{dist} {}
+        _dist{dist} {
+    Validate();
+  }
 
   // Access the layout information.
   /** @brief Gets the rank (number of dimensions) of the transform. */
@@ -97,33 +107,72 @@ class Layout {
   auto NPointer() { return _n.data(); }
   /** @brief Gets a raw pointer to the embedded dimensions vector. */
   auto EmbedPointer() { return _embed.data(); }
+  /** @brief Gets a read-only pointer to the logical dimensions vector (`n`). */
+  auto NPointer() const { return _n.data(); }
+  /** @brief Gets a read-only pointer to the embedded dimensions vector. */
+  auto EmbedPointer() const { return _embed.data(); }
+
+  /**
+   * @brief Calculates the number of elements a single transform reads or
+   * writes, ignoring `HowMany`.
+   * @return The product of the embedded dimensions.
+   */
+  auto TransformSize() const {
+    if (_embed.empty()) return 0;
+    return std::accumulate(_embed.begin(), _embed.end(), 1,
+                           std::multiplies<>());
+  }
 
   /**
    * @brief Calculates the total storage size required for this layout.
    * @return The total number of elements in memory.
    */
-  auto size() const {
-    return HowMany() *
-           std::ranges::fold_left_first(Embed(), std::multiplies<>())
-               .value_or(0);
-  }
+  auto size() const { return HowMany() * TransformSize(); }
 
   /** @brief Defaulted equality operator. */
   bool operator==(const Layout&) const = default;
 
  private:
+  /**
+   * @brief Rejects argument combinations that cannot describe a transform.
+   * @throws std::invalid_argument with a description of the first problem
+   * found.
+   */
+  void Validate() const {
+    const auto fail = [](const std::string& reason) {
+      throw std::invalid_argument("FFTWpp::Ranges::Layout: " + reason);
+    };
+    if (_rank < 1) fail("the rank must be at least one");
+    if (std::cmp_not_equal(_n.size(), _rank)) {
+      fail("one dimension must be given for each rank");
+    }
+    if (std::cmp_not_equal(_embed.size(), _rank)) {
+      fail("one embedded dimension must be given for each rank");
+    }
+    if (_howMany < 1) fail("at least one transform must be performed");
+    if (_stride == 0) fail("the stride must be non-zero");
+    if (std::ranges::any_of(_n, [](auto n) { return n < 1; })) {
+      fail("every dimension must be positive");
+    }
+    if (!std::ranges::equal(_n, _embed, std::less_equal<>())) {
+      fail(
+          "every embedded dimension must be at least as large as the "
+          "corresponding dimension");
+    }
+  }
+
   /// @brief Rank of the transformations (i.e., 1D, 2D, etc).
-  int _rank;
+  int _rank = 0;
   /// @brief Vector of logical dimensions along each rank.
   std::vector<int> _n;
   /// @brief Number of transforms to be performed.
-  int _howMany;
+  int _howMany = 0;
   /// @brief Embedded size of the array along each rank.
   std::vector<int> _embed;
   /// @brief Offset between elements of the data.
-  int _stride;
+  int _stride = 0;
   /// @brief Offset between the start of each transformation.
-  int _dist;
+  int _dist = 0;
 };
 
 /**
@@ -138,17 +187,23 @@ class Layout {
  */
 template <NumericConcepts::RealOrComplexWritableView _View>
 class View : public std::ranges::view_interface<View<_View>>, public Layout {
+ public:
+  /**
+   * @brief Returns the number of elements in the underlying data view.
+   * @details This resolves the ambiguity between `Layout::size`, which is the
+   * storage the layout requires, and `view_interface::size`, which is the
+   * storage actually present. The two are equal for every constructed `View`.
+   */
   using std::ranges::view_interface<View<_View>>::size;
 
- public:
   /**
    * @brief Constructs a View from an existing view and a Layout object.
    * @param view The underlying data view.
    * @param layout The layout describing the transform shape.
+   * @throws std::invalid_argument if the view does not hold exactly the number
+   * of elements the layout requires.
    */
-  View(_View view, Layout layout) : Layout(layout), _view{view} {
-    assert(CheckSize());
-  }
+  View(_View view, Layout layout) : Layout(layout), _view{view} { CheckSize(); }
 
   /**
    * @brief Constructs a 1D View from an existing view.
@@ -169,9 +224,7 @@ class View : public std::ranges::view_interface<View<_View>>, public Layout {
   requires(sizeof...(Dimensions) > 0) and
           (std::convertible_to<Dimensions, int> && ...)
   View(_View view, Dimensions... dimensions)
-      : View(view, Layout(dimensions...)) {
-    assert(CheckSize());
-  }
+      : View(view, Layout(dimensions...)) {}
 
   // Methods to inherit from view_interface.
   /** @brief Returns an iterator to the beginning of the view. */
@@ -186,6 +239,18 @@ class View : public std::ranges::view_interface<View<_View>>, public Layout {
    */
   auto DataPointer() { return _view.data(); }
 
+  /**
+   * @brief Returns FFTW's alignment class for the start of the data.
+   * @details Two views may be substituted for one another in a call to
+   * `Plan::Execute(in, out)` only if they share an alignment class.
+   * @return The opaque alignment class of the first element.
+   * @see FFTWpp::AlignmentOf
+   */
+  auto Alignment() { return FFTWpp::AlignmentOf(_view.data()); }
+
+  /** @brief Returns the `Layout` describing this view's shape. */
+  const Layout& GetLayout() const { return *this; }
+
  private:
   /// @brief The stored C++20 view to the data.
   _View _view;
@@ -193,8 +258,16 @@ class View : public std::ranges::view_interface<View<_View>>, public Layout {
   /**
    * @brief Checks that the underlying view size matches the required storage
    * size of the Layout.
+   * @throws std::invalid_argument if the sizes differ.
    */
-  auto CheckSize() const { return _view.size() == Layout::size(); }
+  void CheckSize() const {
+    if (std::cmp_not_equal(_view.size(), Layout::size())) {
+      throw std::invalid_argument("FFTWpp::Ranges::View: the data holds " +
+                                  std::to_string(_view.size()) +
+                                  " elements but its layout requires " +
+                                  std::to_string(Layout::size()));
+    }
+  }
 };
 
 /**
