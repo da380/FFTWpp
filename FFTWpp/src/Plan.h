@@ -256,9 +256,16 @@ class Plan {
 
   /**
    * @brief Calculates the normalization factor for an inverse transform.
-   * @details The normalization factor is `1 / N`, where `N` is the total
-   * logical size of the transform dimensions. For R2R transforms, this uses the
-   * `LogicalDimension` of each transform kind.
+   * @details FFTW's transforms are unnormalised: a forward transform followed
+   * by its inverse multiplies the data by the logical size `N`, so an inverse
+   * result must be scaled by `1 / N` to recover the original.
+   *
+   * `N` is the product of the *real-space* dimensions, which for a real to
+   * complex or complex to real transform is the real side rather than the
+   * halfcomplex side of length `n / 2 + 1`. Both directions of one logical
+   * transform therefore report the same factor. For a real to real transform
+   * each dimension contributes `RealKind::LogicalDimension` of its own kind,
+   * so a DCT-II of length `n` contributes `2 * n`.
    * @return The normalization factor, cast to the output value type.
    */
   auto Normalisation() const {
