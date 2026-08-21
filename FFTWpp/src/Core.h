@@ -1115,6 +1115,308 @@ auto Plan(int rank, int* n, int howMany, Real* in, int* inEmbed, int inStride,
 }
 
 //----------------------------------------------------------//
+//                        Guru plans                        //
+//----------------------------------------------------------//
+
+/**
+ * @brief One dimension of a guru transform: an extent and a stride on each
+ * side.
+ * @details Mirrors FFTW's `fftw_iodim`, with two differences that exist to
+ * make it harder to misuse.
+ *
+ * The members are named rather than positional, so a designated initialiser
+ * says which stride is which and the pair cannot be transposed by accident:
+ * @code
+ * auto dim = FFTWpp::Dim{.n = 64, .inStride = 1, .outStride = 8};
+ * @endcode
+ *
+ * The members are `std::ptrdiff_t` rather than `int`, so the choice between
+ * FFTW's 32-bit and 64-bit guru entry points is made for you: a layout whose
+ * extents and strides all fit in an `int` uses `fftw_plan_guru_*`, and one
+ * that does not uses `fftw_plan_guru64_*`.
+ *
+ * A stride is measured in elements of the array it refers to, not in bytes,
+ * and may be negative to traverse an axis backwards.
+ */
+struct Dim {
+  /// @brief The number of elements along this dimension.
+  std::ptrdiff_t n = 0;
+  /// @brief The distance between consecutive elements in the input array.
+  std::ptrdiff_t inStride = 0;
+  /// @brief The distance between consecutive elements in the output array.
+  std::ptrdiff_t outStride = 0;
+
+  /** @brief Defaulted equality operator. */
+  friend constexpr bool operator==(const Dim&, const Dim&) = default;
+};
+
+namespace Internal {
+
+/**
+ * @brief Reports whether a list of dimensions fits FFTW's 32-bit guru
+ * interface.
+ */
+inline bool FitsGuru32(const Dim* dims, int rank) {
+  constexpr auto limit =
+      static_cast<std::ptrdiff_t>(std::numeric_limits<int>::max());
+  constexpr auto floor =
+      static_cast<std::ptrdiff_t>(std::numeric_limits<int>::min());
+  for (int i = 0; i < rank; ++i) {
+    const auto& d = dims[i];
+    if (d.n > limit || d.inStride > limit || d.outStride > limit) return false;
+    if (d.inStride < floor || d.outStride < floor) return false;
+  }
+  return true;
+}
+
+/** @brief Converts FFTWpp dimensions to FFTW's 32-bit `iodim`. */
+inline std::vector<fftw_iodim> ToIoDim(const Dim* dims, int rank) {
+  auto converted = std::vector<fftw_iodim>(static_cast<std::size_t>(rank));
+  for (int i = 0; i < rank; ++i) {
+    converted[i].n = static_cast<int>(dims[i].n);
+    converted[i].is = static_cast<int>(dims[i].inStride);
+    converted[i].os = static_cast<int>(dims[i].outStride);
+  }
+  return converted;
+}
+
+/** @brief Converts FFTWpp dimensions to FFTW's 64-bit `iodim64`. */
+inline std::vector<fftw_iodim64> ToIoDim64(const Dim* dims, int rank) {
+  auto converted = std::vector<fftw_iodim64>(static_cast<std::size_t>(rank));
+  for (int i = 0; i < rank; ++i) {
+    converted[i].n = dims[i].n;
+    converted[i].is = dims[i].inStride;
+    converted[i].os = dims[i].outStride;
+  }
+  return converted;
+}
+
+}  // namespace Internal
+
+/**
+ * @brief Creates a guru plan for a complex-to-complex DFT.
+ * @details The guru interface generalises the advanced interface in two ways:
+ * every dimension carries its own input and output stride, and the loop over
+ * repeated transforms is itself multi-dimensional rather than a single
+ * `(howMany, dist)` pair. Together those express layouts the advanced
+ * interface cannot, the commonest being a transform along an interior axis of
+ * an array of rank three or more.
+ *
+ * FFTW checks none of this. Prefer `Ranges::GuruPlan`, which validates the
+ * layout before handing it over.
+ * @tparam Real The floating-point precision of the data.
+ * @param rank The number of transform dimensions.
+ * @param dims The transform dimensions.
+ * @param howManyRank The number of dimensions of the repetition loop. May be
+ * zero, for a single transform.
+ * @param howManyDims The dimensions of the repetition loop.
+ * @param in Pointer to the complex input array.
+ * @param out Pointer to the complex output array.
+ * @param sign `FFTW_FORWARD` or `FFTW_BACKWARD`.
+ * @param flag A bitwise OR of FFTW planner flags.
+ * @return An FFTW plan handle corresponding to the data precision.
+ */
+template <NumericConcepts::Real Real>
+auto Plan(int rank, const Dim* dims, int howManyRank, const Dim* howManyDims,
+          std::complex<Real>* in, std::complex<Real>* out, int sign,
+          unsigned flag) {
+  const auto lock = PlannerLock{};
+  if (Internal::FitsGuru32(dims, rank) &&
+      Internal::FitsGuru32(howManyDims, howManyRank)) {
+    const auto d = Internal::ToIoDim(dims, rank);
+    const auto h = Internal::ToIoDim(howManyDims, howManyRank);
+    if constexpr (NumericConcepts::Float<Real>) {
+      return fftwf_plan_guru_dft(rank, d.data(), howManyRank, h.data(),
+                                 ComplexCast(in), ComplexCast(out), sign, flag);
+    }
+    if constexpr (NumericConcepts::Double<Real>) {
+      return fftw_plan_guru_dft(rank, d.data(), howManyRank, h.data(),
+                                ComplexCast(in), ComplexCast(out), sign, flag);
+    }
+    if constexpr (NumericConcepts::LongDouble<Real>) {
+      return fftwl_plan_guru_dft(rank, d.data(), howManyRank, h.data(),
+                                 ComplexCast(in), ComplexCast(out), sign, flag);
+    }
+  } else {
+    const auto d = Internal::ToIoDim64(dims, rank);
+    const auto h = Internal::ToIoDim64(howManyDims, howManyRank);
+    if constexpr (NumericConcepts::Float<Real>) {
+      return fftwf_plan_guru64_dft(rank, d.data(), howManyRank, h.data(),
+                                   ComplexCast(in), ComplexCast(out), sign,
+                                   flag);
+    }
+    if constexpr (NumericConcepts::Double<Real>) {
+      return fftw_plan_guru64_dft(rank, d.data(), howManyRank, h.data(),
+                                  ComplexCast(in), ComplexCast(out), sign,
+                                  flag);
+    }
+    if constexpr (NumericConcepts::LongDouble<Real>) {
+      return fftwl_plan_guru64_dft(rank, d.data(), howManyRank, h.data(),
+                                   ComplexCast(in), ComplexCast(out), sign,
+                                   flag);
+    }
+  }
+}
+
+/**
+ * @brief Creates a guru plan for a real-to-complex DFT.
+ * @details The extents in `dims` are those of the *real* array. The last
+ * transform dimension is special: the complex array holds `n / 2 + 1` elements
+ * along it, rounded down. `inStride` refers to the real array and `outStride`
+ * to the complex one.
+ * @tparam Real The floating-point precision of the data.
+ * @param rank The number of transform dimensions.
+ * @param dims The transform dimensions, with real-array extents.
+ * @param howManyRank The number of dimensions of the repetition loop.
+ * @param howManyDims The dimensions of the repetition loop.
+ * @param in Pointer to the real input array.
+ * @param out Pointer to the complex output array.
+ * @param flag A bitwise OR of FFTW planner flags.
+ * @return An FFTW plan handle corresponding to the data precision.
+ */
+template <NumericConcepts::Real Real>
+auto Plan(int rank, const Dim* dims, int howManyRank, const Dim* howManyDims,
+          Real* in, std::complex<Real>* out, unsigned flag) {
+  const auto lock = PlannerLock{};
+  if (Internal::FitsGuru32(dims, rank) &&
+      Internal::FitsGuru32(howManyDims, howManyRank)) {
+    const auto d = Internal::ToIoDim(dims, rank);
+    const auto h = Internal::ToIoDim(howManyDims, howManyRank);
+    if constexpr (NumericConcepts::Float<Real>) {
+      return fftwf_plan_guru_dft_r2c(rank, d.data(), howManyRank, h.data(), in,
+                                     ComplexCast(out), flag);
+    }
+    if constexpr (NumericConcepts::Double<Real>) {
+      return fftw_plan_guru_dft_r2c(rank, d.data(), howManyRank, h.data(), in,
+                                    ComplexCast(out), flag);
+    }
+    if constexpr (NumericConcepts::LongDouble<Real>) {
+      return fftwl_plan_guru_dft_r2c(rank, d.data(), howManyRank, h.data(), in,
+                                     ComplexCast(out), flag);
+    }
+  } else {
+    const auto d = Internal::ToIoDim64(dims, rank);
+    const auto h = Internal::ToIoDim64(howManyDims, howManyRank);
+    if constexpr (NumericConcepts::Float<Real>) {
+      return fftwf_plan_guru64_dft_r2c(rank, d.data(), howManyRank, h.data(),
+                                       in, ComplexCast(out), flag);
+    }
+    if constexpr (NumericConcepts::Double<Real>) {
+      return fftw_plan_guru64_dft_r2c(rank, d.data(), howManyRank, h.data(), in,
+                                      ComplexCast(out), flag);
+    }
+    if constexpr (NumericConcepts::LongDouble<Real>) {
+      return fftwl_plan_guru64_dft_r2c(rank, d.data(), howManyRank, h.data(),
+                                       in, ComplexCast(out), flag);
+    }
+  }
+}
+
+/**
+ * @brief Creates a guru plan for a complex-to-real DFT.
+ * @details The extents in `dims` are those of the *real* array, as for the
+ * real-to-complex case. Here `inStride` refers to the complex array and
+ * `outStride` to the real one.
+ * @tparam Real The floating-point precision of the data.
+ * @param rank The number of transform dimensions.
+ * @param dims The transform dimensions, with real-array extents.
+ * @param howManyRank The number of dimensions of the repetition loop.
+ * @param howManyDims The dimensions of the repetition loop.
+ * @param in Pointer to the complex input array.
+ * @param out Pointer to the real output array.
+ * @param flag A bitwise OR of FFTW planner flags.
+ * @return An FFTW plan handle corresponding to the data precision.
+ */
+template <NumericConcepts::Real Real>
+auto Plan(int rank, const Dim* dims, int howManyRank, const Dim* howManyDims,
+          std::complex<Real>* in, Real* out, unsigned flag) {
+  const auto lock = PlannerLock{};
+  if (Internal::FitsGuru32(dims, rank) &&
+      Internal::FitsGuru32(howManyDims, howManyRank)) {
+    const auto d = Internal::ToIoDim(dims, rank);
+    const auto h = Internal::ToIoDim(howManyDims, howManyRank);
+    if constexpr (NumericConcepts::Float<Real>) {
+      return fftwf_plan_guru_dft_c2r(rank, d.data(), howManyRank, h.data(),
+                                     ComplexCast(in), out, flag);
+    }
+    if constexpr (NumericConcepts::Double<Real>) {
+      return fftw_plan_guru_dft_c2r(rank, d.data(), howManyRank, h.data(),
+                                    ComplexCast(in), out, flag);
+    }
+    if constexpr (NumericConcepts::LongDouble<Real>) {
+      return fftwl_plan_guru_dft_c2r(rank, d.data(), howManyRank, h.data(),
+                                     ComplexCast(in), out, flag);
+    }
+  } else {
+    const auto d = Internal::ToIoDim64(dims, rank);
+    const auto h = Internal::ToIoDim64(howManyDims, howManyRank);
+    if constexpr (NumericConcepts::Float<Real>) {
+      return fftwf_plan_guru64_dft_c2r(rank, d.data(), howManyRank, h.data(),
+                                       ComplexCast(in), out, flag);
+    }
+    if constexpr (NumericConcepts::Double<Real>) {
+      return fftw_plan_guru64_dft_c2r(rank, d.data(), howManyRank, h.data(),
+                                      ComplexCast(in), out, flag);
+    }
+    if constexpr (NumericConcepts::LongDouble<Real>) {
+      return fftwl_plan_guru64_dft_c2r(rank, d.data(), howManyRank, h.data(),
+                                       ComplexCast(in), out, flag);
+    }
+  }
+}
+
+/**
+ * @brief Creates a guru plan for a real-to-real transform.
+ * @tparam Real The floating-point precision of the data.
+ * @param rank The number of transform dimensions.
+ * @param dims The transform dimensions.
+ * @param howManyRank The number of dimensions of the repetition loop.
+ * @param howManyDims The dimensions of the repetition loop.
+ * @param in Pointer to the real input array.
+ * @param out Pointer to the real output array.
+ * @param kind Pointer to an array of `fftw_r2r_kind` of size `rank`.
+ * @param flag A bitwise OR of FFTW planner flags.
+ * @return An FFTW plan handle corresponding to the data precision.
+ */
+template <NumericConcepts::Real Real>
+auto Plan(int rank, const Dim* dims, int howManyRank, const Dim* howManyDims,
+          Real* in, Real* out, const fftw_r2r_kind* kind, unsigned flag) {
+  const auto lock = PlannerLock{};
+  if (Internal::FitsGuru32(dims, rank) &&
+      Internal::FitsGuru32(howManyDims, howManyRank)) {
+    const auto d = Internal::ToIoDim(dims, rank);
+    const auto h = Internal::ToIoDim(howManyDims, howManyRank);
+    if constexpr (NumericConcepts::Float<Real>) {
+      return fftwf_plan_guru_r2r(rank, d.data(), howManyRank, h.data(), in, out,
+                                 kind, flag);
+    }
+    if constexpr (NumericConcepts::Double<Real>) {
+      return fftw_plan_guru_r2r(rank, d.data(), howManyRank, h.data(), in, out,
+                                kind, flag);
+    }
+    if constexpr (NumericConcepts::LongDouble<Real>) {
+      return fftwl_plan_guru_r2r(rank, d.data(), howManyRank, h.data(), in, out,
+                                 kind, flag);
+    }
+  } else {
+    const auto d = Internal::ToIoDim64(dims, rank);
+    const auto h = Internal::ToIoDim64(howManyDims, howManyRank);
+    if constexpr (NumericConcepts::Float<Real>) {
+      return fftwf_plan_guru64_r2r(rank, d.data(), howManyRank, h.data(), in,
+                                   out, kind, flag);
+    }
+    if constexpr (NumericConcepts::Double<Real>) {
+      return fftw_plan_guru64_r2r(rank, d.data(), howManyRank, h.data(), in,
+                                  out, kind, flag);
+    }
+    if constexpr (NumericConcepts::LongDouble<Real>) {
+      return fftwl_plan_guru64_r2r(rank, d.data(), howManyRank, h.data(), in,
+                                   out, kind, flag);
+    }
+  }
+}
+
+//----------------------------------------------------------//
 //                 Plan destruction functions               //
 //----------------------------------------------------------//
 

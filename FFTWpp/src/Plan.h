@@ -533,7 +533,7 @@ class Plan {
     }
     _inAlignment = _in.Alignment();
     _outAlignment = _out.Alignment();
-    Internal::LivePlanCounter().fetch_add(1, std::memory_order_relaxed);
+    FFTWpp::Internal::LivePlanCounter().fetch_add(1, std::memory_order_relaxed);
   }
 
   /**
@@ -554,7 +554,7 @@ class Plan {
     if (IsNull()) return;
     FFTWpp::Destroy(Pointer());
     Pointer() = nullptr;
-    Internal::LivePlanCounter().fetch_sub(1, std::memory_order_relaxed);
+    FFTWpp::Internal::LivePlanCounter().fetch_sub(1, std::memory_order_relaxed);
   }
 
   /**

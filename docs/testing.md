@@ -110,6 +110,33 @@ dimensions.
   and executes a large transform and a non-positive thread count is rejected.
   Otherwise a single test asserts that `ThreadsEnabled` is false.
 
+### `TestGuru.cpp` — the guru interface
+
+- `GuruLayout.*` — `RowMajorStrides`, that `TransformAlong` along an interior
+  axis produces a two-dimensional batch, that `HalfcomplexShape` halves the
+  last transformed axis, and that the real-to-complex and complex-to-real
+  builders are mirror images.
+- Validation: malformed dimensions, malformed axis lists, ranges too small for
+  their layout, too many r2r kinds, and the overlap check — both that it
+  catches two dimensions addressing the same element and that every layout
+  `TransformAlong` produces passes it.
+- `Guru.InteriorAxisAgreesWithTheTransformDoneByHand` is the load-bearing one.
+  A transform along the middle axis of a three-dimensional array, done in a
+  single guru plan, must agree element for element with the same transform
+  driven by hand as one batched plan per slab — which is as far as the
+  advanced interface reaches. A round trip cannot catch a wrong stride, since
+  a consistently wrong forward and backward pair still round-trips.
+- `GuruPlan.TransformsTheCallersBufferRatherThanACopyOfIt` guards the reason
+  `GuruPlan` is constrained to views rather than ranges. When a container
+  could be deduced it was passed by value, the plan was built on the copy's
+  storage, and every transform wrote where the caller could not see it — which
+  every round trip passed regardless.
+- Round trips for complex, real-to-complex and real-to-real along an interior
+  axis, at all three precisions, plus a transposing layout whose two sides have
+  different stride orders.
+- Ownership, checked new-array execution, and the predicate that chooses
+  between FFTW's 32- and 64-bit guru entry points.
+
 ### `TestOptions.cpp` — options, utilities and wisdom routes
 
 - `Options.*` — direction values, flag combination with `|` and `|=`, that

@@ -23,6 +23,7 @@ low-level wrappers and the aligned allocator alone.
 | FFTW's own threading | FFTWpp::ThreadSession, FFTWpp::ThreadsEnabled |
 | Alignment and new-array execution | FFTWpp::AlignmentOf, FFTWpp::Ranges::Plan::ExecuteChecked |
 | Wisdom | FFTWpp::ImportWisdom, FFTWpp::ExportWisdom, FFTWpp::GenerateWisdom |
+| Layouts the advanced interface cannot express | FFTWpp::Ranges::TransformAlong, FFTWpp::Ranges::GuruLayout, FFTWpp::Ranges::GuruPlan |
 
 @section quickstart Quick start
 
@@ -81,6 +82,21 @@ FFTWpp::Ranges::Plan owns an `fftw_plan` and destroys it in its destructor.
 Copying builds an equivalent new plan; moving transfers the handle and leaves
 the source null. FFTWpp::Ranges::Plan::Normalisation gives the factor an
 unnormalised inverse transform needs.
+
+@subsection guru The guru interface
+
+FFTWpp::Ranges::Layout describes repeated transforms with one `(howMany,
+dist)` pair, which cannot express a transform along an interior axis of an
+array of rank three or more. FFTWpp::Ranges::GuruLayout and
+FFTWpp::Ranges::GuruPlan wrap FFTW's guru interface, where every dimension
+carries its own input and output stride and the repetition loop is itself
+multi-dimensional.
+
+FFTWpp::Ranges::TransformAlong builds the descriptor from a shape and a list
+of axes, which is what makes the guru interface approachable: no strides are
+derived by hand. FFTWpp::Dim names its fields so a designated initialiser
+cannot transpose the two strides, and its members are `std::ptrdiff_t`, so the
+choice between FFTW's 32- and 64-bit guru entry points is made for you.
 
 @subsection threads Thread safety
 

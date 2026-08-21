@@ -22,6 +22,9 @@ thread-safety and new-array execution.
 * **The advanced interface, wrapped.** `Layout` describes strided and batched
   transforms as a `(count, stride, dist)` descriptor, so a tensor can often be
   transformed in place rather than repacked.
+* **The guru interface, made approachable.** `TransformAlong(shape, axes)`
+  derives the descriptor for a transform along any axes of an N-dimensional
+  array, including the interior ones the advanced interface cannot reach.
 * **Thread-safe by construction.** FFTWpp serialises FFTW's non-re-entrant
   planner itself. See [Thread safety](#thread-safety).
 
@@ -224,6 +227,53 @@ auto plan = FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in, layout),
 Describing the layout costs a descriptor rather than a repack, which is the
 reason to wrap the advanced interface at all.
 
+### Transforms the advanced interface cannot express
+
+`Layout` describes repeated transforms with a single `(howMany, dist)` pair,
+which cannot express a transform along an *interior* axis of an array of rank
+three or more: the repetitions start at offsets like `i0 * n1 * n2 + i2`, which
+is not an arithmetic progression. FFTW's guru interface can, because every
+dimension carries its own input and output stride and the repetition loop is
+itself multi-dimensional.
+
+`Ranges::TransformAlong` builds the descriptor from a shape and a list of axes,
+so no strides are written by hand:
+
+```cpp
+// One plan that transforms axis 1 of every (i0, i2) line of the array.
+auto layout = FFTWpp::Ranges::TransformAlong({n0, n1, n2}, /*axes=*/{1});
+auto plan = FFTWpp::Ranges::GuruPlan(in, out, layout, FFTWpp::Measure,
+                                     FFTWpp::Forward);
+plan.Execute();
+```
+
+`RealToComplexTransformAlong` and `ComplexToRealTransformAlong` are the
+counterparts for halfcomplex transforms; both take the *real* shape and work
+out the halfcomplex one. `FFTWpp::DataSize<InType, OutType>(layout)` reports
+how much storage each side needs, as it does for the simple case.
+
+For anything those do not cover, write the descriptor out. A `Dim` names its
+fields, so a designated initialiser cannot transpose the two strides, and
+`GuruLayout` holds both dimension lists so they cannot be passed the wrong way
+round:
+
+```cpp
+// A transform along the rows of a row-major array, written to a
+// column-major output: the two sides have different stride orders.
+auto layout = FFTWpp::Ranges::GuruLayout{
+    /*transform=*/{{.n = columns, .inStride = 1, .outStride = rows}},
+    /*batch=*/{{.n = rows, .inStride = columns, .outStride = 1}}};
+```
+
+Extents and strides are `std::ptrdiff_t`, so the choice between FFTW's 32-bit
+and 64-bit guru entry points is made for you.
+
+`GuruPlan` behaves like `Plan` in every other respect — RAII, copy, move,
+`Normalisation()`, checked new-array execution — and validates the layout
+before handing it to FFTW. In particular it rejects a layout whose dimensions
+would visit the same address twice, which FFTW does not check and which
+otherwise produces a wrong answer in silence.
+
 ### New-array execution and alignment
 
 A plan may be executed on buffers other than the ones it was created for, but
@@ -401,10 +451,11 @@ See [docs/testing.md](docs/testing.md) for the test inventory.
 
 | Header | Contents |
 | --- | --- |
-| `Core.h` | Precision-aware wrappers over `fftw3.h`, the aligned allocator, the planner mutex, alignment queries and the threading wrappers |
+| `Core.h` | Precision-aware wrappers over `fftw3.h`, the aligned allocator, the planner mutex, alignment queries, `Dim` and the threading wrappers |
 | `Options.h` | `Direction`, `Flag`, `RealKind` |
 | `Views.h` | `Ranges::Layout` and `Ranges::View` |
 | `Plan.h` | `Ranges::Plan` |
+| `Guru.h` | `Ranges::GuruLayout`, `Ranges::GuruPlan` and `Ranges::TransformAlong` |
 | `Wisdom.h` | Wisdom import, export and generation |
 | `Utility.h` | `DataSize`, `RandomiseValues`, `CheckValues` |
 

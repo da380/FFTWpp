@@ -19,6 +19,7 @@ add_executable(
   OdrInclude.cpp
   TestMain.cpp
   TestOptions.cpp
+  TestGuru.cpp
   TestSafety.cpp
   TestTransforms.cpp
   Tests.cpp)
