@@ -1,0 +1,17 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# FFTW rarely ships a CMake config file, so the find module used to build this
+# package is installed alongside it.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+
+set(FFTWpp_FFTW_COMPONENTS @FFTWPP_EXPORTED_FFTW_COMPONENTS@)
+find_dependency(FFTW COMPONENTS ${FFTWpp_FFTW_COMPONENTS})
+find_dependency(NumericConcepts)
+
+list(REMOVE_AT CMAKE_MODULE_PATH -1)
+
+include("${CMAKE_CURRENT_LIST_DIR}/FFTWppTargets.cmake")
+
+check_required_components(FFTWpp)
