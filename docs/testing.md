@@ -29,9 +29,11 @@ data race inside FFTW reached through `Plan::MakePlan`; with it in place there
 are no reports at all.
 
 FFTW itself is linked uninstrumented, so ThreadSanitizer cannot see the
-synchronisation inside it and would report FFTW's own internal state as racy
-even where FFTWpp is serialising correctly. `scripts/tsan.supp` suppresses
-FFTW's frames, and CI points `TSAN_SUPPRESSIONS` at it.
+synchronisation inside it. In practice it stays quiet and no suppression file
+is needed; set `TSAN_SUPPRESSIONS` to one if a particular FFTW build turns out
+to need it. A `called_from_lib` entry must match exactly one loaded library or
+ThreadSanitizer refuses to start, so name the full soname — `libfftw3.so.3`,
+not `libfftw3`, which also matches `libfftw3f.so.3`.
 
 On recent Linux kernels GCC's ThreadSanitizer refuses to start because the
 kernel's mmap randomisation is wider than it expects; the script runs `ctest`

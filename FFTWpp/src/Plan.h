@@ -15,6 +15,7 @@
 #include <cassert>
 #include <complex>
 #include <initializer_list>
+#include <numeric>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -261,21 +262,24 @@ class Plan {
    * @return The normalization factor, cast to the output value type.
    */
   auto Normalisation() const {
-    int dim;
+    int dim = 1;
     if constexpr (NumericConcepts::Real<InType> &&
                   NumericConcepts::Complex<OutType>) {
       // R2C: the logical size is that of the real, not the halfcomplex, side.
-      dim = std::ranges::fold_left_first(_in.N(), std::multiplies<>()).value();
+      const auto n = _in.N();
+      dim = std::accumulate(std::ranges::begin(n), std::ranges::end(n), 1,
+                            std::multiplies<>());
     } else if constexpr (NumericConcepts::Complex<InType> ||
                          NumericConcepts::Complex<OutType>) {
-      dim = std::ranges::fold_left_first(_out.N(), std::multiplies<>()).value();
+      const auto n = _out.N();
+      dim = std::accumulate(std::ranges::begin(n), std::ranges::end(n), 1,
+                            std::multiplies<>());
     } else {
-      dim = std::ranges::fold_left_first(
-                std::ranges::views::zip_transform(
-                    [](auto n, auto kind) { return kind.LogicalDimension(n); },
-                    _out.N(), Kinds()),
-                std::multiplies<>())
-                .value();
+      // R2R: each dimension contributes the logical size of its own kind.
+      const auto n = _out.N();
+      const auto kinds = Kinds();
+      auto kind = std::ranges::begin(kinds);
+      for (auto size : n) dim *= (kind++)->LogicalDimension(size);
     }
     return static_cast<OutType>(1) / static_cast<OutType>(dim);
   }

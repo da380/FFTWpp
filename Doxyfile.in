@@ -3,7 +3,7 @@
 # --- Project Info ---
 PROJECT_NAME           = "@PROJECT_NAME@"
 PROJECT_NUMBER         = "@PROJECT_VERSION@"
-PROJECT_BRIEF          = "A C++20 interace to the fftw library"
+PROJECT_BRIEF          = "A modern C++ interface to the FFTW3 library"
 STRIP_FROM_PATH        = "@CMAKE_CURRENT_SOURCE_DIR@"
 
 # --- Output ---

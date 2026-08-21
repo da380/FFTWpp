@@ -17,6 +17,7 @@
 #include <concepts>
 #include <functional>
 #include <memory>
+#include <numeric>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -112,24 +113,21 @@ class Layout {
   auto EmbedPointer() const { return _embed.data(); }
 
   /**
-   * @brief Calculates the total storage size required for this layout.
-   * @return The total number of elements in memory.
-   */
-  auto size() const {
-    return HowMany() *
-           std::ranges::fold_left_first(Embed(), std::multiplies<>())
-               .value_or(0);
-  }
-
-  /**
    * @brief Calculates the number of elements a single transform reads or
    * writes, ignoring `HowMany`.
    * @return The product of the embedded dimensions.
    */
   auto TransformSize() const {
-    return std::ranges::fold_left_first(Embed(), std::multiplies<>())
-        .value_or(0);
+    if (_embed.empty()) return 0;
+    return std::accumulate(_embed.begin(), _embed.end(), 1,
+                           std::multiplies<>());
   }
+
+  /**
+   * @brief Calculates the total storage size required for this layout.
+   * @return The total number of elements in memory.
+   */
+  auto size() const { return HowMany() * TransformSize(); }
 
   /** @brief Defaulted equality operator. */
   bool operator==(const Layout&) const = default;

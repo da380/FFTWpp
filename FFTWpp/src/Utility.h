@@ -154,11 +154,14 @@ requires requires() {
     NumericConcepts::RemoveComplex<std::ranges::range_value_t<Range>>
         tolerance = 1000 * std::numeric_limits<NumericConcepts::RemoveComplex<
                                std::ranges::range_value_t<Range>>>::epsilon()) {
-  return std::ranges::all_of(
-      std::ranges::views::zip_transform(
-          [norm](auto x, auto y) { return std::abs(x - y * norm); },
-          std::ranges::views::all(in), std::ranges::views::all(copy)),
-      [tolerance](auto x) { return x < tolerance; });
+  auto first = std::ranges::begin(in);
+  const auto last = std::ranges::end(in);
+  auto second = std::ranges::begin(copy);
+  const auto secondLast = std::ranges::end(copy);
+  for (; first != last && second != secondLast; ++first, ++second) {
+    if (!(std::abs(*first - *second * norm) < tolerance)) return false;
+  }
+  return true;
 }
 
 }  // namespace FFTWpp

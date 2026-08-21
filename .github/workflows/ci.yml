@@ -33,7 +33,7 @@ jobs:
             threads: OFF
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install FFTW (Linux)
         if: runner.os == 'Linux'
@@ -75,7 +75,7 @@ jobs:
     name: install and find_package
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install FFTW
         run: |
@@ -109,26 +109,21 @@ jobs:
       matrix:
         sanitizer: [address, thread]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install FFTW
         run: |
           sudo apt-get update
           sudo apt-get install -y libfftw3-dev
 
-      # ThreadSanitizer cannot see inside the uninstrumented FFTW, so it
-      # reports its internal state as racy even when FFTWpp's planner mutex
-      # is doing its job. Suppress FFTW's own frames and keep the rest.
       - name: Run the sanitized test suite
-        env:
-          TSAN_SUPPRESSIONS: ${{ github.workspace }}/scripts/tsan.supp
         run: ./scripts/test_sanitized.sh ${{ matrix.sanitizer }} -DFFTWPP_BUILD_EXAMPLES=OFF
 
   format:
     name: clang-format
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check formatting
         run: |
           find FFTWpp tests examples \( -name '*.h' -o -name '*.cpp' \) \
@@ -138,7 +133,7 @@ jobs:
     name: doxygen
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install dependencies
         run: |
           sudo apt-get update

@@ -2,7 +2,7 @@
 
 @tableofcontents
 
-**FFTWpp** is a header-only C++23 library that wraps
+**FFTWpp** is a header-only C++20 library that wraps
 [FFTW3](http://www.fftw.org/). It uses concepts and ranges to give a
 type-safe, expressive API, and takes on the parts of FFTW's contract that are
 easy to get wrong: precision dispatch, plan lifetime, planner thread-safety

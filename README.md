@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/da380/FFTWpp/actions/workflows/ci.yml/badge.svg)](https://github.com/da380/FFTWpp/actions/workflows/ci.yml)
 
-**FFTWpp** is a header-only C++23 library that provides a modern, type-safe
+**FFTWpp** is a header-only C++20 library that provides a modern, type-safe
 wrapper around [FFTW3](http://www.fftw.org/). It uses concepts and ranges to
 give an expressive and safe API, and takes on the parts of FFTW's contract
 that are easy to get wrong: precision dispatch, plan lifetime, planner
@@ -11,7 +11,8 @@ thread-safety and new-array execution.
 ### Key features
 
 * **Modern C++ idioms.** Concepts for compile-time validation, ranges and
-  views for data handling.
+  views for data handling, on a C++20 baseline that works with both
+  libstdc++ and libc++.
 * **RAII plan management.** `FFTWpp::Ranges::Plan` owns its `fftw_plan` and
   destroys it at the end of its scope.
 * **Type safety.** `Flag`, `Direction` and `RealKind` replace raw integers
@@ -81,9 +82,15 @@ only a genuinely absent dependency is downloaded.
 
 ### Requirements
 
-A C++23 compiler (GCC 13, Clang 18 or newer) and FFTW3 built for all three
-precisions: `libfftw3`, `libfftw3f` and `libfftw3l`. On Debian and Ubuntu that
-is `libfftw3-dev`; on macOS, `brew install fftw`.
+A C++20 compiler and FFTW3 built for all three precisions: `libfftw3`,
+`libfftw3f` and `libfftw3l`. On Debian and Ubuntu that is `libfftw3-dev`; on
+macOS, `brew install fftw`.
+
+GCC 11, Clang 16 and Apple Clang 15 or newer should all work; CI covers GCC
+13, Clang 18 and the Apple Clang on the current macOS runner. The library
+deliberately avoids the C++23 ranges algorithms — `fold_left_first` and
+`zip_transform` — because libc++ does not ship them until LLVM 22 and 23,
+which would have excluded macOS entirely.
 
 ---
 

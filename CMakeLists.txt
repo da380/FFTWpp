@@ -99,7 +99,7 @@ endif()
 add_library(FFTWpp INTERFACE)
 add_library(FFTWpp::FFTWpp ALIAS FFTWpp)
 
-target_compile_features(FFTWpp INTERFACE cxx_std_23)
+target_compile_features(FFTWpp INTERFACE cxx_std_20)
 
 target_link_libraries(FFTWpp INTERFACE NumericConcepts::NumericConcepts)
 foreach(_component IN LISTS FFTWPP_FFTW_COMPONENTS)

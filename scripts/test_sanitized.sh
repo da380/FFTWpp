@@ -42,10 +42,12 @@ cmake -S "${root}" -B "${build}" \
   "$@"
 cmake --build "${build}" --parallel
 
-# FFTW itself is not instrumented, so ThreadSanitizer cannot see the
-# happens-before edges inside it and would report false positives on FFTW's
-# own internal state. Suppress those and keep the reports that concern this
-# library's own synchronisation.
+# FFTW itself is linked uninstrumented, so ThreadSanitizer cannot see the
+# happens-before edges inside it. In practice it stays quiet, so no
+# suppression file is shipped; set TSAN_SUPPRESSIONS to one if a particular
+# FFTW build turns out to need it. Note that a called_from_lib entry must
+# match exactly one loaded library or ThreadSanitizer refuses to start, so
+# name the full soname rather than "libfftw3".
 export TSAN_OPTIONS="halt_on_error=1:second_deadlock_stack=1${TSAN_SUPPRESSIONS:+:suppressions=${TSAN_SUPPRESSIONS}}"
 export ASAN_OPTIONS="detect_leaks=1:halt_on_error=1"
 export UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1"
