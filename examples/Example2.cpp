@@ -1,6 +1,7 @@
 #include <FFTWpp/Ranges>
 #include <algorithm>
 #include <complex>
+#include <cstdlib>
 #include <iostream>
 #include <ranges>
 #include <vector>
@@ -70,7 +71,8 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cout << "Transform not okay\n";
+      std::cerr << "Example2: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
   }
 
@@ -104,7 +106,8 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cout << "Transform not okay\n";
+      std::cerr << "Example2: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
   }
 
@@ -143,7 +146,14 @@ int main() {
 
     // Check the transforms worked.
     if (!CheckValues(in, copy, planBackward.Normalisation())) {
-      std::cout << "Transform not okay\n";
+      std::cerr << "Example2: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
   }
+
+  std::cout << "Example2: every round trip matched\n";
+
+  // Only once every plan has been destroyed.
+  FFTWpp::CleanUp();
+  return EXIT_SUCCESS;
 }

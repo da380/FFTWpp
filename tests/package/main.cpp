@@ -1,7 +1,6 @@
 // Exercises enough of the public interface, through the installed headers
 // only, to prove that find_package(FFTWpp) yields a usable target.
 #include <FFTWpp/Ranges>
-
 #include <complex>
 #include <cstdlib>
 #include <iostream>
@@ -17,9 +16,9 @@ int main() {
   FFTWpp::RandomiseValues(in, std::uint64_t{20260821});
   const auto original = in;
 
-  auto forward = FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in),
-                                      FFTWpp::Ranges::View(out),
-                                      FFTWpp::Estimate, FFTWpp::Forward);
+  auto forward =
+      FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(in), FFTWpp::Ranges::View(out),
+                           FFTWpp::Estimate, FFTWpp::Forward);
   auto backward = FFTWpp::Ranges::Plan(FFTWpp::Ranges::View(out),
                                        FFTWpp::Ranges::View(back),
                                        FFTWpp::Estimate, FFTWpp::Backward);

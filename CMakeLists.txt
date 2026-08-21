@@ -22,6 +22,10 @@ else()
   set(FFTWPP_IS_TOP_LEVEL OFF)
 endif()
 
+if(FFTWPP_IS_TOP_LEVEL)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CMakeDependentOption)
@@ -33,6 +37,8 @@ option(FFTWPP_BUILD_TESTS "Build the FFTWpp tests" ${FFTWPP_IS_TOP_LEVEL})
 option(FFTWPP_BUILD_DOCS "Build the Doxygen documentation" OFF)
 option(FFTWPP_INSTALL "Generate FFTWpp's install and export rules"
        ${FFTWPP_IS_TOP_LEVEL})
+option(FFTWPP_WARNINGS_AS_ERRORS
+       "Treat compiler warnings in FFTWpp's own targets as errors" OFF)
 option(FFTWPP_USE_FFTW_THREADS
        "Link FFTW's threading libraries and enable FFTWpp's threading wrappers"
        OFF)
@@ -160,12 +166,27 @@ endif()
 # Examples, tests and documentation
 # ---------------------------------------------------------------------------
 
+# Warning flags for FFTWpp's own executables. Deliberately not part of the
+# FFTWpp interface target: a consumer chooses its own warning policy, and a
+# header-only library has no business imposing one.
+add_library(FFTWppWarnings INTERFACE)
+if(MSVC)
+  target_compile_options(FFTWppWarnings INTERFACE /W4
+                         $<$<BOOL:${FFTWPP_WARNINGS_AS_ERRORS}>:/WX>)
+else()
+  target_compile_options(FFTWppWarnings INTERFACE -Wall -Wextra
+                         $<$<BOOL:${FFTWPP_WARNINGS_AS_ERRORS}>:-Werror>)
+endif()
+
+if(FFTWPP_BUILD_TESTS)
+  enable_testing()
+endif()
+
 if(FFTWPP_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
 if(FFTWPP_BUILD_TESTS)
-  enable_testing()
   add_subdirectory(tests)
 endif()
 

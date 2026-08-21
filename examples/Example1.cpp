@@ -2,6 +2,7 @@
 #include <FFTWpp/Ranges>
 #include <algorithm>
 #include <complex>
+#include <cstdlib>
 #include <iostream>
 #include <ranges>
 #include <vector>
@@ -80,7 +81,8 @@ int main() {
     // Check the transforms worked,
     auto norm = static_cast<double>(1) / static_cast<double>(n);
     if (!CheckValues(in, copy, norm)) {
-      std::cout << "Transforms not okay\n";
+      std::cerr << "Example1: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
 
     // Delete the plans to free memory.
@@ -104,7 +106,8 @@ int main() {
     // Check the transforms worked.
     auto norm = static_cast<double>(1) / static_cast<double>(n);
     if (!CheckValues(in, copy, norm)) {
-      std::cout << "Transforms not okay\n";
+      std::cerr << "Example1: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
 
     // Delete the plans to free memory.
@@ -130,10 +133,16 @@ int main() {
     // Check the transforms worked.
     auto norm = planBackward.Normalisation();
     if (!CheckValues(in, copy, norm)) {
-      std::cout << "Transform not okay\n";
+      std::cerr << "Example1: the round trip did not match\n";
+      return EXIT_FAILURE;
     }
   }
 
   // Optionally clean up "still reachably" memory.
+
+  std::cout << "Example1: every round trip matched\n";
+
+  // Only once every plan has been destroyed.
   FFTWpp::CleanUp();
+  return EXIT_SUCCESS;
 }

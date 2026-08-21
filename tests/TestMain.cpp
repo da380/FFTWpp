@@ -1,5 +1,6 @@
-#include <FFTWpp/Ranges>
 #include <gtest/gtest.h>
+
+#include <FFTWpp/Ranges>
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

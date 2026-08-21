@@ -1,0 +1,11 @@
+# ThreadSanitizer suppressions.
+#
+# FFTW is linked uninstrumented, so ThreadSanitizer cannot observe the
+# synchronisation inside it. Where FFTWpp serialises planner calls with its
+# own mutex, TSan still sees FFTW's internal reads and writes as unordered
+# and reports them. Suppressing FFTW's own frames leaves the reports that
+# concern this library's synchronisation, which is what the planner
+# serialisation tests are there to check.
+called_from_lib:libfftw3
+called_from_lib:libfftw3f
+called_from_lib:libfftw3l
