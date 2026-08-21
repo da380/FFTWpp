@@ -2,8 +2,8 @@
 
 The `Tests` executable uses GoogleTest, and CTest discovers each typed
 precision case separately. Its custom `main` calls `FFTWpp::CleanUp()` only
-after all tests, and therefore all test-local plans, have finished. The four
-examples are registered as tests too, since each verifies its own round trips
+after all tests, and therefore all test-local plans, have finished. The five
+examples are registered as tests too, since each verifies its own behaviour
 and reports the result through its exit status.
 
 ```bash
@@ -120,6 +120,15 @@ dimensions.
 
 Includes the public aggregate header in a second translation unit, so the
 test link fails if a header-defined API function stops being inline.
+
+### The examples
+
+`Example1` to `Example4` exercise the direct FFTW interface, the `Core.h`
+wrappers and the range interface across one, two, three and four dimensions
+and the batched layouts, each checking a round trip. `Example5` walks through
+the wisdom lifecycle -- loading at start-up, pre-generating shapes, what
+`WisdomOnly` does with a shape it has never seen, and saving at exit -- and
+checks each step. All five return a non-zero exit status if a check fails.
 
 ## Packaging
 

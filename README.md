@@ -345,6 +345,9 @@ A few things are worth knowing:
 * **`GenerateWisdom` with `Estimate` does nothing**, since `Estimate` performs
   no measurements to remember.
 
+`examples/Example5.cpp` walks through the whole cycle and is run as part of
+the test suite.
+
 `ExportWisdomToString<Real>()` and `ImportWisdomFromString<Real>(text)` serve
 the same purpose without a file. `ImportSystemWisdom<Real>()` reads the
 machine-wide wisdom an administrator may have generated, and reports whether

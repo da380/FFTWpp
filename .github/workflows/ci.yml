@@ -12,7 +12,9 @@ concurrency:
 
 jobs:
   build:
-    name: ${{ matrix.os }} / ${{ matrix.compiler }} / ${{ matrix.build_type }}
+    name: >-
+      ${{ matrix.os }} / ${{ matrix.compiler }} / ${{ matrix.build_type }}${{
+      matrix.threads == 'ON' && ' / fftw threads' || '' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
