@@ -1,6 +1,6 @@
 # Testing
 
-The `Tests` executable uses GoogleTest, and CTest discovers each typed
+The `fftwpp_tests` executable uses GoogleTest, and CTest discovers each typed
 precision case separately. Its custom `main` calls `FFTWpp::CleanUp()` only
 after all tests, and therefore all test-local plans, have finished — one of
 the few places that call is worth making, since the sanitizer workflow wants

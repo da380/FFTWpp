@@ -146,4 +146,4 @@ jobs:
             -DFFTWPP_BUILD_DOCS=ON \
             -DFFTWPP_BUILD_TESTS=OFF \
             -DFFTWPP_BUILD_EXAMPLES=OFF
-          cmake --build build --target doc
+          cmake --build build --target fftwpp_docs
