@@ -15,7 +15,7 @@ if(NOT TARGET GTest::gtest)
 endif()
 
 add_executable(
-  Tests
+  fftwpp_tests
   OdrInclude.cpp
   TestMain.cpp
   TestOptions.cpp
@@ -23,12 +23,12 @@ add_executable(
   TestSafety.cpp
   TestTransforms.cpp
   Tests.cpp)
-target_link_libraries(Tests PRIVATE FFTWpp::FFTWpp GTest::gtest
-                                    FFTWppWarnings)
+target_link_libraries(fftwpp_tests PRIVATE FFTWpp::FFTWpp GTest::gtest
+                                           FFTWppWarnings)
 
 include(GoogleTest)
 # PRE_TEST defers discovery from build time to test time. Besides being the
 # right thing when cross-compiling, it keeps the sanitizer builds working:
 # a build-time discovery run is not covered by whatever wrapper the test
 # driver is invoked under.
-gtest_discover_tests(Tests DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(fftwpp_tests DISCOVERY_MODE PRE_TEST)

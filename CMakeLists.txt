@@ -48,20 +48,9 @@ set(FFTWPP_THREAD_BACKEND
           "Which FFTW threading libraries to link: Threads (pthreads) or OpenMP")
 set_property(CACHE FFTWPP_THREAD_BACKEND PROPERTY STRINGS Threads OpenMP)
 
-# The option names below were used before this project had a namespaced set.
-# Honour them so that an existing build tree or CI script keeps working.
-foreach(_legacy EXAMPLES TESTS)
-  if(DEFINED MY_PROJECT_BUILD_${_legacy})
-    message(
-      DEPRECATION
-        "MY_PROJECT_BUILD_${_legacy} is deprecated; use "
-        "FFTWPP_BUILD_${_legacy} instead.")
-    set(FFTWPP_BUILD_${_legacy} ${MY_PROJECT_BUILD_${_legacy}})
-  endif()
-endforeach()
-if(DEFINED BUILD_DOCS)
-  set(FFTWPP_BUILD_DOCS ${BUILD_DOCS})
-endif()
+# Only the prefixed option names are read. The unprefixed BUILD_DOCS that used
+# to be honoured here belongs to whichever project is consuming this one, so it
+# switched on this project's documentation in every superbuild that set it.
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -81,11 +70,22 @@ find_package(FFTW REQUIRED COMPONENTS ${FFTWPP_FFTW_COMPONENTS})
 # copy is used when one exists and only an absent dependency is downloaded.
 # Without it every consumer re-downloads and rebuilds, and this project cannot
 # be packaged.
+#
+# The revision fetched is a cache variable whose default is main: the libraries
+# are one author's and move together, so on a development branch tracking main
+# is the point, and every library that fetches NumericConcepts asks for the
+# same revision, whichever of them declares it first. A release must name a
+# state that can be rebuilt, so the commit that tags a release sets this
+# default to the commit it was tested against, and the commit after it sets it
+# back to main. From outside: cmake -DFFTWPP_NUMERICCONCEPTS_TAG=<commit>
+set(FFTWPP_NUMERICCONCEPTS_TAG main CACHE STRING
+    "The NumericConcepts revision to fetch if none is installed")
+mark_as_advanced(FFTWPP_NUMERICCONCEPTS_TAG)
 include(FetchContent)
 FetchContent_Declare(
   NumericConcepts
   GIT_REPOSITORY https://github.com/da380/NumericConcepts.git
-  GIT_TAG main
+  GIT_TAG ${FFTWPP_NUMERICCONCEPTS_TAG}
   FIND_PACKAGE_ARGS NAMES NumericConcepts)
 FetchContent_MakeAvailable(NumericConcepts)
 if(NOT TARGET NumericConcepts::NumericConcepts)
@@ -164,6 +164,10 @@ endif()
 
 # ---------------------------------------------------------------------------
 # Examples, tests and documentation
+#
+# Their targets are prefixed fftwpp_, so that none can collide with a target of
+# a project that consumes this one (its own "doc" or "Tests", say); the example
+# programs keep their plain names.
 # ---------------------------------------------------------------------------
 
 # Warning flags for FFTWpp's own executables. Deliberately not part of the
@@ -195,7 +199,7 @@ if(FFTWPP_BUILD_DOCS)
   set(DOXYGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/doxygen")
   configure_file(Doxyfile.in "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile" @ONLY)
   add_custom_target(
-    doc ALL
+    fftwpp_docs ALL
     COMMAND ${DOXYGEN_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Generating API documentation with Doxygen"
