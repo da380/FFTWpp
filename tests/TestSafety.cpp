@@ -20,8 +20,9 @@ using Complex = std::complex<double>;
 //                      Planner serialisation                          //
 //---------------------------------------------------------------------//
 
-// FFTW's planner is not re-entrant. These tests do the thing that used to be
-// a race, and rely on the sanitizer workflow to say whether it still is.
+// FFTW's planner is not re-entrant. These tests do the thing that would be a
+// race without the planner mutex, and rely on the sanitizer workflow to say
+// whether it is.
 
 TEST(PlannerSerialisation, ConcurrentPlanCreationCompletes) {
   constexpr int threadCount = 8;

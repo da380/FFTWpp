@@ -5,7 +5,7 @@ precision case separately. Its custom `main` calls `FFTWpp::CleanUp()` only
 after all tests, and therefore all test-local plans, have finished — one of
 the few places that call is worth making, since the sanitizer workflow wants
 FFTW's still-reachable state released so that anything left over is this
-library's doing. The five examples are registered as tests too, since each
+library's doing. The examples are registered as tests too, since each
 verifies its own behaviour and reports the result through its exit status.
 
 ```bash
@@ -77,9 +77,9 @@ reported `Normalisation()` as well as the recovered values.
   `(count, stride, dist)` descriptor exists for.
 - `InPlaceComplexRoundTrip` — input and output views over the same storage.
 
-`ThreeDimensionalRealToComplexRoundTrip` also pins the normalisation fix: it
+`ThreeDimensionalRealToComplexRoundTrip` also pins the normalisation: it
 requires the forward and backward plans of one logical transform to report the
-same factor, which an R2C plan did not before it used the real-space
+same factor, which an R2C plan does only because it uses the real-space
 dimensions.
 
 ### `TestSafety.cpp` — the diagnosable-failure surface
@@ -128,10 +128,10 @@ dimensions.
   advanced interface reaches. A round trip cannot catch a wrong stride, since
   a consistently wrong forward and backward pair still round-trips.
 - `GuruPlan.TransformsTheCallersBufferRatherThanACopyOfIt` guards the reason
-  `GuruPlan` is constrained to views rather than ranges. When a container
-  could be deduced it was passed by value, the plan was built on the copy's
-  storage, and every transform wrote where the caller could not see it — which
-  every round trip passed regardless.
+  `GuruPlan` is constrained to views rather than ranges. If a container
+  could be deduced it would be passed by value, the plan would be built on the
+  copy's storage, and every transform would write where the caller could not
+  see it — which every round trip would pass regardless.
 - Round trips for complex, real-to-complex and real-to-real along an interior
   axis, at all three precisions, plus a transposing layout whose two sides have
   different stride orders.
