@@ -1,8 +1,7 @@
 // Round-trip correctness for the multi-dimensional and batched transforms
 // that the advanced FFTW interface exists for. Ranges::Layout, Ranges::View
 // and Ranges::Plan are the part of this library that consumers lean on
-// hardest, and the batched shapes are the ones that were previously covered
-// only by the examples.
+// hardest.
 #include <gtest/gtest.h>
 
 #include <FFTWpp/Ranges>
@@ -75,8 +74,8 @@ TYPED_TEST(Transforms, ThreeDimensionalRealToComplexRoundTrip) {
   backward.Execute();
 
   // Both directions describe the same logical transform, so both must report
-  // the same normalisation. Before Normalisation() was corrected the forward
-  // plan reported 1 / (n0 * n1 * (n2 / 2 + 1)).
+  // the same normalisation. Taken from the halfcomplex dimensions, the
+  // forward plan's would be 1 / (n0 * n1 * (n2 / 2 + 1)).
   EXPECT_EQ(forward.Normalisation(), backward.Normalisation());
   EXPECT_EQ(backward.Normalisation(), Real{1} / Real{n0 * n1 * n2});
   EXPECT_TRUE(FFTWpp::CheckValues(original, back, backward.Normalisation()));
